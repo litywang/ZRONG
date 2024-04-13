@@ -10,8 +10,9 @@ port: 7890
 mode: rule
 external-controller: 127.0.0.1:9090
 script:
-  code: |
+  code: >
     def main(ctx, metadata):
+      # 规则列表定义(规则名:代理规则), 便于调整处理顺序, 暂时按照规则数量进行处理
       ruleList = {
         "proxy-classical":"PROXY",
         "direct-classical":"DIRECT",
@@ -32,6 +33,7 @@ script:
           ctx.log('[Script] matched QUIC traffic use reject')
           return 'REJECT'
 
+      # 解析host->ip赋值到metadata中 用于后续判断
       ip = metadata['dst_ip']
       if ip == "":
         ip = ctx.resolve_ip(metadata["host"])
@@ -40,11 +42,19 @@ script:
       if ip == "":
         return "DIRECT"
 
+      # 遍历规则策略, 有命中即返回
       for rule,policy in ruleList.items():
         if ctx.rule_providers[rule].match(metadata):
           ctx.log("[match] {host} matched rule [{rule}] use {policy}".format(host=metadata["host"],rule=rule,policy=policy))
           return policy
 
+      # 判断ip是否局域网以及中国, 是则直连 PS: 兜底走直连的话 这段逻辑可以注释
+      # code = ctx.geoip(ip)
+      # ctx.log('[geoip] {host} {ip} {code}'.format(host=metadata["host"],ip=ip,code=code))
+      # if code == "LAN" or code == "CN":
+      #   return "DIRECT"
+
+      # 漏网之鱼走直连
       return "DIRECT"
 
 proxies:

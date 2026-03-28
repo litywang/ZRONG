@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Clash 节点筛选器 - GitHub Actions 自动版
-环境：Linux (GitHub Actions)
-功能：真实代理测速 + Clash.Meta 配置生成
+Clash 节点筛选器 - GitHub Actions 自动版 (修复 Clash 启动问题)
 """
 
 import requests
@@ -19,6 +17,7 @@ import yaml
 import subprocess
 import signal
 import gzip
+import shutil
 from urllib.parse import urlparse, parse_qs, unquote
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -33,27 +32,21 @@ CANDIDATE_URLS = [
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vmess.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/trojan.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vless.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vmess.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/trojan.txt",
 ]
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", "Accept": "*/*"}
 TIMEOUT = 10
 
-# 节点数量控制（Actions 环境建议保守）
 MAX_FETCH_NODES = 1000
 MAX_TCP_TEST_NODES = 200
 MAX_PROXY_TEST_NODES = 80
 MAX_FINAL_NODES = 50
 
-# 测速阈值
 MAX_LATENCY = 500
 MIN_PROXY_SPEED = 0.15
 MAX_PROXY_LATENCY = 800
 TEST_URL = "https://www.google.com/generate_204"
 
-# Clash 配置
 CLASH_PORT = 7890
 CLASH_API_PORT = 9090
 CLASH_VERSION = "v1.19.0"
@@ -62,12 +55,13 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 REPO_NAME = os.getenv("GITHUB_REPOSITORY", "user/repo")
 
-# ==================== Clash 管理 ====================
+# ==================== Clash 管理（修复版） ====================
 class ClashManager:
     def __init__(self, work_dir: str = "./clash_temp"):
         self.work_dir = Path(work_dir)
         self.work_dir.mkdir(exist_ok=True)
         self.config_file = self.work_dir / "config.yaml"
+        self.log_file = self.work_dir / "clash.log"
         self.process = None
         self.clash_path = self.work_dir / "mihomo"
     
@@ -77,49 +71,82 @@ class ClashManager:
             print("✅ 内核已存在")
             return True
         
-        # Linux AMD64 版本
-        download_url = f"https://github.com/MetaCubeX/mihomo/releases/download/{CLASH_VERSION}/mihomo-linux-amd64-compatible-{CLASH_VERSION}.gz"
-        temp_file = self.work_dir / "temp.gz"
+        # 尝试多个下载源
+        urls = [
+            f"https://github.com/MetaCubeX/mihomo/releases/download/{CLASH_VERSION}/mihomo-linux-amd64-compatible-{CLASH_VERSION}.gz",
+            f"https://github.com/MetaCubeX/mihomo/releases/download/{CLASH_VERSION}/mihomo-linux-amd64-{CLASH_VERSION}.gz",
+        ]
         
-        try:
-            resp = requests.get(download_url, timeout=120, stream=True)
-            resp.raise_for_status()
-            
-            with open(temp_file, "wb") as f:
-                for chunk in resp.iter_content(chunk_size=8192):
-                    f.write(chunk)
-            
-            with gzip.open(temp_file, "rb") as f_in:
-                with open(self.clash_path, "wb") as f_out:
-                    f_out.write(f_in.read())
-            
-            os.chmod(self.clash_path, 0o755)
-            temp_file.unlink()
-            
-            if self.clash_path.exists():
-                print(f"✅ 内核下载成功：{self.clash_path}")
-                return True
-            return False
-        except Exception as e:
-            print(f"❌ 下载失败：{e}")
-            return False
+        for download_url in urls:
+            try:
+                print(f"   尝试：{download_url[:80]}...")
+                resp = requests.get(download_url, timeout=120, stream=True)
+                resp.raise_for_status()
+                
+                temp_file = self.work_dir / "temp.gz"
+                with open(temp_file, "wb") as f:
+                    for chunk in resp.iter_content(chunk_size=8192):
+                        f.write(chunk)
+                
+                with gzip.open(temp_file, "rb") as f_in:
+                    with open(self.clash_path, "wb") as f_out:
+                        f_out.write(f_in.read())
+                
+                os.chmod(self.clash_path, 0o755)
+                temp_file.unlink()
+                
+                if self.clash_path.exists():
+                    # 验证可执行
+                    result = subprocess.run([str(self.clash_path), "-v"], capture_output=True, timeout=5)
+                    if result.returncode == 0:
+                        print(f"✅ 内核下载并验证成功")
+                        return True
+                    else:
+                        print(f"⚠️ 内核验证失败：{result.stderr.decode()[:100]}")
+                break
+            except Exception as e:
+                print(f"   下载失败：{e}")
+                continue
+        
+        return False
     
     def create_test_config(self, proxies: list) -> bool:
+        # 确保节点名称唯一
+        seen_names = {}
+        unique_proxies = []
+        for p in proxies[:MAX_PROXY_TEST_NODES]:
+            name = p["name"]
+            if name in seen_names:
+                seen_names[name] += 1
+                name = f"{name}_{seen_names[name]}"
+            else:
+                seen_names[name] = 1
+            p_copy = p.copy()
+            p_copy["name"] = name
+            unique_proxies.append(p_copy)
+        
         config = {
             "port": CLASH_PORT,
             "socks-port": 7891,
             "allow-lan": False,
             "mode": "rule",
-            "log-level": "warning",
-            "external-controller": f"127.0.0.1:{CLASH_API_PORT}",
+            "log-level": "info",
+            "external-controller": f"0.0.0.0:{CLASH_API_PORT}",
             "secret": "",
-            "proxies": proxies[:MAX_PROXY_TEST_NODES],
-            "proxy-groups": [{"name": "TEST", "type": "select", "proxies": [p["name"] for p in proxies[:MAX_PROXY_TEST_NODES]]}],
+            "ipv6": False,
+            "proxies": unique_proxies,
+            "proxy-groups": [{
+                "name": "TEST",
+                "type": "select",
+                "proxies": [p["name"] for p in unique_proxies]
+            }],
             "rules": ["MATCH,TEST"]
         }
+        
         with open(self.config_file, "w", encoding="utf-8") as f:
             yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
-        print(f"✅ 测试配置已生成")
+        
+        print(f"✅ 测试配置已生成 ({len(unique_proxies)} 个节点)")
         return True
     
     def start(self) -> bool:
@@ -128,28 +155,59 @@ class ClashManager:
                 return False
         
         print("🚀 启动 Clash 内核...")
+        
+        # 检查端口是否被占用
+        for port in [CLASH_PORT, CLASH_API_PORT]:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            result = sock.connect_ex(('127.0.0.1', port))
+            sock.close()
+            if result == 0:
+                print(f"⚠️ 端口 {port} 被占用，尝试释放...")
+                try:
+                    subprocess.run(["fuser", "-k", f"{port}/tcp"], timeout=5)
+                    time.sleep(1)
+                except:
+                    pass
+        
         try:
-            self.process = subprocess.Popen(
-                [str(self.clash_path), "-d", str(self.work_dir), "-f", str(self.config_file)],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                preexec_fn=os.setsid
-            )
+            # 启动 Clash，捕获输出以便调试
+            with open(self.log_file, "w") as log_f:
+                self.process = subprocess.Popen(
+                    [str(self.clash_path), "-d", str(self.work_dir), "-f", str(self.config_file)],
+                    stdout=log_f,
+                    stderr=subprocess.STDOUT,
+                    preexec_fn=os.setsid,
+                    cwd=str(self.work_dir)
+                )
             
-            for i in range(15):
+            # 等待 API 就绪（延长等待时间）
+            print("   等待 API 就绪...")
+            for i in range(20):
                 time.sleep(1)
+                
+                # 检查进程是否存活
+                if self.process.poll() is not None:
+                    # 进程已退出，读取日志
+                    with open(self.log_file, "r") as f:
+                        logs = f.read()
+                    print(f"❌ Clash 进程异常退出 (第{i+1}秒)")
+                    print(f"   日志：{logs[-500:]}")
+                    return False
+                
+                # 尝试连接 API
                 try:
                     resp = requests.get(f"http://127.0.0.1:{CLASH_API_PORT}/version", timeout=2)
                     if resp.status_code == 200:
-                        print("✅ Clash 内核启动成功")
+                        version = resp.json().get("version", "unknown")
+                        print(f"✅ Clash 内核启动成功 (版本：{version})")
                         return True
-                except:
-                    pass
+                except Exception as e:
+                    if i % 5 == 4:
+                        print(f"   等待中... ({i+1}/20 秒)")
             
-            if self.process.poll() is not None:
-                print("❌ Clash 启动失败")
-                return False
-            return True
+            print("❌ API 就绪超时")
+            return False
+            
         except Exception as e:
             print(f"❌ 启动异常：{e}")
             return False
@@ -390,6 +448,7 @@ def check_url_available(url: str) -> bool:
 def main():
     start_time = time.time()
     clash = ClashManager()
+    proxy_test_success = False
     
     print("=" * 50)
     print("🚀 Clash 节点筛选器 - GitHub Actions 自动版")
@@ -465,6 +524,7 @@ def main():
             test_proxies = [n["proxy"] for n in node_results[:MAX_PROXY_TEST_NODES]]
             if clash.create_test_config(test_proxies):
                 if clash.start():
+                    proxy_test_success = True
                     print("📊 开始测速...\n")
                     for i, item in enumerate(node_results[:MAX_PROXY_TEST_NODES]):
                         if len(final_nodes) >= MAX_FINAL_NODES:
@@ -488,7 +548,8 @@ def main():
         else:
             print("⚠️ 无合格节点")
         
-        print(f"\n✅ 最终可用：{len(final_nodes)} 个\n")
+        print(f"\n✅ 最终可用：{len(final_nodes)} 个")
+        print(f"📊 真实代理测速：{'✅ 已执行' if proxy_test_success else '❌ 未执行'}\n")
         
         # 5. 输出配置
         print("📝 生成配置文件...")
@@ -530,6 +591,7 @@ def main():
 • 亚洲节点：{asia_count} 个
 • 最低延迟：{min_lat:.1f} ms
 • 平均延迟：{avg_lat:.1f} ms
+• 真实测速：{'✅ 已执行' if proxy_test_success else '❌ 未执行'}
 • 总耗时：{total_time:.1f} 秒
 {'=' * 50}
         """)
@@ -543,6 +605,7 @@ def main():
 • 原始：{len(all_nodes)} | TCP 合格：{len(node_results)} | 最终：{len(final_nodes)}
 • 亚洲节点：{asia_count} 个
 • 最低延迟：{min_lat:.1f} ms
+• 真实测速：{'✅' if proxy_test_success else '❌'}
 • 耗时：{total_time:.1f} 秒
 
 📁 订阅：
@@ -557,10 +620,8 @@ def main():
         
     finally:
         clash.stop()
-        # 清理临时文件（减小仓库体积）
         try:
             if os.path.exists("./clash_temp"):
-                import shutil
                 shutil.rmtree("./clash_temp")
                 print("🧹 临时文件已清理")
         except:

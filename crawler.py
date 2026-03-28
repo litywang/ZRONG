@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Clash 节点筛选器 - GitHub Actions v2.1 (修复日志丢失问题)
+Clash 节点筛选器 - GitHub Actions v2.2 (修复路径问题)
 """
 
 import requests
@@ -17,6 +17,7 @@ import yaml
 import subprocess
 import signal
 import gzip
+import shutil
 from urllib.parse import urlparse, parse_qs, unquote
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -38,16 +39,16 @@ TIMEOUT = 10
 
 MAX_FETCH_NODES = 1000
 MAX_TCP_TEST_NODES = 200
-MAX_PROXY_TEST_NODES = 80
-MAX_FINAL_NODES = 50
+MAX_PROXY_TEST_NODES = 60
+MAX_FINAL_NODES = 40
 
 MAX_LATENCY = 500
 MIN_PROXY_SPEED = 0.15
 MAX_PROXY_LATENCY = 800
 TEST_URL = "https://www.google.com/generate_204"
 
-CLASH_PORT = 7890
-CLASH_API_PORT = 9090
+CLASH_PORT = 17890
+CLASH_API_PORT = 19090
 CLASH_VERSION = "v1.19.0"
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -55,21 +56,28 @@ CHAT_ID = os.getenv("CHAT_ID")
 REPO_NAME = os.getenv("GITHUB_REPOSITORY", "user/repo")
 GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS") == "true"
 
-# ==================== Clash 管理 ====================
+# ✅ 使用绝对路径
+WORK_DIR = Path(os.getcwd()) / "clash_temp"
+CLASH_PATH = WORK_DIR / "mihomo"
+CONFIG_FILE = WORK_DIR / "config.yaml"
+LOG_FILE = WORK_DIR / "clash.log"
+
+# ==================== Clash 管理（修复路径版） ====================
 class ClashManager:
-    def __init__(self, work_dir: str = "./clash_temp"):
-        self.work_dir = Path(work_dir)
-        self.work_dir.mkdir(exist_ok=True)
-        self.config_file = self.work_dir / "config.yaml"
-        self.log_file = self.work_dir / "clash.log"
-        self.process = None
-        self.clash_path = self.work_dir / "mihomo"
+    def __init__(self):
         self.error_details = []
+        self.process = None
+    
+    def ensure_dir(self):
+        """确保目录存在"""
+        WORK_DIR.mkdir(parents=True, exist_ok=True)
+        print(f"✅ 工作目录：{WORK_DIR.absolute()}")
     
     def download_clash(self) -> bool:
         print("📥 下载 Mihomo 内核...")
-        if self.clash_path.exists():
-            print("✅ 内核已存在")
+        
+        if CLASH_PATH.exists():
+            print(f"✅ 内核已存在：{CLASH_PATH}")
             return True
         
         urls = [
@@ -80,31 +88,57 @@ class ClashManager:
         for i, download_url in enumerate(urls, 1):
             try:
                 print(f"   尝试源 {i}/2...")
+                print(f"   URL: {download_url[:80]}...")
+                
+                # 下载压缩文件
+                temp_gz = WORK_DIR / "mihomo.gz"
                 resp = requests.get(download_url, timeout=120, stream=True)
                 resp.raise_for_status()
                 
-                temp_file = self.work_dir / "temp.gz"
-                with open(temp_file, "wb") as f:
+                with open(temp_gz, "wb") as f:
                     for chunk in resp.iter_content(chunk_size=8192):
                         f.write(chunk)
                 
-                with gzip.open(temp_file, "rb") as f_in:
-                    with open(self.clash_path, "wb") as f_out:
-                        f_out.write(f_in.read())
+                print(f"   下载完成：{temp_gz} ({temp_gz.stat().st_size} 字节)")
                 
-                os.chmod(self.clash_path, 0o755)
-                temp_file.unlink()
+                # 解压
+                print("   解压中...")
+                with gzip.open(temp_gz, "rb") as f_in:
+                    with open(CLASH_PATH, "wb") as f_out:
+                        shutil.copyfileobj(f_in, f_out)
                 
-                result = subprocess.run([str(self.clash_path), "-v"], capture_output=True, timeout=5, cwd=str(self.work_dir))
-                if result.returncode == 0:
-                    version = result.stdout.decode().strip()[:50]
-                    print(f"✅ 内核下载成功：{version}")
-                    return True
+                # 设置执行权限
+                os.chmod(CLASH_PATH, 0o755)
+                
+                # 清理临时文件
+                temp_gz.unlink()
+                
+                # 验证
+                if CLASH_PATH.exists():
+                    result = subprocess.run(
+                        [str(CLASH_PATH), "-v"],
+                        capture_output=True,
+                        timeout=5,
+                        cwd=str(WORK_DIR)
+                    )
+                    if result.returncode == 0:
+                        version = result.stdout.decode().strip()[:60]
+                        print(f"✅ 内核下载成功：{version}")
+                        print(f"   路径：{CLASH_PATH.absolute()}")
+                        print(f"   权限：{oct(CLASH_PATH.stat().st_mode)}")
+                        return True
+                    else:
+                        err = result.stderr.decode()[:200]
+                        self.error_details.append(f"内核验证失败：{err}")
+                        print(f"❌ 验证失败：{err}")
                 else:
-                    self.error_details.append(f"内核验证失败：{result.stderr.decode()[:200]}")
+                    self.error_details.append("内核文件不存在")
+                    print("❌ 内核文件未创建")
+                    
             except Exception as e:
-                self.error_details.append(f"下载源 {i} 失败：{e}")
-                print(f"   ❌ 源 {i} 失败：{e}")
+                err_msg = f"下载源 {i} 失败：{e}"
+                self.error_details.append(err_msg)
+                print(f"   ❌ {err_msg}")
                 continue
         
         return False
@@ -125,7 +159,7 @@ class ClashManager:
         
         config = {
             "port": CLASH_PORT,
-            "socks-port": 7891,
+            "socks-port": CLASH_PORT + 1,
             "allow-lan": False,
             "mode": "rule",
             "log-level": "info",
@@ -143,38 +177,41 @@ class ClashManager:
             "rules": ["MATCH,TEST"]
         }
         
-        with open(self.config_file, "w", encoding="utf-8") as f:
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
             yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
         
         print(f"✅ 测试配置已生成 ({len(unique_proxies)} 个节点)")
+        print(f"   配置文件：{CONFIG_FILE.absolute()}")
         return True
     
     def start(self) -> bool:
-        if not self.clash_path.exists():
+        self.ensure_dir()
+        
+        if not CLASH_PATH.exists():
             if not self.download_clash():
                 self.error_details.append("Clash 内核下载失败")
                 return False
         
         print("🚀 启动 Clash 内核...")
+        print(f"   工作目录：{WORK_DIR.absolute()}")
+        print(f"   配置文件：{CONFIG_FILE.absolute()}")
+        print(f"   日志文件：{LOG_FILE.absolute()}")
         
-        # 确保日志文件存在
-        self.log_file.touch()
-        
-        for port in [CLASH_PORT, CLASH_API_PORT]:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            result = sock.connect_ex(('127.0.0.1', port))
-            sock.close()
-            if result == 0:
-                print(f"⚠️ 端口 {port} 被占用")
+        # 创建日志文件
+        LOG_FILE.touch()
         
         try:
-            with open(self.log_file, "w") as log_f:
+            with open(LOG_FILE, "w") as log_f:
                 self.process = subprocess.Popen(
-                    [str(self.clash_path), "-d", str(self.work_dir), "-f", str(self.config_file)],
+                    [
+                        str(CLASH_PATH.absolute()),
+                        "-d", str(WORK_DIR.absolute()),
+                        "-f", str(CONFIG_FILE.absolute())
+                    ],
                     stdout=log_f,
                     stderr=subprocess.STDOUT,
                     preexec_fn=os.setsid,
-                    cwd=str(self.work_dir)
+                    cwd=str(WORK_DIR.absolute())
                 )
             
             print("   等待 API 就绪...")
@@ -182,12 +219,15 @@ class ClashManager:
                 time.sleep(1)
                 
                 if self.process.poll() is not None:
-                    with open(self.log_file, "r") as f:
-                        logs = f.read()
+                    try:
+                        with open(LOG_FILE, "r") as f:
+                            logs = f.read()
+                    except:
+                        logs = "无法读取日志"
                     self.error_details.append(f"Clash 进程异常退出（第{i+1}秒）")
                     self.error_details.append(f"日志：{logs[-500:]}")
-                    print(f"❌ Clash 进程异常退出")
-                    print(f"📄 日志已保存：{self.log_file}")
+                    print(f"❌ Clash 进程异常退出（第{i+1}秒）")
+                    print(f"📄 日志：{logs[-300:]}")
                     return False
                 
                 try:
@@ -206,6 +246,8 @@ class ClashManager:
         except Exception as e:
             self.error_details.append(f"启动异常：{e}")
             print(f"❌ 启动异常：{e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def stop(self):
@@ -473,7 +515,10 @@ def main():
     proxy_test_success = False
     
     print("=" * 50)
-    print("🚀 Clash 节点筛选器 - GitHub Actions v2.1")
+    print("🚀 Clash 节点筛选器 - GitHub Actions v2.2")
+    print("=" * 50)
+    print(f"📁 工作目录：{os.getcwd()}")
+    print(f"🔧 GITHUB_ACTIONS: {GITHUB_ACTIONS}")
     print("=" * 50)
     
     try:
@@ -604,7 +649,7 @@ def main():
         with open("subscription_base64.txt", "w", encoding="utf-8") as f:
             f.write(base64_sub)
         
-        # 保存错误报告（供 workflow 上传）
+        # 保存错误报告
         error_report_file = Path("clash_error_report.txt")
         with open(error_report_file, "w", encoding="utf-8") as f:
             f.write(f"运行时间：{time.time() - start_time:.1f} 秒\n")
@@ -665,7 +710,6 @@ def main():
         print("📁 日志文件已保留，供 workflow 上传")
         
     finally:
-        # ✅ 只停止 Clash，不删除目录（让 workflow 上传日志）
         clash.stop()
         print("⚠️ clash_temp 目录已保留，供 artifact 上传")
 

@@ -22,10 +22,20 @@ jobs:
         with:
           fetch-depth: 0
       
-      - uses: actions/setup-python@v6  # ✅ 升级到 v6
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: 'pip'
+      
+      # ✅ 添加系统信息调试
+      - name: System Info
+        run: |
+          echo "=== 系统信息 ==="
+          uname -a
+          pwd
+          ls -la
+          free -h
+          df -h
       
       - run: pip install requests pyyaml
       
@@ -34,19 +44,28 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
       
-      # ✅ 上传 Clash 日志（在清理之前）
+      # ✅ 显示 clash_temp 目录内容
+      - name: Show clash_temp contents
+        if: always()
+        run: |
+          echo "=== clash_temp 目录 ==="
+          ls -la clash_temp/ 2>/dev/null || echo "目录不存在"
+          echo "=== clash.log 内容 ==="
+          cat clash_temp/clash.log 2>/dev/null || echo "日志不存在"
+          echo "=== 错误报告 ==="
+          cat clash_error_report.txt 2>/dev/null || echo "报告不存在"
+      
       - name: Upload Clash logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: clash-logs-${{ github.run_number }}
           path: |
-            clash_temp/clash.log
+            clash_temp/
             clash_error_report.txt
           retention-days: 3
           if-no-files-found: warn
       
-      # ✅ 清理临时文件（上传后）
       - name: Cleanup temp files
         if: always()
         run: rm -rf clash_temp

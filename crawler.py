@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Clash 节点筛选器 - GitHub Actions v2.3 (修复目录创建问题)
+Clash 节点筛选器 - GitHub Actions v3.0 (完整优化版)
+功能：
+  ✅ 真实代理测速（通过 Mihomo 内核）
+  ✅ 节点自动重命名（地区 + 序号 + 特殊字体）
+  ✅ 亚洲节点优先
+  ✅ TCP 保底策略
+  ✅ 详细错误诊断
 """
 
 import requests
@@ -32,24 +38,36 @@ CANDIDATE_URLS = [
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vmess.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/trojan.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vless.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vmess.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/trojan.txt",
+    "https://raw.githubusercontent.com/vxiaov/free_proxies/main/clash/clash.yaml",
+    "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.yml",
 ]
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", "Accept": "*/*"}
 TIMEOUT = 10
 
-MAX_FETCH_NODES = 1000
-MAX_TCP_TEST_NODES = 200
-MAX_PROXY_TEST_NODES = 60
-MAX_FINAL_NODES = 40
+# 节点数量配置
+MAX_FETCH_NODES = 1500
+MAX_TCP_TEST_NODES = 300
+MAX_PROXY_TEST_NODES = 100
+MAX_FINAL_NODES = 80
 
-MAX_LATENCY = 500
-MIN_PROXY_SPEED = 0.15
-MAX_PROXY_LATENCY = 800
+# 测速阈值（放宽）
+MAX_LATENCY = 800
+MIN_PROXY_SPEED = 0.05
+MAX_PROXY_LATENCY = 1500
 TEST_URL = "https://www.google.com/generate_204"
 
+# Clash 配置
 CLASH_PORT = 17890
 CLASH_API_PORT = 19090
 CLASH_VERSION = "v1.19.0"
+
+# 节点命名配置
+NODE_NAME_STYLE = "fancy"  # normal / fancy / emoji
+NODE_NAME_PREFIX = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"  # 自定义前缀（特殊字体）
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
@@ -67,12 +85,90 @@ def ensure_clash_dir():
     WORK_DIR.mkdir(parents=True, exist_ok=True)
     return WORK_DIR
 
+# ==================== 节点重命名功能 ====================
+class NodeNamer:
+    """节点命名管理器"""
+    
+    # 特殊字体映射
+    FANCY_CHARS = {
+        'A': '𝔄', 'B': '𝔅', 'C': '𝔆', 'D': '𝔇', 'E': '𝔈', 'F': '𝔉', 'G': '𝔊', 'H': '𝔋',
+        'I': 'ℑ', 'J': '𝔍', 'K': '𝔎', 'L': '𝔏', 'M': '𝔐', 'N': '𝔑', 'O': '𝔒', 'P': '𝔓',
+        'Q': '𝔔', 'R': '𝔕', 'S': '𝔖', 'T': '𝔗', 'U': '𝔘', 'V': '𝔙', 'W': '𝔚', 'X': '𝔛',
+        'Y': '𝔜', 'Z': '𝔝',
+        'a': '𝔞', 'b': '𝔟', 'c': '𝔠', 'd': '𝔡', 'e': '𝔢', 'f': '𝔣', 'g': '𝔤', 'h': '𝔥',
+        'i': '𝔦', 'j': '𝔧', 'k': '𝔨', 'l': '𝔩', 'm': '𝔪', 'n': '𝔫', 'o': '𝔬', 'p': '𝔭',
+        'q': '𝔮', 'r': '𝔯', 's': '𝔰', 't': '𝔱', 'u': '𝔲', 'v': '𝔳', 'w': '𝔴', 'x': '𝔵',
+        'y': '𝔶', 'z': '𝔷',
+    }
+    
+    # 地区代码映射
+    REGION_CODES = {
+        "🇭🇰": "HK", "🇹🇼": "TW", "🇯🇵": "JP", "🇸🇬": "SG",
+        "🇰🇷": "KR", "🇹🇭": "TH", "🇻🇳": "VN", "🇺🇸": "US",
+        "🇬🇧": "UK", "🇩🇪": "DE", "🇫🇷": "FR", "🇳🇱": "NL",
+        "🌍": "OT"
+    }
+    
+    def __init__(self, style: str = "fancy", prefix: str = NODE_NAME_PREFIX):
+        self.style = style
+        self.prefix = prefix
+        self.counters = {}  # 各地区计数器
+    
+    def to_fancy(self, text: str) -> str:
+        """转换为特殊字体"""
+        result = []
+        for char in text:
+            result.append(self.FANCY_CHARS.get(char, char))
+        return ''.join(result)
+    
+    def get_region_code(self, flag: str) -> str:
+        """获取地区代码"""
+        return self.REGION_CODES.get(flag, "OT")
+    
+    def generate_name(self, flag: str, latency: int, speed: float = None, tcp_only: bool = False) -> str:
+        """生成节点名称"""
+        region_code = self.get_region_code(flag)
+        
+        # 初始化计数器
+        if region_code not in self.counters:
+            self.counters[region_code] = 0
+        self.counters[region_code] += 1
+        num = self.counters[region_code]
+        
+        if self.style == "fancy":
+            # 特殊字体风格：HK1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+            if speed:
+                name = f"{region_code}{num}-{self.to_fancy(self.prefix)}|⚡{latency}ms|📥{speed:.1f}MB"
+            elif tcp_only:
+                name = f"{region_code}{num}-{self.to_fancy(self.prefix)}|⚡{latency}ms(TCP)"
+            else:
+                name = f"{region_code}{num}-{self.to_fancy(self.prefix)}|⚡{latency}ms"
+        elif self.style == "emoji":
+            # Emoji 风格：🇭🇰1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+            if speed:
+                name = f"{flag}{num}-{self.to_fancy(self.prefix)}|⚡{latency}ms|📥{speed:.1f}MB"
+            elif tcp_only:
+                name = f"{flag}{num}-{self.to_fancy(self.prefix)}|⚡{latency}ms(TCP)"
+            else:
+                name = f"{flag}{num}-{self.to_fancy(self.prefix)}|⚡{latency}ms"
+        else:
+            # 普通风格：HK1-Anftlity
+            plain_prefix = "Anftlity"
+            if speed:
+                name = f"{region_code}{num}-{plain_prefix}|⚡{latency}ms|📥{speed:.1f}MB"
+            elif tcp_only:
+                name = f"{region_code}{num}-{plain_prefix}|⚡{latency}ms(TCP)"
+            else:
+                name = f"{region_code}{num}-{plain_prefix}|⚡{latency}ms"
+        
+        return name
+
 # ==================== Clash 管理 ====================
 class ClashManager:
     def __init__(self):
         self.error_details = []
         self.process = None
-        ensure_clash_dir()  # ✅ 初始化时创建目录
+        ensure_clash_dir()
     
     def download_clash(self) -> bool:
         print("📥 下载 Mihomo 内核...")
@@ -126,7 +222,7 @@ class ClashManager:
         return False
     
     def create_test_config(self, proxies: list) -> bool:
-        ensure_clash_dir()  # ✅ 关键修复！
+        ensure_clash_dir()
         
         seen_names = {}
         unique_proxies = []
@@ -146,7 +242,7 @@ class ClashManager:
             "socks-port": CLASH_PORT + 1,
             "allow-lan": False,
             "mode": "rule",
-            "log-level": "info",
+            "log-level": "warning",
             "external-controller": f"0.0.0.0:{CLASH_API_PORT}",
             "secret": "",
             "ipv6": False,
@@ -222,6 +318,7 @@ class ClashManager:
             try:
                 os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
                 self.process.wait(timeout=5)
+                print("✅ Clash 已停止")
             except:
                 pass
     
@@ -259,7 +356,7 @@ class ClashManager:
     def get_error_report(self) -> str:
         return "\n".join(self.error_details) if self.error_details else "无详细错误信息"
 
-# ==================== 节点解析函数（与之前相同） ====================
+# ==================== 节点解析 ====================
 def is_base64(s: str) -> bool:
     try:
         s = s.strip()
@@ -291,6 +388,35 @@ def fetch_url(url: str) -> str:
     except:
         return ""
 
+def get_region_from_name(name: str) -> tuple:
+    """从节点名称提取地区标识和代码"""
+    name_lower = name.lower()
+    if any(k in name_lower for k in ["hk", "hongkong", "港"]):
+        return "🇭🇰", "HK"
+    elif any(k in name_lower for k in ["tw", "taiwan", "台"]):
+        return "🇹🇼", "TW"
+    elif any(k in name_lower for k in ["jp", "japan", "日"]):
+        return "🇯🇵", "JP"
+    elif any(k in name_lower for k in ["sg", "singapore", "新"]):
+        return "🇸🇬", "SG"
+    elif any(k in name_lower for k in ["kr", "korea", "韩"]):
+        return "🇰🇷", "KR"
+    elif any(k in name_lower for k in ["th", "thailand", "泰"]):
+        return "🇹🇭", "TH"
+    elif any(k in name_lower for k in ["vn", "vietnam", "越"]):
+        return "🇻🇳", "VN"
+    elif any(k in name_lower for k in ["us", "usa", "美"]):
+        return "🇺🇸", "US"
+    elif any(k in name_lower for k in ["uk", "britain", "英"]):
+        return "🇬🇧", "UK"
+    elif any(k in name_lower for k in ["de", "german", "德"]):
+        return "🇩🇪", "DE"
+    elif any(k in name_lower for k in ["fr", "france", "法"]):
+        return "🇫🇷", "FR"
+    elif any(k in name_lower for k in ["nl", "netherlands", "荷"]):
+        return "🇳🇱", "NL"
+    return "🌍", "OT"
+
 def parse_vmess(node: str) -> dict | None:
     try:
         if not node.startswith("vmess://"):
@@ -311,8 +437,10 @@ def parse_vmess(node: str) -> dict | None:
         if not payload.startswith("{"):
             return None
         config = json.loads(payload)
+        flag, code = get_region_from_name(config.get("ps", ""))
         proxy = {
-            "name": config.get("ps", config.get("remarks", "VMess"))[:20],
+            "name": f"{flag}",
+            "name_code": code,
             "type": "vmess",
             "server": config.get("add", config.get("host", "")),
             "port": int(config.get("port", 443)),
@@ -338,8 +466,6 @@ def parse_vmess(node: str) -> dict | None:
                 proxy["ws-opts"] = ws_opts
         if not proxy["server"] or not proxy["uuid"]:
             return None
-        region = get_region_from_name(config.get("ps", ""))
-        proxy["name"] = f"{region}{proxy['name']}-{proxy['server'][-5:]}"
         return proxy
     except:
         return None
@@ -356,9 +482,11 @@ def parse_vless(node: str) -> dict | None:
             return None
         params = parse_qs(parsed.query)
         get_param = lambda k: params.get(k, [""])[0]
-        remark = unquote(parsed.fragment or "VLESS")[:20]
+        remark = unquote(parsed.fragment or "VLESS")
+        flag, code = get_region_from_name(remark)
         proxy = {
-            "name": remark,
+            "name": f"{flag}",
+            "name_code": code,
             "type": "vless",
             "server": parsed.hostname,
             "port": int(parsed.port or 443),
@@ -384,8 +512,6 @@ def parse_vless(node: str) -> dict | None:
                 ws_opts["headers"] = {"Host": get_param("host")}
             if ws_opts:
                 proxy["ws-opts"] = ws_opts
-        region = get_region_from_name(remark)
-        proxy["name"] = f"{region}{proxy['name']}-{proxy['server'][-5:]}"
         return proxy
     except:
         return None
@@ -402,9 +528,11 @@ def parse_trojan(node: str) -> dict | None:
             return None
         params = parse_qs(parsed.query)
         get_param = lambda k: params.get(k, [""])[0]
-        remark = unquote(parsed.fragment or "Trojan")[:20]
+        remark = unquote(parsed.fragment or "Trojan")
+        flag, code = get_region_from_name(remark)
         proxy = {
-            "name": remark,
+            "name": f"{flag}",
+            "name_code": code,
             "type": "trojan",
             "server": parsed.hostname,
             "port": int(parsed.port or 443),
@@ -413,29 +541,9 @@ def parse_trojan(node: str) -> dict | None:
             "skip-cert-verify": True,
             "sni": get_param("sni") or proxy["server"],
         }
-        region = get_region_from_name(remark)
-        proxy["name"] = f"{region}{proxy['name']}-{proxy['server'][-5:]}"
         return proxy
     except:
         return None
-
-def get_region_from_name(name: str) -> str:
-    name_lower = name.lower()
-    if any(k in name_lower for k in ["hk", "hongkong", "港"]):
-        return "🇭🇰"
-    elif any(k in name_lower for k in ["tw", "taiwan", "台"]):
-        return "🇹🇼"
-    elif any(k in name_lower for k in ["jp", "japan", "日"]):
-        return "🇯🇵"
-    elif any(k in name_lower for k in ["sg", "singapore", "新"]):
-        return "🇸🇬"
-    elif any(k in name_lower for k in ["kr", "korea", "韩"]):
-        return "🇰🇷"
-    elif any(k in name_lower for k in ["us", "usa", "美"]):
-        return "🇺🇸"
-    elif any(k in name_lower for k in ["uk", "britain", "英"]):
-        return "🇬🇧"
-    return "🌍"
 
 def parse_node(node: str) -> dict | None:
     node = node.strip()
@@ -464,7 +572,7 @@ def tcp_ping(host: str, port: int, timeout: float = 2.0) -> float:
 
 def is_asia_node(proxy: dict) -> bool:
     text = f"{proxy.get('name', '')} {proxy.get('server', '')}".lower()
-    keywords = ["hk", "hongkong", "tw", "taiwan", "jp", "japan", "sg", "singapore", "kr", "korea", "asia", "hkt"]
+    keywords = ["hk", "hongkong", "tw", "taiwan", "jp", "japan", "sg", "singapore", "kr", "korea", "asia", "hkt", "th", "vn"]
     return any(k in text for k in keywords)
 
 def check_url_available(url: str) -> bool:
@@ -478,17 +586,21 @@ def check_url_available(url: str) -> bool:
 def main():
     start_time = time.time()
     clash = ClashManager()
+    namer = NodeNamer(style=NODE_NAME_STYLE, prefix=NODE_NAME_PREFIX)
     proxy_test_success = False
     
     print("=" * 50)
-    print("🚀 Clash 节点筛选器 - GitHub Actions v2.3")
+    print("🚀 Clash 节点筛选器 - GitHub Actions v3.0")
     print("=" * 50)
     print(f"📁 工作目录：{os.getcwd()}")
     print(f"🔧 GITHUB_ACTIONS: {GITHUB_ACTIONS}")
     print(f"📂 clash_temp: {WORK_DIR.absolute()}")
+    print(f"🎨 命名风格：{NODE_NAME_STYLE}")
+    print(f"📝 节点前缀：{NODE_NAME_PREFIX}")
     print("=" * 50)
     
     try:
+        # 1. 验证订阅源
         print("\n🔍 验证订阅源...")
         valid_urls = []
         for url in CANDIDATE_URLS:
@@ -502,6 +614,7 @@ def main():
             sys.exit(1)
         print(f"✅ 找到 {len(valid_urls)} 个可用订阅源\n")
         
+        # 2. 抓取节点
         print("📥 抓取节点...")
         all_nodes = {}
         for url in valid_urls:
@@ -527,6 +640,7 @@ def main():
             time.sleep(0.2)
         print(f"✅ 解析完成：{len(all_nodes)} 个唯一节点\n")
         
+        # 3. TCP 延迟测试
         print("⚡ 第一阶段：TCP 延迟测试...")
         node_list = list(all_nodes.values())[:MAX_TCP_TEST_NODES]
         node_results = []
@@ -547,8 +661,10 @@ def main():
         node_results.sort(key=lambda x: (-x["is_asia"], x["latency"]))
         print(f"✅ TCP 合格：{len(node_results)} 个（亚洲：{sum(1 for n in node_results if n['is_asia'])}）\n")
         
+        # 4. 真实代理测速
         print("🚀 第二阶段：真实代理测速...")
         final_nodes = []
+        tested_keys = set()
         
         if len(node_results) > 0:
             test_proxies = [n["proxy"] for n in node_results[:MAX_PROXY_TEST_NODES]]
@@ -556,20 +672,66 @@ def main():
                 if clash.start():
                     proxy_test_success = True
                     print("📊 开始测速...\n")
+                    
                     for i, item in enumerate(node_results[:MAX_PROXY_TEST_NODES]):
-                        if len(final_nodes) >= MAX_FINAL_NODES:
-                            break
                         proxy = item["proxy"]
                         result = clash.test_proxy(proxy["name"])
                         
+                        unique_key = f"{proxy['server']}:{proxy['port']}"
+                        
                         if result["success"] and result["latency"] < MAX_PROXY_LATENCY:
                             if result["speed"] >= MIN_PROXY_SPEED or result["latency"] < 300:
-                                proxy["name"] = f"{proxy['name']}|⚡{result['latency']:.0f}ms|📥{result['speed']:.1f}MB"
+                                # 生成新名称
+                                new_name = namer.generate_name(
+                                    proxy["name"],
+                                    int(result["latency"]),
+                                    result["speed"],
+                                    tcp_only=False
+                                )
+                                proxy["name"] = new_name
+                                proxy["_latency"] = result["latency"]
+                                proxy["_speed"] = result["speed"]
                                 final_nodes.append(proxy)
-                                print(f"   ✅ {proxy['name']}")
+                                tested_keys.add(unique_key)
+                                print(f"   ✅ {new_name}")
+                        
+                        if len(final_nodes) >= MAX_FINAL_NODES:
+                            break
                         if (i + 1) % 10 == 0:
                             print(f"   进度：{i + 1}/{min(len(node_results), MAX_PROXY_TEST_NODES)} | 合格：{len(final_nodes)}")
+                    
                     clash.stop()
+                    
+                    # 保底策略：如果合格节点不足，使用 TCP 结果补充
+                    if len(final_nodes) < MAX_FINAL_NODES // 2:
+                        print(f"\n⚠️ 测速合格节点不足 ({len(final_nodes)} 个)，使用 TCP 结果补充...")
+                        for item in node_results:
+                            if len(final_nodes) >= MAX_FINAL_NODES:
+                                break
+                            proxy = item["proxy"]
+                            unique_key = f"{proxy['server']}:{proxy['port']}"
+                            if unique_key in tested_keys:
+                                continue
+                            if item["is_asia"] and item["latency"] < 400:
+                                new_name = namer.generate_name(
+                                    proxy["name"],
+                                    int(item["latency"]),
+                                    tcp_only=True
+                                )
+                                proxy["name"] = new_name
+                                final_nodes.append(proxy)
+                                tested_keys.add(unique_key)
+                                print(f"   📌 {new_name} (TCP 补充)")
+                            elif item["latency"] < 200:
+                                new_name = namer.generate_name(
+                                    proxy["name"],
+                                    int(item["latency"]),
+                                    tcp_only=True
+                                )
+                                proxy["name"] = new_name
+                                final_nodes.append(proxy)
+                                tested_keys.add(unique_key)
+                                print(f"   📌 {new_name} (TCP 补充)")
                 else:
                     print("⚠️ Clash 启动失败，使用 TCP 优化筛选")
                     for item in node_results[:MAX_FINAL_NODES * 2]:
@@ -577,22 +739,31 @@ def main():
                             break
                         proxy = item["proxy"]
                         latency = item["latency"]
-                        if item["is_asia"] and latency < 200:
-                            proxy["name"] = f"{proxy['name']}|⚡{latency:.0f}ms"
+                        unique_key = f"{proxy['server']}:{proxy['port']}"
+                        if unique_key in tested_keys:
+                            continue
+                        if item["is_asia"] and latency < 400:
+                            new_name = namer.generate_name(proxy["name"], int(latency), tcp_only=True)
+                            proxy["name"] = new_name
                             final_nodes.append(proxy)
-                        elif latency < 100:
-                            proxy["name"] = f"{proxy['name']}|⚡{latency:.0f}ms"
+                            tested_keys.add(unique_key)
+                        elif latency < 150:
+                            new_name = namer.generate_name(proxy["name"], int(latency), tcp_only=True)
+                            proxy["name"] = new_name
                             final_nodes.append(proxy)
+                            tested_keys.add(unique_key)
         else:
             print("⚠️ 无合格节点")
         
         print(f"\n✅ 最终可用：{len(final_nodes)} 个")
         print(f"📊 真实测速：{'✅ 已执行' if proxy_test_success else '❌ 未执行（TCP 降级筛选）'}\n")
         
+        # 5. 输出配置
         print("📝 生成配置文件...")
         for proxy in final_nodes:
             proxy.pop("_latency", None)
             proxy.pop("_speed", None)
+            proxy.pop("name_code", None)
         
         clash_config = {
             "proxies": final_nodes,
@@ -611,6 +782,7 @@ def main():
         with open("subscription_base64.txt", "w", encoding="utf-8") as f:
             f.write(base64_sub)
         
+        # 保存错误报告
         error_report_file = Path("clash_error_report.txt")
         with open(error_report_file, "w", encoding="utf-8") as f:
             f.write(f"运行时间：{time.time() - start_time:.1f} 秒\n")
@@ -618,6 +790,7 @@ def main():
             f.write("错误详情:\n")
             f.write(clash.get_error_report())
         
+        # 统计
         total_time = time.time() - start_time
         asia_count = sum(1 for p in final_nodes if is_asia_node(p))
         latency_list = [tcp_ping(p["server"], p["port"]) for p in final_nodes[:20]] if final_nodes else []
@@ -644,13 +817,14 @@ def main():
             for err in clash.error_details[:5]:
                 print(f"   • {err[:100]}")
         
+        # Telegram 推送
         if BOT_TOKEN and CHAT_ID:
             try:
                 msg = f"""🚀 <b>节点更新完成</b>
 
 📊 统计：
 • 原始：{len(all_nodes)} | TCP 合格：{len(node_results)} | 最终：{len(final_nodes)}
-• 亚洲节点：{asia_count} 个
+• 亚洲节点：{asia_count} 个 ({asia_count*100//max(len(final_nodes),1)}%)
 • 最低延迟：{min_lat:.1f} ms
 • 真实测速：{'✅' if proxy_test_success else '❌'}
 • 耗时：{total_time:.1f} 秒

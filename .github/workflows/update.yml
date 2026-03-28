@@ -3,13 +3,11 @@ name: Update Clash Nodes
 
 on:
   schedule:
-    - cron: '0 */4 * * *'  # 每 4 小时
-  workflow_dispatch:       # 手动触发
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
 
-# ✅ 关键：授予写权限
 permissions:
   contents: write
-  actions: read
 
 jobs:
   update:
@@ -17,39 +15,33 @@ jobs:
     timeout-minutes: 30
     
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          persist-credentials: true
       
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
       
       - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install requests pyyaml
+        run: pip install requests pyyaml
       
-      - name: Run node crawler
+      - name: Run crawler
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
         run: python crawler.py
       
-      - name: Commit changes
+      - name: Show Clash logs (if failed)
+        if: failure()
+        run: cat clash_temp/clash.log 2>/dev/null || echo "No logs"
+      
+      - name: Commit and push
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git status
           git add -A
-          if ! git diff --staged --quiet; then
-            git commit -m "🔄 Update nodes $(date '+%Y-%m-%d %H:%M')"
-            git push
-            echo "✅ 推送成功"
-          else
-            echo "⚠️ 无变更，跳过推送"
-          fi
+          git diff --staged --quiet || git commit -m "🔄 Update nodes $(date '+%Y-%m-%d %H:%M')"
+          git push

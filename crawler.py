@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Clash 节点筛选器 - GitHub Actions v2.2 (修复路径问题)
+Clash 节点筛选器 - GitHub Actions v2.3 (修复目录创建问题)
 """
 
 import requests
@@ -56,22 +56,23 @@ CHAT_ID = os.getenv("CHAT_ID")
 REPO_NAME = os.getenv("GITHUB_REPOSITORY", "user/repo")
 GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS") == "true"
 
-# ✅ 使用绝对路径
+# ==================== 路径定义 ====================
 WORK_DIR = Path(os.getcwd()) / "clash_temp"
 CLASH_PATH = WORK_DIR / "mihomo"
 CONFIG_FILE = WORK_DIR / "config.yaml"
 LOG_FILE = WORK_DIR / "clash.log"
 
-# ==================== Clash 管理（修复路径版） ====================
+def ensure_clash_dir():
+    """确保 clash_temp 目录存在"""
+    WORK_DIR.mkdir(parents=True, exist_ok=True)
+    return WORK_DIR
+
+# ==================== Clash 管理 ====================
 class ClashManager:
     def __init__(self):
         self.error_details = []
         self.process = None
-    
-    def ensure_dir(self):
-        """确保目录存在"""
-        WORK_DIR.mkdir(parents=True, exist_ok=True)
-        print(f"✅ 工作目录：{WORK_DIR.absolute()}")
+        ensure_clash_dir()  # ✅ 初始化时创建目录
     
     def download_clash(self) -> bool:
         print("📥 下载 Mihomo 内核...")
@@ -88,9 +89,7 @@ class ClashManager:
         for i, download_url in enumerate(urls, 1):
             try:
                 print(f"   尝试源 {i}/2...")
-                print(f"   URL: {download_url[:80]}...")
                 
-                # 下载压缩文件
                 temp_gz = WORK_DIR / "mihomo.gz"
                 resp = requests.get(download_url, timeout=120, stream=True)
                 resp.raise_for_status()
@@ -99,51 +98,36 @@ class ClashManager:
                     for chunk in resp.iter_content(chunk_size=8192):
                         f.write(chunk)
                 
-                print(f"   下载完成：{temp_gz} ({temp_gz.stat().st_size} 字节)")
+                print(f"   下载完成：{temp_gz.stat().st_size} 字节")
                 
-                # 解压
-                print("   解压中...")
                 with gzip.open(temp_gz, "rb") as f_in:
                     with open(CLASH_PATH, "wb") as f_out:
                         shutil.copyfileobj(f_in, f_out)
                 
-                # 设置执行权限
                 os.chmod(CLASH_PATH, 0o755)
-                
-                # 清理临时文件
                 temp_gz.unlink()
                 
-                # 验证
                 if CLASH_PATH.exists():
-                    result = subprocess.run(
-                        [str(CLASH_PATH), "-v"],
-                        capture_output=True,
-                        timeout=5,
-                        cwd=str(WORK_DIR)
-                    )
+                    result = subprocess.run([str(CLASH_PATH), "-v"], capture_output=True, timeout=5, cwd=str(WORK_DIR))
                     if result.returncode == 0:
                         version = result.stdout.decode().strip()[:60]
                         print(f"✅ 内核下载成功：{version}")
-                        print(f"   路径：{CLASH_PATH.absolute()}")
-                        print(f"   权限：{oct(CLASH_PATH.stat().st_mode)}")
                         return True
                     else:
-                        err = result.stderr.decode()[:200]
-                        self.error_details.append(f"内核验证失败：{err}")
-                        print(f"❌ 验证失败：{err}")
+                        self.error_details.append(f"内核验证失败：{result.stderr.decode()[:200]}")
                 else:
                     self.error_details.append("内核文件不存在")
-                    print("❌ 内核文件未创建")
                     
             except Exception as e:
-                err_msg = f"下载源 {i} 失败：{e}"
-                self.error_details.append(err_msg)
-                print(f"   ❌ {err_msg}")
+                self.error_details.append(f"下载源 {i} 失败：{e}")
+                print(f"   ❌ 源 {i} 失败：{e}")
                 continue
         
         return False
     
     def create_test_config(self, proxies: list) -> bool:
+        ensure_clash_dir()  # ✅ 关键修复！
+        
         seen_names = {}
         unique_proxies = []
         for p in proxies[:MAX_PROXY_TEST_NODES]:
@@ -169,11 +153,7 @@ class ClashManager:
             "unified-delay": True,
             "tcp-concurrent": True,
             "proxies": unique_proxies,
-            "proxy-groups": [{
-                "name": "TEST",
-                "type": "select",
-                "proxies": [p["name"] for p in unique_proxies]
-            }],
+            "proxy-groups": [{"name": "TEST", "type": "select", "proxies": [p["name"] for p in unique_proxies]}],
             "rules": ["MATCH,TEST"]
         }
         
@@ -181,11 +161,10 @@ class ClashManager:
             yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
         
         print(f"✅ 测试配置已生成 ({len(unique_proxies)} 个节点)")
-        print(f"   配置文件：{CONFIG_FILE.absolute()}")
         return True
     
     def start(self) -> bool:
-        self.ensure_dir()
+        ensure_clash_dir()
         
         if not CLASH_PATH.exists():
             if not self.download_clash():
@@ -193,21 +172,13 @@ class ClashManager:
                 return False
         
         print("🚀 启动 Clash 内核...")
-        print(f"   工作目录：{WORK_DIR.absolute()}")
-        print(f"   配置文件：{CONFIG_FILE.absolute()}")
-        print(f"   日志文件：{LOG_FILE.absolute()}")
         
-        # 创建日志文件
         LOG_FILE.touch()
         
         try:
             with open(LOG_FILE, "w") as log_f:
                 self.process = subprocess.Popen(
-                    [
-                        str(CLASH_PATH.absolute()),
-                        "-d", str(WORK_DIR.absolute()),
-                        "-f", str(CONFIG_FILE.absolute())
-                    ],
+                    [str(CLASH_PATH.absolute()), "-d", str(WORK_DIR.absolute()), "-f", str(CONFIG_FILE.absolute())],
                     stdout=log_f,
                     stderr=subprocess.STDOUT,
                     preexec_fn=os.setsid,
@@ -226,8 +197,7 @@ class ClashManager:
                         logs = "无法读取日志"
                     self.error_details.append(f"Clash 进程异常退出（第{i+1}秒）")
                     self.error_details.append(f"日志：{logs[-500:]}")
-                    print(f"❌ Clash 进程异常退出（第{i+1}秒）")
-                    print(f"📄 日志：{logs[-300:]}")
+                    print(f"❌ Clash 进程异常退出")
                     return False
                 
                 try:
@@ -236,7 +206,7 @@ class ClashManager:
                         version = resp.json().get("version", "unknown")
                         print(f"✅ Clash 启动成功 (v{version})")
                         return True
-                except Exception as e:
+                except:
                     if i % 5 == 4:
                         print(f"   等待中... ({i+1}/25 秒)")
             
@@ -245,9 +215,6 @@ class ClashManager:
             
         except Exception as e:
             self.error_details.append(f"启动异常：{e}")
-            print(f"❌ 启动异常：{e}")
-            import traceback
-            traceback.print_exc()
             return False
     
     def stop(self):
@@ -255,7 +222,6 @@ class ClashManager:
             try:
                 os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
                 self.process.wait(timeout=5)
-                print("✅ Clash 已停止")
             except:
                 pass
     
@@ -293,7 +259,7 @@ class ClashManager:
     def get_error_report(self) -> str:
         return "\n".join(self.error_details) if self.error_details else "无详细错误信息"
 
-# ==================== 节点解析 ====================
+# ==================== 节点解析函数（与之前相同） ====================
 def is_base64(s: str) -> bool:
     try:
         s = s.strip()
@@ -515,14 +481,14 @@ def main():
     proxy_test_success = False
     
     print("=" * 50)
-    print("🚀 Clash 节点筛选器 - GitHub Actions v2.2")
+    print("🚀 Clash 节点筛选器 - GitHub Actions v2.3")
     print("=" * 50)
     print(f"📁 工作目录：{os.getcwd()}")
     print(f"🔧 GITHUB_ACTIONS: {GITHUB_ACTIONS}")
+    print(f"📂 clash_temp: {WORK_DIR.absolute()}")
     print("=" * 50)
     
     try:
-        # 1. 验证订阅源
         print("\n🔍 验证订阅源...")
         valid_urls = []
         for url in CANDIDATE_URLS:
@@ -536,7 +502,6 @@ def main():
             sys.exit(1)
         print(f"✅ 找到 {len(valid_urls)} 个可用订阅源\n")
         
-        # 2. 抓取节点
         print("📥 抓取节点...")
         all_nodes = {}
         for url in valid_urls:
@@ -562,7 +527,6 @@ def main():
             time.sleep(0.2)
         print(f"✅ 解析完成：{len(all_nodes)} 个唯一节点\n")
         
-        # 3. TCP 延迟测试
         print("⚡ 第一阶段：TCP 延迟测试...")
         node_list = list(all_nodes.values())[:MAX_TCP_TEST_NODES]
         node_results = []
@@ -583,7 +547,6 @@ def main():
         node_results.sort(key=lambda x: (-x["is_asia"], x["latency"]))
         print(f"✅ TCP 合格：{len(node_results)} 个（亚洲：{sum(1 for n in node_results if n['is_asia'])}）\n")
         
-        # 4. 真实代理测速
         print("🚀 第二阶段：真实代理测速...")
         final_nodes = []
         
@@ -626,7 +589,6 @@ def main():
         print(f"\n✅ 最终可用：{len(final_nodes)} 个")
         print(f"📊 真实测速：{'✅ 已执行' if proxy_test_success else '❌ 未执行（TCP 降级筛选）'}\n")
         
-        # 5. 输出配置
         print("📝 生成配置文件...")
         for proxy in final_nodes:
             proxy.pop("_latency", None)
@@ -649,7 +611,6 @@ def main():
         with open("subscription_base64.txt", "w", encoding="utf-8") as f:
             f.write(base64_sub)
         
-        # 保存错误报告
         error_report_file = Path("clash_error_report.txt")
         with open(error_report_file, "w", encoding="utf-8") as f:
             f.write(f"运行时间：{time.time() - start_time:.1f} 秒\n")
@@ -657,7 +618,6 @@ def main():
             f.write("错误详情:\n")
             f.write(clash.get_error_report())
         
-        # 统计
         total_time = time.time() - start_time
         asia_count = sum(1 for p in final_nodes if is_asia_node(p))
         latency_list = [tcp_ping(p["server"], p["port"]) for p in final_nodes[:20]] if final_nodes else []
@@ -679,21 +639,18 @@ def main():
 {'=' * 50}
         """)
         
-        # 输出错误报告
         if clash.error_details:
             print("\n⚠️ 错误报告:")
             for err in clash.error_details[:5]:
                 print(f"   • {err[:100]}")
-            print(f"📄 完整报告：{error_report_file}")
         
-        # Telegram 推送
         if BOT_TOKEN and CHAT_ID:
             try:
                 msg = f"""🚀 <b>节点更新完成</b>
 
 📊 统计：
 • 原始：{len(all_nodes)} | TCP 合格：{len(node_results)} | 最终：{len(final_nodes)}
-• 亚洲节点：{asia_count} 个 ({asia_count*100//max(len(final_nodes),1)}%)
+• 亚洲节点：{asia_count} 个
 • 最低延迟：{min_lat:.1f} ms
 • 真实测速：{'✅' if proxy_test_success else '❌'}
 • 耗时：{total_time:.1f} 秒
@@ -707,7 +664,6 @@ def main():
                 print(f"❌ Telegram 失败：{e}")
         
         print("\n🎉 完成！")
-        print("📁 日志文件已保留，供 workflow 上传")
         
     finally:
         clash.stop()

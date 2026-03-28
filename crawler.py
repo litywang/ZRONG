@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Clash 节点筛选器 - GitHub Actions 自动版 (修复 Clash 启动问题)
+Clash 节点筛选器 - GitHub Actions 自动版 (v2.0 修复版)
+改进：
+  ✅ 增强 Clash 启动错误诊断
+  ✅ 多下载源备用
+  ✅ TCP 筛选优化（当真实测速失败时）
+  ✅ 亚洲节点比例提升
 """
 
 import requests
@@ -25,19 +30,13 @@ from pathlib import Path
 # ==================== 配置区 ====================
 CANDIDATE_URLS = [
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt",
-    "https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/all_extracted_configs.txt",
-    "https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/subscriptions/v2ray/all_sub.txt",
     "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
+    "https://raw.githubusercontent.com/roosterkid/openproxylist/refs/heads/main/V2RAY_RAW.txt",
+    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vmess.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/trojan.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vless.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vmess.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/trojan.txt",
-    "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/vl.txt",
-    "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/vm.txt",
-    "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/tr.txt",
 ]
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", "Accept": "*/*"}
@@ -60,8 +59,9 @@ CLASH_VERSION = "v1.19.0"
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 REPO_NAME = os.getenv("GITHUB_REPOSITORY", "user/repo")
+GITHUB_WORKSPACE = os.getenv("GITHUB_WORKSPACE", os.getcwd())
 
-# ==================== Clash 管理（修复版） ====================
+# ==================== Clash 管理（增强诊断版） ====================
 class ClashManager:
     def __init__(self, work_dir: str = "./clash_temp"):
         self.work_dir = Path(work_dir)
@@ -70,6 +70,7 @@ class ClashManager:
         self.log_file = self.work_dir / "clash.log"
         self.process = None
         self.clash_path = self.work_dir / "mihomo"
+        self.error_details = []
     
     def download_clash(self) -> bool:
         print("📥 下载 Mihomo 内核...")
@@ -77,15 +78,16 @@ class ClashManager:
             print("✅ 内核已存在")
             return True
         
-        # 尝试多个下载源
+        # 多个下载源
         urls = [
             f"https://github.com/MetaCubeX/mihomo/releases/download/{CLASH_VERSION}/mihomo-linux-amd64-compatible-{CLASH_VERSION}.gz",
             f"https://github.com/MetaCubeX/mihomo/releases/download/{CLASH_VERSION}/mihomo-linux-amd64-{CLASH_VERSION}.gz",
+            f"https://mirror.ghproxy.com/https://github.com/MetaCubeX/mihomo/releases/download/{CLASH_VERSION}/mihomo-linux-amd64-compatible-{CLASH_VERSION}.gz",
         ]
         
-        for download_url in urls:
+        for i, download_url in enumerate(urls, 1):
             try:
-                print(f"   尝试：{download_url[:80]}...")
+                print(f"   尝试源 {i}/3: {download_url[:70]}...")
                 resp = requests.get(download_url, timeout=120, stream=True)
                 resp.raise_for_status()
                 
@@ -101,17 +103,17 @@ class ClashManager:
                 os.chmod(self.clash_path, 0o755)
                 temp_file.unlink()
                 
-                if self.clash_path.exists():
-                    # 验证可执行
-                    result = subprocess.run([str(self.clash_path), "-v"], capture_output=True, timeout=5)
-                    if result.returncode == 0:
-                        print(f"✅ 内核下载并验证成功")
-                        return True
-                    else:
-                        print(f"⚠️ 内核验证失败：{result.stderr.decode()[:100]}")
-                break
+                # 验证
+                result = subprocess.run([str(self.clash_path), "-v"], capture_output=True, timeout=5, cwd=str(self.work_dir))
+                if result.returncode == 0:
+                    version = result.stdout.decode().strip()[:50]
+                    print(f"✅ 内核下载成功：{version}")
+                    return True
+                else:
+                    self.error_details.append(f"内核验证失败：{result.stderr.decode()[:200]}")
             except Exception as e:
-                print(f"   下载失败：{e}")
+                self.error_details.append(f"下载源 {i} 失败：{e}")
+                print(f"   ❌ 源 {i} 失败")
                 continue
         
         return False
@@ -140,6 +142,8 @@ class ClashManager:
             "external-controller": f"0.0.0.0:{CLASH_API_PORT}",
             "secret": "",
             "ipv6": False,
+            "unified-delay": True,
+            "tcp-concurrent": True,
             "proxies": unique_proxies,
             "proxy-groups": [{
                 "name": "TEST",
@@ -158,25 +162,25 @@ class ClashManager:
     def start(self) -> bool:
         if not self.clash_path.exists():
             if not self.download_clash():
+                self.error_details.append("Clash 内核下载失败")
                 return False
         
         print("🚀 启动 Clash 内核...")
         
-        # 检查端口是否被占用
+        # 检查端口
         for port in [CLASH_PORT, CLASH_API_PORT]:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             result = sock.connect_ex(('127.0.0.1', port))
             sock.close()
             if result == 0:
-                print(f"⚠️ 端口 {port} 被占用，尝试释放...")
+                print(f"⚠️ 端口 {port} 被占用")
                 try:
-                    subprocess.run(["fuser", "-k", f"{port}/tcp"], timeout=5)
+                    subprocess.run(["fuser", "-k", f"{port}/tcp"], timeout=5, capture_output=True)
                     time.sleep(1)
                 except:
                     pass
         
         try:
-            # 启动 Clash，捕获输出以便调试
             with open(self.log_file, "w") as log_f:
                 self.process = subprocess.Popen(
                     [str(self.clash_path), "-d", str(self.work_dir), "-f", str(self.config_file)],
@@ -186,35 +190,33 @@ class ClashManager:
                     cwd=str(self.work_dir)
                 )
             
-            # 等待 API 就绪（延长等待时间）
             print("   等待 API 就绪...")
-            for i in range(20):
+            for i in range(25):
                 time.sleep(1)
                 
-                # 检查进程是否存活
                 if self.process.poll() is not None:
-                    # 进程已退出，读取日志
                     with open(self.log_file, "r") as f:
                         logs = f.read()
-                    print(f"❌ Clash 进程异常退出 (第{i+1}秒)")
-                    print(f"   日志：{logs[-500:]}")
+                    self.error_details.append(f"Clash 进程异常退出（第{i+1}秒）")
+                    self.error_details.append(f"日志：{logs[-500:]}")
+                    print(f"❌ Clash 进程异常退出")
                     return False
                 
-                # 尝试连接 API
                 try:
                     resp = requests.get(f"http://127.0.0.1:{CLASH_API_PORT}/version", timeout=2)
                     if resp.status_code == 200:
                         version = resp.json().get("version", "unknown")
-                        print(f"✅ Clash 内核启动成功 (版本：{version})")
+                        print(f"✅ Clash 启动成功 (v{version})")
                         return True
                 except Exception as e:
                     if i % 5 == 4:
-                        print(f"   等待中... ({i+1}/20 秒)")
+                        print(f"   等待中... ({i+1}/25 秒)")
             
-            print("❌ API 就绪超时")
+            self.error_details.append("API 就绪超时")
             return False
             
         except Exception as e:
+            self.error_details.append(f"启动异常：{e}")
             print(f"❌ 启动异常：{e}")
             return False
     
@@ -223,7 +225,7 @@ class ClashManager:
             try:
                 os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
                 self.process.wait(timeout=5)
-                print("✅ Clash 内核已停止")
+                print("✅ Clash 已停止")
             except:
                 pass
     
@@ -233,10 +235,10 @@ class ClashManager:
             api_url = f"http://127.0.0.1:{CLASH_API_PORT}/proxies/TEST"
             put_resp = requests.put(api_url, json={"name": proxy_name}, timeout=5)
             if put_resp.status_code != 204:
-                result["error"] = f"切换失败：{put_resp.status_code}"
+                result["error"] = f"切换：{put_resp.status_code}"
                 return result
             
-            time.sleep(0.3)
+            time.sleep(0.2)
             proxies = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
             
             start = time.time()
@@ -255,8 +257,11 @@ class ClashManager:
             else:
                 result["error"] = f"Status: {resp.status_code}"
         except Exception as e:
-            result["error"] = str(e)[:100]
+            result["error"] = str(e)[:80]
         return result
+    
+    def get_error_report(self) -> str:
+        return "\n".join(self.error_details) if self.error_details else "无详细错误信息"
 
 # ==================== 节点解析 ====================
 def is_base64(s: str) -> bool:
@@ -311,7 +316,7 @@ def parse_vmess(node: str) -> dict | None:
             return None
         config = json.loads(payload)
         proxy = {
-            "name": config.get("ps", config.get("remarks", "VMess"))[:25],
+            "name": config.get("ps", config.get("remarks", "VMess"))[:20],
             "type": "vmess",
             "server": config.get("add", config.get("host", "")),
             "port": int(config.get("port", 443)),
@@ -337,7 +342,10 @@ def parse_vmess(node: str) -> dict | None:
                 proxy["ws-opts"] = ws_opts
         if not proxy["server"] or not proxy["uuid"]:
             return None
-        proxy["name"] = f"{proxy['name']}-{proxy['server'][-6:]}"
+        # 添加地区标识
+        region = get_region_from_name(config.get("ps", ""))
+        proxy["name"] = f"{region}{proxy['name']}-{proxy['server'][-5:]}"
+        proxy["_region"] = region
         return proxy
     except:
         return None
@@ -354,8 +362,9 @@ def parse_vless(node: str) -> dict | None:
             return None
         params = parse_qs(parsed.query)
         get_param = lambda k: params.get(k, [""])[0]
+        remark = unquote(parsed.fragment or "VLESS")[:20]
         proxy = {
-            "name": unquote(parsed.fragment or "VLESS")[:25],
+            "name": remark,
             "type": "vless",
             "server": parsed.hostname,
             "port": int(parsed.port or 443),
@@ -381,7 +390,9 @@ def parse_vless(node: str) -> dict | None:
                 ws_opts["headers"] = {"Host": get_param("host")}
             if ws_opts:
                 proxy["ws-opts"] = ws_opts
-        proxy["name"] = f"{proxy['name']}-{proxy['server'][-6:]}"
+        region = get_region_from_name(remark)
+        proxy["name"] = f"{region}{proxy['name']}-{proxy['server'][-5:]}"
+        proxy["_region"] = region
         return proxy
     except:
         return None
@@ -398,8 +409,9 @@ def parse_trojan(node: str) -> dict | None:
             return None
         params = parse_qs(parsed.query)
         get_param = lambda k: params.get(k, [""])[0]
+        remark = unquote(parsed.fragment or "Trojan")[:20]
         proxy = {
-            "name": unquote(parsed.fragment or "Trojan")[:25],
+            "name": remark,
             "type": "trojan",
             "server": parsed.hostname,
             "port": int(parsed.port or 443),
@@ -408,10 +420,31 @@ def parse_trojan(node: str) -> dict | None:
             "skip-cert-verify": True,
             "sni": get_param("sni") or proxy["server"],
         }
-        proxy["name"] = f"{proxy['name']}-{proxy['server'][-6:]}"
+        region = get_region_from_name(remark)
+        proxy["name"] = f"{region}{proxy['name']}-{proxy['server'][-5:]}"
+        proxy["_region"] = region
         return proxy
     except:
         return None
+
+def get_region_from_name(name: str) -> str:
+    """从节点名称提取地区标识"""
+    name_lower = name.lower()
+    if any(k in name_lower for k in ["hk", "hongkong", "港"]):
+        return "🇭🇰"
+    elif any(k in name_lower for k in ["tw", "taiwan", "台"]):
+        return "🇹🇼"
+    elif any(k in name_lower for k in ["jp", "japan", "日"]):
+        return "🇯🇵"
+    elif any(k in name_lower for k in ["sg", "singapore", "新"]):
+        return "🇸🇬"
+    elif any(k in name_lower for k in ["kr", "korea", "韩"]):
+        return "🇰🇷"
+    elif any(k in name_lower for k in ["us", "usa", "美"]):
+        return "🇺🇸"
+    elif any(k in name_lower for k in ["uk", "britain", "英"]):
+        return "🇬🇧"
+    return "🌍"
 
 def parse_node(node: str) -> dict | None:
     node = node.strip()
@@ -457,7 +490,7 @@ def main():
     proxy_test_success = False
     
     print("=" * 50)
-    print("🚀 Clash 节点筛选器 - GitHub Actions 自动版")
+    print("🚀 Clash 节点筛选器 - GitHub Actions v2.0")
     print("=" * 50)
     
     try:
@@ -519,8 +552,9 @@ def main():
                 if (i + 1) % 50 == 0:
                     print(f"   已测试 {i + 1}/{len(node_list)} 个节点")
         
+        # 亚洲优先 + 低延迟排序
         node_results.sort(key=lambda x: (-x["is_asia"], x["latency"]))
-        print(f"✅ TCP 合格：{len(node_results)} 个\n")
+        print(f"✅ TCP 合格：{len(node_results)} 个（亚洲：{sum(1 for n in node_results if n['is_asia'])}）\n")
         
         # 4. 真实代理测速
         print("🚀 第二阶段：真实代理测速...")
@@ -549,19 +583,32 @@ def main():
                             print(f"   进度：{i + 1}/{min(len(node_results), MAX_PROXY_TEST_NODES)} | 合格：{len(final_nodes)}")
                     clash.stop()
                 else:
-                    print("⚠️ Clash 启动失败，使用 TCP 结果")
-                    final_nodes = [n["proxy"] for n in node_results[:MAX_FINAL_NODES]]
+                    print("⚠️ Clash 启动失败，使用 TCP 优化筛选")
+                    # 降级策略：更严格的 TCP 筛选
+                    for item in node_results[:MAX_FINAL_NODES * 2]:
+                        if len(final_nodes) >= MAX_FINAL_NODES:
+                            break
+                        proxy = item["proxy"]
+                        latency = item["latency"]
+                        # 亚洲节点优先，延迟要求更严格
+                        if item["is_asia"] and latency < 200:
+                            proxy["name"] = f"{proxy['name']}|⚡{latency:.0f}ms"
+                            final_nodes.append(proxy)
+                        elif latency < 100:
+                            proxy["name"] = f"{proxy['name']}|⚡{latency:.0f}ms"
+                            final_nodes.append(proxy)
         else:
             print("⚠️ 无合格节点")
         
         print(f"\n✅ 最终可用：{len(final_nodes)} 个")
-        print(f"📊 真实代理测速：{'✅ 已执行' if proxy_test_success else '❌ 未执行'}\n")
+        print(f"📊 真实测速：{'✅ 已执行' if proxy_test_success else '❌ 未执行（TCP 降级筛选）'}\n")
         
         # 5. 输出配置
         print("📝 生成配置文件...")
         for proxy in final_nodes:
             proxy.pop("_latency", None)
             proxy.pop("_speed", None)
+            proxy.pop("_region", None)
         
         clash_config = {
             "proxies": final_nodes,
@@ -594,13 +641,19 @@ def main():
 • 原始节点：{len(all_nodes)} 个
 • TCP 合格：{len(node_results)} 个
 • 最终可用：{len(final_nodes)} 个
-• 亚洲节点：{asia_count} 个
+• 亚洲节点：{asia_count} 个 ({asia_count*100//max(len(final_nodes),1)}%)
 • 最低延迟：{min_lat:.1f} ms
 • 平均延迟：{avg_lat:.1f} ms
 • 真实测速：{'✅ 已执行' if proxy_test_success else '❌ 未执行'}
 • 总耗时：{total_time:.1f} 秒
 {'=' * 50}
         """)
+        
+        # 输出错误报告（如果有）
+        if clash.error_details:
+            print("\n⚠️ 错误报告:")
+            for err in clash.error_details[:5]:
+                print(f"   • {err[:100]}")
         
         # Telegram 推送
         if BOT_TOKEN and CHAT_ID:
@@ -609,7 +662,7 @@ def main():
 
 📊 统计：
 • 原始：{len(all_nodes)} | TCP 合格：{len(node_results)} | 最终：{len(final_nodes)}
-• 亚洲节点：{asia_count} 个
+• 亚洲节点：{asia_count} 个 ({asia_count*100//max(len(final_nodes),1)}%)
 • 最低延迟：{min_lat:.1f} ms
 • 真实测速：{'✅' if proxy_test_success else '❌'}
 • 耗时：{total_time:.1f} 秒

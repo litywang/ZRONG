@@ -22,7 +22,7 @@ jobs:
         with:
           fetch-depth: 0
       
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6  # ✅ 升级到 v6
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -34,14 +34,22 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
       
-      # ✅ 上传 Clash 日志（调试用）
+      # ✅ 上传 Clash 日志（在清理之前）
       - name: Upload Clash logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: clash-logs-${{ github.run_number }}
-          path: clash_temp/clash.log
+          path: |
+            clash_temp/clash.log
+            clash_error_report.txt
           retention-days: 3
+          if-no-files-found: warn
+      
+      # ✅ 清理临时文件（上传后）
+      - name: Cleanup temp files
+        if: always()
+        run: rm -rf clash_temp
       
       - run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"

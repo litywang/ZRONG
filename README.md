@@ -27,23 +27,6 @@ https://raw.githubusercontent.com/litywang/ZRONG/main/subscription_base64.txt
 2. 选择 "Update Clash Nodes"
 3. 点击 "Run workflow"
 
-## 配置 Telegram 通知
-1. Fork 本仓库
-2. Settings → Secrets and variables → Actions
-3. 添加 `BOT_TOKEN` 和 `CHAT_ID`
-🔧 部署步骤
-步骤 1：Fork/创建仓库
-1. GitHub 创建新仓库（或 Fork）
-2. 仓库设置为 Public（RAW 链接才可访问）
-步骤 2：上传文件
-# 本地创建文件后推送
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/litywang/ZRONG.git
-git push -u origin main
-步骤 3：配置 Secrets
-仓库 → Settings → Secrets and variables → Actions → New repository secret
+
 
 

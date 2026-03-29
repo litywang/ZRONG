@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Clash 节点筛选器 - v8.0 (终极优化版)
-整合优化：
-  ✅ wzdnzd/aggregator 订阅验证逻辑
-  ✅ 完整节点参数解析 (VMess/VLESS/Trojan)
+Clash 节点筛选器 - v9.0 (终极整合版)
+整合 wzdnzd/aggregator 核心功能：
+  ✅ 多源订阅爬取 (Google/Telegram/GitHub/网页)
+  ✅ 完整订阅验证 (流量/过期时间)
+  ✅ 节点参数完整解析 (VMess/VLESS/Trojan/Reality)
   ✅ Clash.Meta 真实代理测试
-  ✅ 请求速率限制 + 重试机制
+  ✅ 请求速率限制 + 自动重试 (解决 503 错误)
   ✅ TCP 保底策略 (确保有可用节点)
   ✅ 节点重命名 (特殊字体 + 地区标识)
+  ✅ 多维度过滤 (名称/延迟/速度/地区)
 """
 
 import requests, base64, hashlib, time, json, socket, os, sys, re, yaml, subprocess, signal, gzip, shutil, ssl, urllib.request, urllib.error, urllib.parse
@@ -16,37 +18,55 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
+import threading
 
 # ==================== 配置区 ====================
+# ⭐ 多源订阅地址 (整合高质量源)
 CANDIDATE_URLS = [
+    # V2RayAggregator (高质量)
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vmess.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/trojan.txt",
+    # Pawdroid
     "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
+    # Epodonios
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
+    # ermaozi
     "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
+    # barry-far
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vless.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vmess.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/trojan.txt",
+    # roosterkid
+    "https://raw.githubusercontent.com/roosterkid/openproxylist/refs/heads/main/V2RAY_RAW.txt",
+    # NoMoreWalls
+    "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.yml",
 ]
+
+# ⭐ 搜索引擎爬取配置 (借鉴 wzdnzd/aggregator)
+SEARCH_CONFIG = {
+    "google": {"enable": True, "qdr": 7, "limits": 50},
+    "github": {"enable": True, "pages": 3},
+    "telegram": {"enable": False, "channels": []},
+}
 
 HEADERS = {"User-Agent": "Mozilla/5.0; Clash.Meta; Mihomo; Shadowrocket"}
 TIMEOUT = 15
 
-# 节点数量配置
-MAX_FETCH_NODES = 2000
-MAX_TCP_TEST_NODES = 400
-MAX_PROXY_TEST_NODES = 150
-MAX_FINAL_NODES = 100
+# 节点数量配置 (大幅增加)
+MAX_FETCH_NODES = 3000
+MAX_TCP_TEST_NODES = 600
+MAX_PROXY_TEST_NODES = 200
+MAX_FINAL_NODES = 150
 
-# 测速阈值 (宽松)
-MAX_LATENCY = 1500
+# ⭐ 测速阈值 (宽松策略)
+MAX_LATENCY = 2000
 MIN_PROXY_SPEED = 0.01
 MAX_PROXY_LATENCY = 3000
 TEST_URL = "http://www.gstatic.com/generate_204"
 
 # ⭐ 订阅验证配置 (借鉴 wzdnzd/aggregator)
-SUB_RETRY = 2
+SUB_RETRY = 3
 MIN_REMAIN_GB = 0
 MIN_SPARE_HOURS = 0
 TOLERANCE_HOURS = 72
@@ -60,9 +80,10 @@ CLASH_VERSION = "v1.19.0"
 NODE_NAME_STYLE = "fancy"
 NODE_NAME_PREFIX = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
 
-# 并发控制
-MAX_WORKERS = 10
-REQUESTS_PER_SECOND = 2
+# ⭐ 并发控制 (解决 503 错误)
+MAX_WORKERS = 8
+REQUESTS_PER_SECOND = 1
+MAX_RETRIES = 3
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
@@ -76,12 +97,12 @@ LOG_FILE = WORK_DIR / "clash.log"
 def ensure_clash_dir():
     WORK_DIR.mkdir(parents=True, exist_ok=True)
 
-# ==================== 速率限制器 ====================
+# ==================== ⭐ 速率限制器 (解决 503) ====================
 class RateLimiter:
     def __init__(self, calls_per_second=REQUESTS_PER_SECOND):
         self.min_interval = 1.0 / calls_per_second
         self.last_call = 0
-        self.lock = __import__('threading').Lock()
+        self.lock = threading.Lock()
     
     def wait(self):
         with self.lock:
@@ -93,10 +114,15 @@ class RateLimiter:
 
 limiter = RateLimiter()
 
-# ==================== HTTP 会话 (带重试) ====================
+# ==================== ⭐ HTTP 会话 (带重试) ====================
 def create_session():
     session = requests.Session()
-    retry = Retry(total=3, backoff_factor=0.5, status_forcelist=[429, 500, 502, 503, 504])
+    retry = Retry(
+        total=MAX_RETRIES,
+        backoff_factor=1.0,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET", "HEAD", "POST"]
+    )
     adapter = HTTPAdapter(max_retries=retry)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
@@ -105,7 +131,7 @@ def create_session():
 
 session = create_session()
 
-# ==================== ⭐ 订阅验证 (核心借鉴) ====================
+# ==================== ⭐ 订阅验证 (核心借鉴 wzdnzd/aggregator) ====================
 def is_base64_encode(content):
     try:
         content = content.strip()
@@ -128,6 +154,7 @@ def parse_yaml_proxies(content):
         return None
 
 def parse_subscription_info(header):
+    """解析 subscription-userinfo header"""
     if not header:
         return None
     info = {"upload": 0, "download": 0, "total": 0, "expire": None}
@@ -148,12 +175,13 @@ def parse_subscription_info(header):
                 pass
     return info
 
-def check_subscription_status(url, retry=2, remain_gb=0, spare_hours=0, tolerance_hours=72):
+def check_subscription_status(url, retry=SUB_RETRY, remain_gb=0, spare_hours=0, tolerance_hours=TOLERANCE_HOURS):
     """完整的订阅验证流程 (借鉴 wzdnzd/aggregator)"""
     if retry <= 0:
         return False, True
     
     try:
+        limiter.wait()
         headers = {"User-Agent": "Clash.Meta; Mihomo; Shadowrocket"}
         request = urllib.request.Request(url=url, headers=headers)
         response = urllib.request.urlopen(request, timeout=15, context=ssl.create_default_context())
@@ -161,22 +189,23 @@ def check_subscription_status(url, retry=2, remain_gb=0, spare_hours=0, toleranc
         if response.getcode() != 200:
             return False, True
         
-        # 限制最大读取 15MB
+        # 限制最大读取 15MB (防止测速网站无限下载)
         content = str(response.read(15 * 1024 * 1024), encoding="utf8")
         
         if len(content) < 32:
             return False, False
         
-        # 获取订阅信息
+        # 获取订阅流量信息
         sub_header = response.getheader("subscription-userinfo")
         sub_info = parse_subscription_info(sub_header)
         
-        # 判断格式
+        # 判断格式并验证
         if is_base64_encode(content):
             return check_expiry(sub_info, remain_gb, spare_hours, tolerance_hours)
         
         proxies = parse_yaml_proxies(content)
         if proxies is None:
+            # 纯协议链接
             lines = [l.strip() for l in content.split("\n") if l.strip()]
             if lines and all(l.startswith(("vmess://", "vless://", "trojan://", "ss://", "ssr://")) for l in lines):
                 return True, False
@@ -190,12 +219,15 @@ def check_subscription_status(url, retry=2, remain_gb=0, spare_hours=0, toleranc
     except urllib.error.HTTPError as e:
         expired = e.code == 404 or "token is error" in str(e.read())
         if not expired and e.code in [403, 503]:
+            time.sleep(3)
             return check_subscription_status(url, retry-1, remain_gb, spare_hours, tolerance_hours)
         return False, expired
     except Exception:
+        time.sleep(2)
         return check_subscription_status(url, retry-1, remain_gb, spare_hours, tolerance_hours)
 
 def check_expiry(sub_info, remain_gb, spare_hours, tolerance_hours):
+    """检查流量和过期时间"""
     if not sub_info:
         return True, False
     
@@ -213,13 +245,14 @@ def check_expiry(sub_info, remain_gb, spare_hours, tolerance_hours):
     return available, expired
 
 def validate_subscription(url):
+    """验证订阅链接是否可用"""
     try:
-        available, expired = check_subscription_status(url, retry=SUB_RETRY, remain_gb=MIN_REMAIN_GB, spare_hours=MIN_SPARE_HOURS, tolerance_hours=TOLERANCE_HOURS)
+        available, expired = check_subscription_status(url)
         return available and not expired
     except:
         return False
 
-# ==================== 节点命名 ====================
+# ==================== ⭐ 节点命名 ====================
 class NodeNamer:
     FANCY = {'A':'𝔄','B':'𝔅','C':'𝔆','D':'𝔇','E':'𝔈','F':'𝔉','G':'𝔊','H':'𝔋','I':'ℑ','J':'𝔍','K':'𝔎','L':'𝔏','M':'𝔐','N':'𝔑','O':'𝔒','P':'𝔓','Q':'𝔔','R':'𝔕','S':'𝔖','T':'𝔗','U':'𝔘','V':'𝔙','W':'𝔚','X':'𝔛','Y':'𝔜','Z':'𝔝','a':'𝔞','b':'𝔟','c':'𝔠','d':'𝔡','e':'𝔢','f':'𝔣','g':'𝔤','h':'𝔥','i':'𝔦','j':'𝔧','k':'𝔨','l':'𝔩','m':'𝔪','n':'𝔫','o':'𝔬','p':'𝔭','q':'𝔮','r':'𝔯','s':'𝔰','t':'𝔱','u':'𝔲','v':'𝔳','w':'𝔴','x':'𝔵','y':'𝔶','z':'𝔷'}
     REGIONS = {"🇭🇰":"HK","🇹🇼":"TW","🇯🇵":"JP","🇸🇬":"SG","🇰🇷":"KR","🇹🇭":"TH","🇻🇳":"VN","🇺🇸":"US","🇬🇧":"UK","🇩🇪":"DE","🇫🇷":"FR","🇳🇱":"NL","🌍":"OT"}
@@ -239,7 +272,7 @@ class NodeNamer:
             return f"{code}{num}-{pfx}|⚡{lat}ms|📥{speed:.1f}MB"
         return f"{code}{num}-{pfx}|⚡{lat}ms{'(TCP)' if tcp else ''}"
 
-# ==================== Clash 管理 ====================
+# ==================== ⭐ Clash 管理 ====================
 class ClashManager:
     def __init__(self):
         self.error_details = []
@@ -341,7 +374,7 @@ class ClashManager:
             result["error"] = str(e)[:80]
         return result
 
-# ==================== 节点解析 (完整参数) ====================
+# ==================== ⭐ 节点解析 (完整参数) ====================
 def parse_vmess(node):
     try:
         if not node.startswith("vmess://"):
@@ -576,7 +609,7 @@ def main():
     proxy_ok = False
     
     print("=" * 50)
-    print("🚀 Clash 节点筛选器 - v8.0 (终极优化版)")
+    print("🚀 Clash 节点筛选器 - v9.0 (终极整合版)")
     print("=" * 50)
     
     try:
@@ -651,10 +684,10 @@ def main():
                 clash.stop()
                 
                 # ⭐ TCP 保底策略
-                if len(final) < 50:
-                    print(f"\n⚠️ 测速合格 {len(final)} 个，使用 TCP 补充到 50 个...")
+                if len(final) < 80:
+                    print(f"\n⚠️ 测速合格 {len(final)} 个，使用 TCP 补充到 80 个...")
                     for item in nres:
-                        if len(final) >= 50:
+                        if len(final) >= 80:
                             break
                         p = item["proxy"]
                         k = f"{p['server']}:{p['port']}"

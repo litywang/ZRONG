@@ -1,23 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v11.0 - 修复版
+聚合订阅爬虫 v11.0 - 最终稳定版
 适用: GitHub Actions / 本地 Python 3.9+
-修复点: 语法BUG + Clash启动 + Telegram爬取
+修复点: f-string 语法 + Clash启动 + Telegram爬取
 """
 
-import os, sys, json, time, re, yaml, gzip, shutil, ssl, hashlib, base64, socket, signal, subprocess, threading, urllib.request, urllib.error
+import os, sys, json, time, re, yaml, gzip, shutil, ssl, hashlib, base64, socket, signal, subprocess, threading, urllib.request, urllib.error, urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from urllib.parse import urlparse, unquote, parse_qs
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
+from urllib.parse import urlparse, unquote, parse_qs
 import requests
 
 # ==================== 配置区 ====================
 CANDIDATE_URLS = [
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vmess.txt",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/trojan.txt",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/ss.txt",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/hysteria2.txt",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/Eternity.txt",
     "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt",
     "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.yml",
@@ -26,23 +30,27 @@ CANDIDATE_URLS = [
 
 TELEGRAM_CHANNELS = ["proxies_free", "mr_v2ray", "dns68"]
 
+TIMEOUT = 30
 MAX_FETCH_NODES = 1500
 MAX_TCP_TEST_NODES = 300
 MAX_PROXY_TEST_NODES = 100
 MAX_FINAL_NODES = 80
 MAX_LATENCY = 1500
 MIN_PROXY_SPEED = 0.02
-TIMEOUT = 30
+MAX_PROXY_LATENCY = 3000
+TEST_URL = "http://www.gstatic.com/generate_204"
+
 MAX_WORKERS = 3
 REQUESTS_PER_SECOND = 0.5
+MAX_RETRIES = 5
 
 CLASH_PORT = 17890
 CLASH_API_PORT = 19090
 CLASH_VERSION = "v1.19.0"
 NODE_NAME_PREFIX = "Anftli"
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "")
-CHAT_ID = os.getenv("CHAT_ID", "")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
 REPO_NAME = os.getenv("GITHUB_REPOSITORY", "user/repo")
 
 WORK_DIR = Path(os.getcwd()) / "clash_temp"
@@ -77,7 +85,7 @@ limiter = RateLimiter()
 # ==================== HTTP 会话 ====================
 def create_session():
     session = requests.Session()
-    retry = Retry(total=3, backoff_factor=1.0, status_forcelist=[429, 500, 502, 503, 504])
+    retry = Retry(total=MAX_RETRIES, backoff_factor=1.0, status_forcelist=[429, 500, 502, 503, 504])
     adapter = HTTPAdapter(max_retries=retry)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
@@ -106,8 +114,8 @@ def decode_b64(c):
         m = len(c) % 4
         if m:
             c += "=" * (4 - m)
-        decoded = base64.b64decode(c).decode("utf-8", errors="ignore")
-        return decoded if "://" in decoded else c
+        d = base64.b64decode(c).decode("utf-8", errors="ignore")
+        return d if "://" in d else c
     except:
         return c
 
@@ -484,7 +492,7 @@ class ClashManager:
             time.sleep(0.3)
             px = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
             start = time.time()
-            resp = requests.get("http://www.gstatic.com/generate_204", proxies=px, timeout=10, allow_redirects=False)
+            resp = requests.get(TEST_URL, proxies=px, timeout=10, allow_redirects=False)
             lat = (time.time() - start) * 1000
             if resp.status_code in [200, 204, 301, 302]:
                 sp_start = time.time()
@@ -624,7 +632,7 @@ def main():
 
         tcp_results.sort(key=lambda x: (-x["is_asia"], x["latency"]))
         asia_count = sum(1 for n in tcp_results if n["is_asia"])
-        print(f"✅ TCP 合格: {len(tcp_results)} 个（亚洲: {asia_count}）\n")
+        print(f"✅ TCP 合格: {len(tcp_results)} 个（亚洲：{asia_count}）\n")
 
         # 4. 真实测速 + TCP 保底
         print("🚀 真实代理测速...")
@@ -692,7 +700,11 @@ def main():
         with open("proxies.yaml", 'w', encoding='utf-8') as f:
             yaml.dump(cfg, f, allow_unicode=True, sort_keys=False)
 
-        b64_lines = [f"# {p['name']}\n{format_proxy_to_link(p)}" for p in final_nodes]
+        # Base64 输出 (修复 f-string 语法)
+        b64_lines = []
+        for p in final_nodes:
+            link = format_proxy_to_link(p)
+            b64_lines.append(f"# {p['name']}\n{link}")
         with open("subscription.txt", 'w', encoding='utf-8') as f:
             f.write('\n'.join(b64_lines))
 
@@ -740,18 +752,41 @@ def main():
 
 
 def format_proxy_to_link(p):
+    """转换为协议链接 - 已修复 f-string 语法错误"""
     try:
         if p["type"] == "vmess":
-            data = {"v": "2", "ps": p["name"], "add": p["server"], "port": p["port"], "id": p["uuid"], "aid": p.get("alterId", 0), "net": p.get("network", "tcp"), "type": "none", "host": p.get("sni", ""), "path": p.get("ws-opts", {}).get("path", ""), "tls": "tls" if p.get("tls") else ""}
+            data = {
+                "v": "2",
+                "ps": p["name"],
+                "add": p["server"],
+                "port": p["port"],
+                "id": p["uuid"],
+                "aid": p.get("alterId", 0),
+                "net": p.get("network", "tcp"),
+                "type": "none",
+                "host": p.get("sni", ""),
+                "path": p.get("ws-opts", {}).get("path", ""),
+                "tls": "tls" if p.get("tls") else ""
+            }
             return "vmess://" + base64.b64encode(json.dumps(data, separators=(',', ':')).encode()).decode()
         elif p["type"] == "trojan":
-            return f"trojan://{p['password']}@{p['server']}:{p['port']}?sni={p.get('sni', '')}#{p['name']}"
+            # 修复：避免 f-string 嵌套转义
+            pwd_enc = urllib.parse.quote(p['password'], safe='')
+            sni = p.get('sni', p['server'])
+            return f"trojan://{pwd_enc}@{p['server']}:{p['port']}?sni={sni}#{urllib.parse.quote(p['name'], safe='')}"
         elif p["type"] == "vless":
-            return f"vless://{p['uuid']}@{p['server']}:{p['port']}?type={p.get('network', 'tcp')}&security={p.get('tls', 'none')}#{p['name']}"
+            return f"vless://{p['uuid']}@{p['server']}:{p['port']}?type={p.get('network', 'tcp')}&security={p.get('tls', 'none')}#{urllib.parse.quote(p['name'], safe='')}"
         elif p["type"] == "ss":
-            return f"ss://{base64.b64encode(f'{p[\"cipher\"]}:{p[\"password\"]}'.encode()).decode()}@{p['server']}:{p['port']}#{p['name']}"
+            # 修复：提前计算 SS 编码部分，避免 f-string 内嵌套
+            cipher = p['cipher']
+            password = p['password']
+            auth_str = f"{cipher}:{password}"
+            auth_enc = base64.b64encode(auth_str.encode()).decode()
+            return f"ss://{auth_enc}@{p['server']}:{p['port']}#{urllib.parse.quote(p['name'], safe='')}"
         elif p["type"] == "hysteria2":
-            return f"hysteria2://{p['password']}@{p['server']}:{p['port']}?insecure=1&sni={p.get('sni', '')}#{p['name']}"
+            pwd_enc = urllib.parse.quote(p['password'], safe='')
+            sni = p.get('sni', p['server'])
+            return f"hysteria2://{pwd_enc}@{p['server']}:{p['port']}?insecure=1&sni={sni}#{urllib.parse.quote(p['name'], safe='')}"
         else:
             return f"# {p['name']}"
     except:

@@ -17,7 +17,6 @@ import threading
 
 # ==================== 配置区 ====================
 CANDIDATE_URLS = [
-    # V2RayAggregator (最推荐)
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vmess.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/trojan.txt",
@@ -31,30 +30,41 @@ CANDIDATE_URLS = [
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vless.txt",
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vmess.txt",
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/trojan.txt",
-    # Barry-far
+    # barry-far
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vless.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vmess.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/trojan.txt",
     # 其他高质量源
+    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
+    "https://raw.githubusercontent.com/roosterkid/openproxylist/refs/heads/main/V2RAY_RAW.txt",
+    "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.yml",
+    "https://raw.githubusercontent.com/TG-NAV/clashnode/main/subscribe.txt",
+    "https://raw.githubusercontent.com/SnapdragonLee/SystemProxy/master/dist/clash_config.yaml",
+    "https://shz.al/~WangCai",
+    # wzdnzd/aggregator 数据源
+    "https://raw.githubusercontent.com/wzdnzd/aggregator/main/data/proxies.yaml",
+    "https://cdn.jsdelivr.net/gh/vxiaov/free_proxies@main/clash/clash.provider.yaml",
+    "https://raw.githubusercontent.com/Misaka-blog/chromego_merge/main/sub/merged_proxies_new.yaml",
     "https://shz.al/~WangCai",
 ]
 
 TELEGRAM_CHANNELS = [
-    "v2ray_sub", "free_v2ray", "clash_meta", "proxies_free", "mr_v2ray",
-    "vmess_vless_v2rayng", "freeVPNjd", "dns68", "jiedianbodnn", "wxdy666",
+    "v2ray_sub", "free_v2ray", "clash_meta", "v2rayng_config", "proxies_free",
+    "v2ray_collector", "mr_v2ray", "vmess_vless_v2rayng", "freeVPNjd", "wxdy666",
+    "jiedianbodnn", "dns68", "AlphaV2ray", "V2rayN", "proxies_share"
 ]
 
 HEADERS = {"User-Agent": "Mozilla/5.0; Clash.Meta; Mihomo; Shadowrocket"}
 TIMEOUT = 30
 
-MAX_FETCH_NODES = 2000
-MAX_TCP_TEST_NODES = 300
-MAX_PROXY_TEST_NODES = 100
-MAX_FINAL_NODES = 80
-MAX_LATENCY = 2000
+MAX_FETCH_NODES = 12000
+MAX_TCP_TEST_NODES = 2500
+MAX_PROXY_TEST_NODES = 500
+MAX_FINAL_NODES = 188
+MAX_LATENCY = 3000
 MIN_PROXY_SPEED = 0.01
-MAX_PROXY_LATENCY = 3000
+MAX_PROXY_LATENCY = 850
 TEST_URL = "http://www.gstatic.com/generate_204"
 
 CLASH_PORT = 17890
@@ -270,7 +280,18 @@ def get_region(name):
 
 def is_asia(p):
     t = f"{p.get('name', '')} {p.get('server', '')}".lower()
-    return any(k in t for k in ["hk", "tw", "jp", "sg", "kr", "asia"])
+    return any(k in t for k in [
+    "hk", "hongkong", "港", 
+    "tw", "taiwan", "台", 
+    "jp", "japan", "日", 
+    "sg", "singapore", "新加坡", "新", 
+    "kr", "korea", "韩", 
+    "asia", "hkt", 
+    "th", "thailand", "泰", 
+    "vn", "vietnam", "越",
+    "my", "malaysia", "马",
+    "id", "indonesia", "印"
+])
 
 
 def is_base64(s):
@@ -355,7 +376,7 @@ def crawl_telegram_page(url, limits=25):
         return {}
 
 
-def crawl_telegram_channels(channels, pages=2, limits=20):
+def crawl_telegram_channels(channels, pages=1, limits=20):
     all_subscribes = {}
     for channel in channels:
         try:
@@ -533,7 +554,7 @@ def main():
     try:
         # 1. Telegram 频道爬取
         print("\n📱 爬取 Telegram 频道...")
-        tg_subs = crawl_telegram_channels(TELEGRAM_CHANNELS, pages=2, limits=20)
+        tg_subs = crawl_telegram_channels(TELEGRAM_CHANNELS, pages=1, limits=20)
         tg_urls = list(set([strip_url(u) for u in tg_subs.keys()]))
         all_urls.extend(tg_urls)
         print(f"✅ Telegram 订阅：{len(tg_urls)} 个\n")

@@ -14,6 +14,7 @@ from requests.adapters import HTTPAdapter
 from urllib.parse import urlparse, unquote, parse_qs
 import threading
 import random
+from datetime import datetime
 
 # ==================== 配置区 ====================
 CANDIDATE_URLS = [
@@ -905,22 +906,55 @@ def main():
             try:
                 msg = f"""🚀 <b>节点更新完成</b>
 
-📊 统计:
-• Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总：{len(all_urls)}
-• 原始：{len(nodes)} | TCP: {len(nres)} | 最终：{len(unique_final)}
-• 亚洲：{asia_ct} 个
-• 最低：{min_lat:.1f} ms
-• 耗时：{tt:.1f} 秒
+    # ==================== Telegram 推送 (v21.0 修复版) ====================
+    if BOT_TOKEN and CHAT_ID and REPO_NAME:
+        try:
+            # ⭐ 关键：动态时间戳防缓存
+            ts = int(time.time())
+            
+            # ⭐ 构建带缓存破坏符的直链
+            yaml_raw_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/proxies.yaml?t={ts}"
+            txt_raw_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/subscription.txt?t={ts}"
+            
+            # ⭐ 备用 GitHub 网页链接（如果 raw 失效可用）
+            repo_path = f"https://github.com/{REPO_NAME}/blob/main/"
+            yaml_html_url = f"{repo_path}proxies.yaml"
+            txt_html_url = f"{repo_path}subscription.txt"
+            
+            msg = f"""🚀 <b>节点更新完成</b> 🎉
 
-📁 YAML: `https://raw.githubusercontent.com/{REPO_NAME}/main/proxies.yaml`
-📄 TXT: `https://raw.githubusercontent.com/{REPO_NAME}/main/subscription.txt`
+📊 <b>统计数据:</b>
+• Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总订阅：{len(all_urls)}
+• 原始：{len(nodes)} | TCP: {len(nres)} | 最终：<code>{len(unique_final)}</code> 个
+• 亚洲节点：<b>{asia_ct}</b> 个 ({asia_ct * 100 // max(len(unique_final), 1)}%)
+• 最低延迟：{min_lat:.1f} ms
+• 平均耗时：{tt:.1f} 秒
 
-🌐 支持协议：VMess | Trojan | SS | SSR | Hysteria2 | VLESS
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"""
-                requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"}, timeout=10)
-                print("✅ Telegram 通知已发送")
-            except Exception as e:
-                print(f"⚠️ Telegram 推送失败：{e}")
+━━━━━━━━━━━━━━━━━━━━━━━
+
+💾 <b>直链下载:</b>
+YAML: <code>{yaml_raw_url}</code>
+TXT: <code>{txt_raw_url}</code>
+
+🌐 <b>网页查看:</b>
+YAML: <a href="{yaml_html_url}">{yaml_html_url}</a>
+TXT: <a href="{txt_html_url}">{txt_html_url}</a>
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+🌐 <b>支持协议:</b> VMess | Trojan | SS | SSR | Hysteria2 | VLESS
+👨‍💻 <b>作者:</b> 𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+
+<b>更新时间:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"""
+        
+            requests.post(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", 
+                json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"}, 
+                timeout=10
+            )
+            print("✅ Telegram通知已发送（含双链接验证）")
+        except Exception as e:
+            print(f"⚠️ Telegram推送失败：{e}")
         
         print("🎉 任务完成！")
         

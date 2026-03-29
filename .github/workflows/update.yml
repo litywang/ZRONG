@@ -1,8 +1,8 @@
-name: Update Proxies
+name: Update Proxies (With Unlock)
 
 on:
   schedule:
-    - cron: '0 */6 * * *'   # 每 6 小时
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 permissions:
@@ -15,25 +15,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
 
       - name: Install dependencies
         run: pip install requests pyyaml
 
       - name: Run crawler
-        run: python crawler.py
         env:
+          ENABLE_UNLOCK: "true"           # 开启流媒体解锁检测
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python crawler.py
 
-      - name: Commit and push changes
+      - name: Commit & Push
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add proxies.yaml subscription.txt
-          git commit -m "Update proxies $(date)" || echo "No changes"
+          git commit -m "Update proxies + unlock detection $(date)" || echo "No changes"
           git push

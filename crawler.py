@@ -1,14 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v13.1 Speedtest Edition - 完全可用版（GitHub Actions 专用）
-作者: 𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 13.1
-优化: 
-  • 完整集成 faceair/clash-speedtest v1.8.6（替代旧 Clash 测速）
-  • 节点命名严格采用您指定的风格: 🇭🇰HK01-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 ⚡xxms 📥x.xMB（花体品牌保留）
-  • 动态 GitHub Fork 发现 + Telegram 增强 + YAML 解析 + 更高节点上限
-  • GitHub Actions 优化：自动下载 clash-speedtest 二进制 + 并发测速
-借鉴: wzdnzd/aggregator + faceair/clash-speedtest
+聚合订阅爬虫 v13.2 Speedtest Edition - 完全可用版（GitHub Actions 专用）
+作者: 𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 13.2
 """
 
 import requests, base64, hashlib, time, json, socket, os, sys, re, yaml, subprocess, signal, gzip, shutil, urllib.request, urllib.error, urllib.parse
@@ -45,6 +39,12 @@ CANDIDATE_URLS = [
     "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/clash.yml",
     "https://raw.githubusercontent.com/freefq/free/master/v2ray",
     "https://raw.githubusercontent.com/wzdnzd/aggregator/main/data/proxies.yaml",
+    "https://cdn.jsdelivr.net/gh/vxiaov/free_proxies@main/clash/clash.provider.yaml",
+    "https://raw.githubusercontent.com/Misaka-blog/chromego_merge/main/sub/merged_proxies_new.yaml",
+    "https://raw.githubusercontent.com/MrMohebi/xray-proxy-grabber-telegram/master/collected-proxies/clash-meta/all.yaml",
+    "https://raw.githubusercontent.com/lagzian/SS-Collector/main/mix_clash.yaml",
+    "https://raw.githubusercontent.com/ronghuaxueleng/get_v2/main/pub/combine.yaml",
+    "https://raw.githubusercontent.com/zhangkaiitugithub/passcro/main/speednodes.yaml",
 ]
 
 TELEGRAM_CHANNELS = [

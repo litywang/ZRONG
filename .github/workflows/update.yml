@@ -6,7 +6,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: write  # ⭐ 必须: 允许写入仓库
+  pull-requests: write
 
 jobs:
   crawl-and-test:
@@ -27,15 +28,28 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
-        run: timeout 900 python crawler.py || echo "TIMEOUT_REACHED"
+        run: |
+          timeout 900 python crawler.py || echo "TIMEOUT_REACHED"
+          ls -la *.yaml *.txt 2>/dev/null || echo "No output files"
+          
+      - name: Show Output Files
+        run: |
+          echo "=== Output Files ==="
+          ls -lh proxies.yaml subscription.txt 2>/dev/null || true
+          wc -l proxies.yaml subscription.txt 2>/dev/null || true
           
       - name: Commit Output Files
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add proxies.yaml subscription.txt 2>/dev/null || true
-          git commit -m "🔄 Auto update $(date '+%Y-%m-%d %H:%M')" || echo "No changes to commit"
-          git push
+          git add -A
+          git diff-index --quiet HEAD || git commit -m "🔄 Auto update $(date '+%Y-%m-%d %H:%M')"
+          git push || echo "Nothing to push"
+          
+      - name: Verify Files on Repo
+        run: |
+          echo "Files committed successfully:"
+          git log --oneline -3
           
       - name: Upload Logs on Failure
         uses: actions/upload-artifact@v4

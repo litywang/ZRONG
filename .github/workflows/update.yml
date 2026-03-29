@@ -12,10 +12,13 @@ permissions:
 jobs:
   crawl-and-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20  # 明确设置超时时间
+    timeout-minutes: 20
     
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -33,15 +36,29 @@ jobs:
           echo "🚀 开始运行爬虫..."
           python crawler.py
           echo "✅ 爬虫运行结束"
-          ls -lh *.yaml *.txt 2>/dev/null || echo "⚠️ 未找到输出文件"
           
-      - name: Commit Output Files
+      - name: Verify Output Files
         run: |
+          echo "=== 检查输出文件 ==="
+          ls -lh proxies.yaml subscription.txt 2>/dev/null || echo "❌ 文件未生成"
+          wc -l proxies.yaml subscription.txt 2>/dev/null || true
+          
+      - name: Commit and Push
+        run: |
+          echo "=== 提交文件 ==="
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add -A
+          git status
+          git add proxies.yaml subscription.txt
           git diff-index --quiet HEAD || git commit -m "🔄 Auto update $(date '+%Y-%m-%d %H:%M')"
-          git push || echo "Nothing to push"
+          git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main || echo "Nothing to push"
+          echo "✅ 提交完成"
+          
+      - name: Verify Remote Files
+        run: |
+          echo "=== 验证远程文件 ==="
+          curl -I "https://raw.githubusercontent.com/${{ github.repository }}/main/proxies.yaml" || echo "❌ YAML 不可访问"
+          curl -I "https://raw.githubusercontent.com/${{ github.repository }}/main/subscription.txt" || echo "❌ TXT 不可访问"
           
       - name: Upload Logs on Failure
         uses: actions/upload-artifact@v4

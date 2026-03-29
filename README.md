@@ -1,4 +1,4 @@
-# 🚀 Clash 节点筛选器 - 完整文档
+# 🚀 Clash 节点筛选器
 
 <div align="center">
 

@@ -907,26 +907,30 @@ def main():
                 msg = f"""🚀 <b>节点更新完成</b>
 
     # ==================== Telegram 推送 (v21.0 修复版) ====================
-    if BOT_TOKEN and CHAT_ID and REPO_NAME:
+    if BOT_TOKEN and CHAT_ID:
         try:
-            # ⭐ 关键：动态时间戳防缓存
             ts = int(time.time())
             
-            # ⭐ 构建带缓存破坏符的直链
+            # ⭐ 构建带缓存破坏符的链接
             yaml_raw_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/proxies.yaml?t={ts}"
             txt_raw_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/subscription.txt?t={ts}"
             
-            # ⭐ 备用 GitHub 网页链接（如果 raw 失效可用）
+            # ⭐ 备用网页链接
             repo_path = f"https://github.com/{REPO_NAME}/blob/main/"
             yaml_html_url = f"{repo_path}proxies.yaml"
             txt_html_url = f"{repo_path}subscription.txt"
             
-            msg = f"""🚀 <b>节点更新完成</b> 🎉
+            # ⭐ 使用多行拼接避免编码问题
+            start_icon = "🚀"
+            end_icon = "🎉"
+            update_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+            msg = f"""{start_icon}<b>节点更新完成</b>{end_icon}
 
 📊 <b>统计数据:</b>
 • Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总订阅：{len(all_urls)}
 • 原始：{len(nodes)} | TCP: {len(nres)} | 最终：<code>{len(unique_final)}</code> 个
-• 亚洲节点：<b>{asia_ct}</b> 个 ({asia_ct * 100 // max(len(unique_final), 1)}%)
+• 亚洲：{asia_ct} 个 ({asia_ct * 100 // max(len(unique_final), 1)}%)
 • 最低延迟：{min_lat:.1f} ms
 • 平均耗时：{tt:.1f} 秒
 
@@ -945,14 +949,14 @@ TXT: <a href="{txt_html_url}">{txt_html_url}</a>
 🌐 <b>支持协议:</b> VMess | Trojan | SS | SSR | Hysteria2 | VLESS
 👨‍💻 <b>作者:</b> 𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
 
-<b>更新时间:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"""
+<b>更新时间:</b> {update_time}"""
         
             requests.post(
                 f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", 
                 json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"}, 
                 timeout=10
             )
-            print("✅ Telegram通知已发送（含双链接验证）")
+            print("✅ Telegram通知已发送")
         except Exception as e:
             print(f"⚠️ Telegram推送失败：{e}")
         

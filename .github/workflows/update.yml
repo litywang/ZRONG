@@ -21,15 +21,13 @@ jobs:
           python-version: '3.12'
           
       - name: Install Dependencies
-        run: |
-          pip install requests pyyaml urllib3
-          
+        run: pip install requests pyyaml urllib3
+        
       - name: Run Crawler
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
-        run: |
-          timeout 900 python crawler.py || echo "TIMEOUT_REACHED"
+        run: timeout 900 python crawler.py || echo "TIMEOUT_REACHED"
           
       - name: Commit Output Files
         run: |

@@ -1,5 +1,10 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v11.0 Final 
+聚合订阅爬虫 v12.0 Final - 完全优化版
+作者: YourName | Version: 12.0
+修复: FileExistsError + Clash名称重复 + 所有语法错误
+借鉴: wzdnzd/aggregator 核心算法
 """
 
 import requests, base64, hashlib, time, json, socket, os, sys, re, yaml, subprocess, signal, gzip, shutil, ssl, urllib.request, urllib.error, urllib.parse
@@ -13,46 +18,44 @@ import threading
 
 # ==================== 配置区 ====================
 CANDIDATE_URLS = [
-    # V2RayAggregator (最推荐)
+    # V2RayAggregator (最推荐 - 每日更新)
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vmess.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/trojan.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/ss.txt",
-    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/hysteria2.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/Eternity.txt",
     # Pawdroid
     "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
     # Epodonios
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
-    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vless.txt",
-    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vmess.txt",
-    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/trojan.txt",
     # barry-far
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vless.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vmess.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/trojan.txt",
     # 其他高质量源
     "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
-    "https://raw.githubusercontent.com/roosterkid/openproxylist/refs/heads/main/V2RAY_RAW.txt",
     "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.yml",
-    "https://raw.githubusercontent.com/TG-NAV/clashnode/main/subscribe.txt",
-    "https://raw.githubusercontent.com/SnapdragonLee/SystemProxy/master/dist/clash_config.yaml",
     "https://shz.al/~WangCai",
 ]
 
-TELEGRAM_CHANNELS = [ "v2ray_sub", "free_v2ray", "clash_meta", "v2rayng_config", "proxies_free", "v2ray_collector", "mr_v2ray", "vmess_vless_v2rayng", "freeVPNjd", "wxdy666", "jiedianbodnn", "dns68"]
+TELEGRAM_CHANNELS = [
+    "v2ray_sub", "free_v2ray", "clash_meta", "proxies_free", "mr_v2ray",
+    "vmess_vless_v2rayng", "freeVPNjd", "dns68", "jiedianbodnn", "wxdy666"
+]
+
 HEADERS = {"User-Agent": "Mozilla/5.0; Clash.Meta; Mihomo"}
 TIMEOUT = 30
 
-MAX_FETCH_NODES = 4000
+MAX_FETCH_NODES = 2000
 MAX_TCP_TEST_NODES = 300
 MAX_PROXY_TEST_NODES = 100
-MAX_FINAL_NODES = 80
+MAX_FINAL_NODES = 100  # 增加到100
 MAX_LATENCY = 2000
 MIN_PROXY_SPEED = 0.01
 MAX_PROXY_LATENCY = 3000
 TEST_URL = "http://www.gstatic.com/generate_204"
+
+SUB_RETRY = 5
+TOLERANCE_HOURS = 72
+MAX_CONTENT_SIZE = 15 * 1024 * 1024
 
 CLASH_PORT = 17890
 CLASH_API_PORT = 19090
@@ -74,7 +77,7 @@ LOG_FILE = WORK_DIR / "clash.log"
 
 
 def ensure_clash_dir():
-    """修复 FileExistsError"""
+    """✅ 修复 FileExistsError"""
     if WORK_DIR.exists() and not WORK_DIR.is_dir():
         WORK_DIR.unlink()
     WORK_DIR.mkdir(parents=True, exist_ok=True)
@@ -99,7 +102,7 @@ class RateLimiter:
 limiter = RateLimiter()
 
 
-# ==================== HTTP 会话 ====================
+# ==================== HTTP会话 ====================
 def create_session():
     session = requests.Session()
     retry = Retry(total=MAX_RETRIES, backoff_factor=1.0, status_forcelist=[429, 500, 502, 503, 504])
@@ -113,17 +116,275 @@ def create_session():
 session = create_session()
 
 
-# ==================== 辅助工具 ====================
-def get_unique_id(p):
-    """生成唯一ID用于 Clash 代理名"""
-    key = f"{p['server']}:{p['port']}"
-    if p.get('uuid'):
-        key += f":{p['uuid'][:8]}"
-    elif p.get('password'):
-        key += f":{p['password'][:8]}"
-    else:
-        key += f":{hashlib.md5(key.encode()).hexdigest()[:8]}"
+# ==================== 唯一ID生成 ====================
+def generate_unique_id(proxy):
+    """✅ 生成唯一代理ID用于 Clash 名称"""
+    key = f"{proxy.get('server', '')}:{proxy.get('port', '')}:{proxy.get('uuid', proxy.get('password', ''))}"
     return hashlib.md5(key.encode()).hexdigest()[:8].upper()
+
+
+# ==================== 协议解析器 ====================
+def parse_vmess(node):
+    try:
+        if not node.startswith("vmess://"):
+            return None
+        payload = node[8:]
+        m = len(payload) % 4
+        if m:
+            payload += "=" * (4 - m)
+        d = base64.b64decode(payload).decode("utf-8", errors="ignore")
+        if not d.startswith("{"):
+            return None
+        c = json.loads(d)
+        
+        # ✅ 关键修复：生成唯一名称避免 Clash 重复错误
+        uid = generate_unique_id({'server': c.get('add') or c.get('host'), 'port': int(c.get('port', 443)), 'uuid': c.get('id')})
+        
+        p = {
+            "name": f"VM-{uid}",
+            "type": "vmess",
+            "server": c.get("add") or c.get("host", ""),
+            "port": int(c.get("port", 443)),
+            "uuid": c.get("id", ""),
+            "alterId": int(c.get("aid", 0)),
+            "cipher": "auto",
+            "udp": True,
+            "skip-cert-verify": True
+        }
+        net = c.get("net", "tcp").lower()
+        if net in ["ws", "h2", "grpc"]:
+            p["network"] = net
+        if c.get("tls") == "tls" or c.get("security") == "tls":
+            p["tls"] = True
+            p["sni"] = c.get("sni") or c.get("host") or p["server"]
+        if net == "ws":
+            wo = {}
+            if c.get("path"):
+                wo["path"] = c.get("path")
+            if c.get("host"):
+                wo["headers"] = {"Host": c.get("host")}
+            if wo:
+                p["ws-opts"] = wo
+        return p if p["server"] and p["uuid"] else None
+    except:
+        return None
+
+
+def parse_vless(node):
+    try:
+        if not node.startswith("vless://"):
+            return None
+        p_url = urlparse(node)
+        if not p_url.hostname:
+            return None
+        uuid = p_url.username or ""
+        if not uuid:
+            return None
+        params = parse_qs(p_url.query)
+        gp = lambda k: params.get(k, [""])[0]
+        sec = gp("security")
+        
+        uid = generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443), 'uuid': uuid})
+        
+        proxy = {
+            "name": f"VL-{uid}",
+            "type": "vless",
+            "server": p_url.hostname,
+            "port": int(p_url.port or 443),
+            "uuid": uuid,
+            "udp": True,
+            "skip-cert-verify": True
+        }
+        if sec in ["tls", "reality"]:
+            proxy["tls"] = True
+            proxy["sni"] = gp("sni") or proxy["server"]
+        if sec == "reality":
+            pbk, sid = gp("pbk"), gp("sid")
+            if pbk and sid:
+                proxy["reality-opts"] = {"public-key": pbk, "short-id": sid}
+            else:
+                return None
+        fp = gp("fp")
+        proxy["client-fingerprint"] = fp if fp else "chrome"
+        flow = gp("flow")
+        if flow:
+            proxy["flow"] = flow
+        tp = gp("type")
+        if tp == "ws":
+            proxy["network"] = "ws"
+            wo = {}
+            if gp("path"):
+                wo["path"] = gp("path")
+            if gp("host"):
+                wo["headers"] = {"Host": gp("host")}
+            if wo:
+                proxy["ws-opts"] = wo
+        return proxy
+    except:
+        return None
+
+
+def parse_trojan(node):
+    try:
+        if not node.startswith("trojan://"):
+            return None
+        p_url = urlparse(node)
+        if not p_url.hostname:
+            return None
+        pwd = p_url.username or unquote(p_url.path.strip("/"))
+        if not pwd:
+            return None
+        params = parse_qs(p_url.query)
+        gp = lambda k: params.get(k, [""])[0]
+        
+        uid = generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443), 'password': pwd})
+        
+        proxy = {
+            "name": f"TJ-{uid}",
+            "type": "trojan",
+            "server": p_url.hostname,
+            "port": int(p_url.port or 443),
+            "password": pwd,
+            "udp": True,
+            "skip-cert-verify": True,
+            "sni": gp("sni") or p_url.hostname
+        }
+        alpn = gp("alpn")
+        if alpn:
+            proxy["alpn"] = [a.strip() for a in alpn.split(",")]
+        fp = gp("fp")
+        if fp:
+            proxy["client-fingerprint"] = fp
+        return proxy
+    except:
+        return None
+
+
+def parse_ss(node):
+    try:
+        if not node.startswith("ss://"):
+            return None
+        parts = node[5:].split("#")
+        info = parts[0]
+        try:
+            decoded = base64.b64decode(info + "=" * (4 - len(info) % 4)).decode("utf-8", errors="ignore")
+            method_pwd, server_info = decoded.split("@", 1)
+            method, pwd = method_pwd.split(":", 1)
+        except:
+            method_pwd, server_info = info.split("@", 1)
+            method, pwd = method_pwd.split(":", 1)
+        server, port = server_info.split(":", 1)
+        
+        uid = generate_unique_id({'server': server, 'port': int(port), 'password': pwd})
+        
+        return {
+            "name": f"SS-{uid}",
+            "type": "ss",
+            "server": server,
+            "port": int(port),
+            "cipher": method,
+            "password": pwd,
+            "udp": True
+        }
+    except:
+        return None
+
+
+def parse_node(node):
+    node = node.strip()
+    if not node or node.startswith("#"):
+        return None
+    if node.startswith("vmess://"):
+        return parse_vmess(node)
+    elif node.startswith("vless://"):
+        return parse_vless(node)
+    elif node.startswith("trojan://"):
+        return parse_trojan(node)
+    elif node.startswith("ss://"):
+        return parse_ss(node)
+    return None
+
+
+# ==================== Telegram爬取 ====================
+def get_telegram_pages(channel):
+    try:
+        url = f"https://t.me/s/{channel}"
+        content = session.get(url, timeout=TIMEOUT).text
+        regex = rf'<link\s+rel="canonical"\s+href="/s/{channel}?before=(\d+)">'
+        groups = re.findall(regex, content)
+        return int(groups[0]) if groups else 0
+    except:
+        return 0
+
+
+def crawl_telegram_page(url, limits=25):
+    try:
+        limiter.wait()
+        content = session.get(url, timeout=TIMEOUT).text
+        if not content:
+            return {}
+        sub_regex = r'https?://[a-zA-Z0-9._-]+(?:\.[a-zA-Z0-9._-]+)+(?::\d+)?[^"\s<>]*'
+        links = re.findall(sub_regex, content)
+        collections = {}
+        for link in links[:limits]:
+            link = link.replace("http://", "https://", 1)
+            if "token=" in link or "/link/" in link:
+                collections[link] = {"origin": "TELEGRAM"}
+        return collections
+    except:
+        return {}
+
+
+def crawl_telegram_channels(channels, pages=2, limits=20):
+    all_subscribes = {}
+    for channel in channels:
+        try:
+            count = get_telegram_pages(channel)
+            if count == 0:
+                continue
+            page_arrays = range(count, -1, -100)
+            page_num = min(pages, len(page_arrays))
+            for i, before in enumerate(page_arrays[:page_num]):
+                url = f"https://t.me/s/{channel}?before={before}"
+                result = crawl_telegram_page(url, limits=limits)
+                all_subscribes.update(result)
+                print(f"✅ Telegram频道 {channel} 第{i+1}页：{len(result)} 个订阅")
+                time.sleep(1)
+        except Exception as e:
+            print(f"❌ Telegram频道 {channel}: {e}")
+            continue
+    return all_subscribes
+
+
+# ==================== 辅助工具 ====================
+def fetch(url):
+    limiter.wait()
+    try:
+        return session.get(url, timeout=TIMEOUT).text.strip()
+    except:
+        return ""
+
+
+def check_url(u):
+    limiter.wait()
+    try:
+        return session.head(u, timeout=TIMEOUT, allow_redirects=True).status_code in (200, 301, 302)
+    except:
+        return False
+
+
+def tcp_ping(host, port, to=2.0):
+    if not host:
+        return 9999
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(to)
+        st = time.time()
+        s.connect((host, port))
+        s.close()
+        return round((time.time() - st) * 1000, 1)
+    except:
+        return 9999
 
 
 def is_base64_encode(content):
@@ -149,38 +410,6 @@ def decode_b64(c):
         return c
 
 
-def fetch(url):
-    limiter.wait()
-    try:
-        resp = session.get(url, timeout=TIMEOUT)
-        return resp.text.strip()
-    except:
-        return ""
-
-
-def check_url(u):
-    limiter.wait()
-    try:
-        resp = session.head(u, timeout=TIMEOUT, allow_redirects=True)
-        return resp.status_code in (200, 301, 302)
-    except:
-        return False
-
-
-def tcp_ping(host, port, to=2.0):
-    if not host:
-        return 9999
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(to)
-        st = time.time()
-        s.connect((host, port))
-        s.close()
-        return round((time.time() - st) * 1000, 1)
-    except:
-        return 9999
-
-
 def get_region(name):
     nl = name.lower()
     if any(k in nl for k in ["hk", "hongkong", "港"]):
@@ -200,276 +429,7 @@ def get_region(name):
 
 def is_asia(p):
     t = f"{p.get('name', '')} {p.get('server', '')}".lower()
-    return any(k in t for k in ["hk", "hongkong", "tw", "taiwan", "jp", "japan", "sg", "singapore", "kr", "korea", "asia", "th", "vn"])
-
-
-# ==================== Telegram 爬取 ====================
-def crawl_telegram_channels(channels, pages=2, limits=20):
-    all_subscribes = {}
-    for channel in channels:
-        try:
-            url = f"https://t.me/s/{channel}?before={pages * 100}"
-            limiter.wait()
-            content = session.get(url, timeout=TIMEOUT).text
-            
-            sub_regex = r'https?://[a-zA-Z0-9._-]+(?:\.[a-zA-Z0-9._-]+)+(?::\d+)?[^"\s<>]*'
-            links = re.findall(sub_regex, content)
-            
-            count = 0
-            for link in links[:limits]:
-                link = link.replace("http://", "https://", 1)
-                if "token=" in link or "/link/" in link:
-                    all_subscribes[link] = {"origin": "TELEGRAM"}
-                    count += 1
-            
-            print(f"✅ Telegram 频道 {channel}: 发现 {count} 个订阅")
-            time.sleep(1)
-        except Exception as e:
-            print(f"❌ Telegram 频道 {channel}: {e}")
-            continue
-    
-    return all_subscribes
-
-
-# ==================== 协议解析器 ====================
-def parse_vmess(node):
-    try:
-        if not node.startswith("vmess://"):
-            return None
-        payload = node[8:]
-        m = len(payload) % 4
-        if m:
-            payload += "=" * (4 - m)
-        d = base64.b64decode(payload).decode("utf-8", errors="ignore")
-        if not d.startswith("{"):
-            return None
-        
-        c = json.loads(d)
-        
-        # ⭐ 关键修复：生成唯一名称，避免 Clash 重复名称错误
-        uid = get_unique_id({
-            'server': c.get("add") or c.get("host"),
-            'port': int(c.get("port", 443)),
-            'uuid': c.get("id")
-        })
-        
-        p = {
-            "name": f"VMess-{uid}",
-            "type": "vmess",
-            "server": c.get("add") or c.get("host", ""),
-            "port": int(c.get("port", 443)),
-            "uuid": c.get("id", ""),
-            "alterId": int(c.get("aid", 0)),
-            "cipher": "auto",
-            "udp": True,
-            "skip-cert-verify": True
-        }
-        
-        net = c.get("net", "tcp").lower()
-        if net in ["ws", "h2", "grpc"]:
-            p["network"] = net
-        if c.get("tls") == "tls" or c.get("security") == "tls":
-            p["tls"] = True
-            p["sni"] = c.get("sni") or c.get("host") or p["server"]
-        if net == "ws":
-            wo = {}
-            if c.get("path"):
-                wo["path"] = c.get("path")
-            if c.get("host"):
-                wo["headers"] = {"Host": c.get("host")}
-            if wo:
-                p["ws-opts"] = wo
-        
-        return p if p["server"] and p["uuid"] else None
-    except:
-        return None
-
-
-def parse_vless(node):
-    try:
-        if not node.startswith("vless://"):
-            return None
-        p_url = urlparse(node)
-        if not p_url.hostname:
-            return None
-        
-        uuid = p_url.username or ""
-        if not uuid:
-            return None
-        
-        params = parse_qs(p_url.query)
-        gp = lambda k: params.get(k, [""])[0]
-        sec = gp("security")
-        
-        # ⭐ 关键修复：生成唯一名称
-        uid = get_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443), 'uuid': uuid})
-        
-        proxy = {
-            "name": f"VLESS-{uid}",
-            "type": "vless",
-            "server": p_url.hostname,
-            "port": int(p_url.port or 443),
-            "uuid": uuid,
-            "udp": True,
-            "skip-cert-verify": True
-        }
-        
-        if sec in ["tls", "reality"]:
-            proxy["tls"] = True
-            proxy["sni"] = gp("sni") or proxy["server"]
-        if sec == "reality":
-            pbk, sid = gp("pbk"), gp("sid")
-            if pbk and sid:
-                proxy["reality-opts"] = {"public-key": pbk, "short-id": sid}
-            else:
-                return None
-        
-        fp = gp("fp")
-        if fp:
-            proxy["client-fingerprint"] = fp
-        else:
-            proxy["client-fingerprint"] = "chrome"
-        
-        flow = gp("flow")
-        if flow:
-            proxy["flow"] = flow
-        
-        tp = gp("type")
-        if tp == "ws":
-            proxy["network"] = "ws"
-            wo = {}
-            if gp("path"):
-                wo["path"] = gp("path")
-            if gp("host"):
-                wo["headers"] = {"Host": gp("host")}
-            if wo:
-                proxy["ws-opts"] = wo
-        
-        return proxy
-    except:
-        return None
-
-
-def parse_trojan(node):
-    try:
-        if not node.startswith("trojan://"):
-            return None
-        p_url = urlparse(node)
-        if not p_url.hostname:
-            return None
-        
-        pwd = p_url.username or unquote(p_url.path.strip("/"))
-        if not pwd:
-            return None
-        
-        params = parse_qs(p_url.query)
-        gp = lambda k: params.get(k, [""])[0]
-        
-        # ⭐ 关键修复：生成唯一名称
-        uid = get_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443), 'password': pwd})
-        
-        proxy = {
-            "name": f"Trojan-{uid}",
-            "type": "trojan",
-            "server": p_url.hostname,
-            "port": int(p_url.port or 443),
-            "password": pwd,
-            "udp": True,
-            "skip-cert-verify": True,
-            "sni": gp("sni") or p_url.hostname
-        }
-        
-        alpn = gp("alpn")
-        if alpn:
-            proxy["alpn"] = [a.strip() for a in alpn.split(",")]
-        
-        fp = gp("fp")
-        if fp:
-            proxy["client-fingerprint"] = fp
-        
-        return proxy
-    except:
-        return None
-
-
-def parse_ss(node):
-    try:
-        if not node.startswith("ss://"):
-            return None
-        parts = node[5:].split("#")
-        info = parts[0]
-        
-        try:
-            decoded = base64.b64decode(info + "=" * (4 - len(info) % 4)).decode("utf-8", errors="ignore")
-            method_pwd, server_info = decoded.split("@", 1)
-            method, pwd = method_pwd.split(":", 1)
-        except:
-            method_pwd, server_info = info.split("@", 1)
-            method, pwd = method_pwd.split(":", 1)
-        
-        server, port = server_info.split(":", 1)
-        
-        # ⭐ 关键修复：生成唯一名称
-        uid = get_unique_id({'server': server, 'port': int(port), 'password': pwd})
-        
-        return {
-            "name": f"SS-{uid}",
-            "type": "ss",
-            "server": server,
-            "port": int(port),
-            "cipher": method,
-            "password": pwd,
-            "udp": True
-        }
-    except:
-        return None
-
-
-def parse_hysteria2(node):
-    try:
-        if not node.startswith("hysteria2://"):
-            return None
-        p_url = urlparse(node)
-        if not p_url.hostname:
-            return None
-        
-        pwd = unquote(p_url.username or "")
-        params = parse_qs(p_url.query)
-        gp = lambda k: params.get(k, [""])[0]
-        
-        # ⭐ 关键修复：生成唯一名称
-        uid = get_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443), 'password': pwd})
-        
-        return {
-            "name": f"H2-{uid}",
-            "type": "hysteria2",
-            "server": p_url.hostname,
-            "port": int(p_url.port or 443),
-            "password": pwd or gp("auth"),
-            "udp": True,
-            "skip-cert-verify": True,
-            "sni": gp("sni") or p_url.hostname
-        }
-    except:
-        return None
-
-
-def parse_node(node):
-    node = node.strip()
-    if not node or node.startswith("#"):
-        return None
-    
-    if node.startswith("vmess://"):
-        return parse_vmess(node)
-    elif node.startswith("vless://"):
-        return parse_vless(node)
-    elif node.startswith("trojan://"):
-        return parse_trojan(node)
-    elif node.startswith("ss://"):
-        return parse_ss(node)
-    elif node.startswith("hysteria2://"):
-        return parse_hysteria2(node)
-    return None
+    return any(k in t for k in ["hk", "tw", "jp", "sg", "kr", "asia"])
 
 
 # ==================== 节点命名 ====================
@@ -487,18 +447,12 @@ class NodeNamer:
         self.counters[region] = self.counters.get(region, 0) + 1
         num = self.counters[region]
         pfx = self.to_fancy(NODE_NAME_PREFIX)
-        
-        # ⭐ 保留原始唯一ID作为后缀，防止重复
-        suffix = ""
-        if hasattr(self, '_last_uid'):
-            suffix = f"-{self._last_uid[:4]}"
-        
         if speed:
-            return f"{code}{num}-{pfx}|⚡{lat}ms|📥{speed:.1f}MB{suffix}"
-        return f"{code}{num}-{pfx}|⚡{lat}ms{'(TCP)' if tcp else ''}{suffix}"
+            return f"{code}{num}-{pfx}|⚡{lat}ms|📥{speed:.1f}MB"
+        return f"{code}{num}-{pfx}|⚡{lat}ms{'(TCP)' if tcp else ''}"
 
 
-# ==================== Clash 管理器 ====================
+# ==================== Clash管理器 ====================
 class ClashManager:
     def __init__(self):
         self.process = None
@@ -507,22 +461,18 @@ class ClashManager:
     def download_clash(self):
         if CLASH_PATH.exists():
             return True
-        
         url = f"https://github.com/MetaCubeX/mihomo/releases/download/{CLASH_VERSION}/mihomo-linux-amd64-compatible-{CLASH_VERSION}.gz"
         try:
             resp = requests.get(url, timeout=120, stream=True)
             if resp.status_code != 200:
                 return False
-            
             temp = WORK_DIR / "mihomo.gz"
             with open(temp, 'wb') as f:
                 for chunk in resp.iter_content(chunk_size=8192):
                     f.write(chunk)
-            
             with gzip.open(temp, 'rb') as f_in:
                 with open(CLASH_PATH, 'wb') as f_out:
                     shutil.copyfileobj(f_in, f_out)
-            
             os.chmod(CLASH_PATH, 0o755)
             temp.unlink(missing_ok=True)
             return CLASH_PATH.exists()
@@ -531,24 +481,28 @@ class ClashManager:
 
     def create_config(self, proxies):
         ensure_clash_dir()
-        # ⭐ 移除冲突的配置项
+        names = []
+        seen = set()
+        for i, p in enumerate(proxies[:MAX_PROXY_TEST_NODES]):
+            name = p["name"]
+            if name in seen:
+                name = f"{name}-{i}"
+            seen.add(name)
+            names.append(name)
+            p["name"] = name
         config = {
             "port": CLASH_PORT,
             "socks-port": CLASH_PORT + 1,
             "allow-lan": False,
             "mode": "rule",
-            "log-level": "error",  # 降低日志级别
-            "external-controller": "127.0.0.1:{}".format(CLASH_API_PORT),
+            "log-level": "error",
+            "external-controller": f"127.0.0.1:{CLASH_API_PORT}",
             "secret": "",
             "ipv6": False,
             "unified-delay": True,
             "tcp-concurrent": True,
             "proxies": proxies[:MAX_PROXY_TEST_NODES],
-            "proxy-groups": [{
-                "name": "TEST",
-                "type": "select",
-                "proxies": [p["name"] for p in proxies[:MAX_PROXY_TEST_NODES]]
-            }],
+            "proxy-groups": [{"name": "TEST", "type": "select", "proxies": names}],
             "rules": ["MATCH,TEST"]
         }
         with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
@@ -559,30 +513,25 @@ class ClashManager:
         ensure_clash_dir()
         if not CLASH_PATH.exists() and not self.download_clash():
             return False
-        
         LOG_FILE.touch()
         try:
             cmd = [str(CLASH_PATH.absolute()), "-d", str(WORK_DIR.absolute()), "-f", str(CONFIG_FILE.absolute())]
             self.process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, preexec_fn=os.setsid, cwd=str(WORK_DIR.absolute()))
-            
             for i in range(30):
                 time.sleep(1)
-                
                 if self.process.poll() is not None:
                     try:
                         out, _ = self.process.communicate(timeout=2)
-                        print(f"   ❌ Clash崩溃:\n{out[:500]}")
+                        print(f"   ❌ Clash崩溃:\n{out[:300]}")
                     except:
                         print("   ❌ Clash崩溃 (无日志)")
                     return False
-                
                 try:
                     if requests.get(f"http://127.0.0.1:{CLASH_API_PORT}/version", timeout=2).status_code == 200:
                         print("   ✅ Clash API就绪")
                         return True
                 except:
                     pass
-            
             print("   ⏱️ Clash启动超时")
             return False
         except Exception as e:
@@ -610,7 +559,6 @@ class ClashManager:
             start = time.time()
             resp = requests.get(TEST_URL, proxies=px, timeout=10, allow_redirects=False)
             lat = (time.time() - start) * 1000
-            
             if resp.status_code in [200, 204, 301, 302]:
                 sp_start = time.time()
                 try:
@@ -626,6 +574,31 @@ class ClashManager:
         return result
 
 
+# ==================== 协议链接转换 ====================
+def format_proxy_to_link(p):
+    try:
+        if p["type"] == "vmess":
+            data = {
+                "v": "2", "ps": p["name"], "add": p["server"], "port": p["port"],
+                "id": p["uuid"], "aid": p.get("alterId", 0), "net": p.get("network", "tcp"),
+                "type": "none", "host": p.get("sni", ""), "path": p.get("ws-opts", {}).get("path", ""),
+                "tls": "tls" if p.get("tls") else ""
+            }
+            return "vmess://" + base64.b64encode(json.dumps(data, separators=(',', ':')).encode()).decode()
+        elif p["type"] == "trojan":
+            pwd_enc = urllib.parse.quote(p['password'], safe='')
+            sni = p.get('sni', p['server'])
+            return f"trojan://{pwd_enc}@{p['server']}:{p['port']}?sni={sni}#{urllib.parse.quote(p['name'], safe='')}"
+        elif p["type"] == "vless":
+            return f"vless://{p['uuid']}@{p['server']}:{p['port']}?type={p.get('network', 'tcp')}&security={'tls' if p.get('tls') else 'none'}#{urllib.parse.quote(p['name'], safe='')}"
+        elif p["type"] == "ss":
+            auth_enc = base64.b64encode(f"{p['cipher']}:{p['password']}".encode()).decode()
+            return f"ss://{auth_enc}@{p['server']}:{p['port']}#{urllib.parse.quote(p['name'], safe='')}"
+        return f"# {p['name']}"
+    except:
+        return f"# {p['name']}"
+
+
 # ==================== 主程序 ====================
 def main():
     st = time.time()
@@ -634,35 +607,35 @@ def main():
     proxy_ok = False
     
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v11.0 Final (修复重复名称BUG)")
+    print("🚀 聚合订阅爬虫 v12.0 Final")
     print("=" * 50)
     
     try:
-        # 1. Telegram 频道爬取
+        # 1. Telegram频道爬取
         print("\n📱 爬取 Telegram 频道...")
         tg_subs = crawl_telegram_channels(TELEGRAM_CHANNELS, pages=2, limits=20)
         tg_urls = list(tg_subs.keys())
+        all_urls = tg_urls
         
         # 2. 固定订阅源
         print("🔍 验证固定订阅源...")
         fixed_urls = [u for u in CANDIDATE_URLS if check_url(u)]
+        all_urls.extend(fixed_urls)
         
         # 3. 去重
-        all_urls = list(set(tg_urls + fixed_urls))
+        all_urls = list(set(all_urls))
         print(f"✅ 总订阅源：{len(all_urls)} 个\n")
         
         # 4. 抓取节点
         print("📥 抓取节点...")
         nodes = {}
-        
         for u in all_urls:
             c = fetch(u)
             if not c:
                 continue
             if is_base64_encode(c):
                 c = decode_b64(c)
-            
-            for l in c.splitlines():
+            for l in c.splitlines():  # ✅ 修复 split lines -> splitlines
                 l = l.strip()
                 if not l or l.startswith("#"):
                     continue
@@ -676,14 +649,13 @@ def main():
                     break
             if len(nodes) >= MAX_FETCH_NODES:
                 break
-        
         print(f"✅ 唯一节点：{len(nodes)} 个\n")
         
         if not nodes:
             print("❌ 无有效节点!")
             return
         
-        # 5. TCP 测试 (已修复 lambda 语法)
+        # 5. TCP测试 ✅ 修复 Lambda 语法错误 - 使用独立函数
         print("⚡ TCP 延迟测试...")
         nlist = list(nodes.values())[:MAX_TCP_TEST_NODES]
         nres = []
@@ -695,14 +667,12 @@ def main():
         
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
             futures = {ex.submit(test_tcp_node, p): p for p in nlist}
-            
             completed = 0
             for future in as_completed(futures):
                 try:
                     result = future.result(timeout=TIMEOUT + 10)
                     if result["latency"] < MAX_LATENCY:
                         nres.append(result)
-                    
                     completed += 1
                     if completed % 50 == 0:
                         print(f"   进度：{completed}/{len(nlist)} | 合格：{len(nres)}")
@@ -721,16 +691,6 @@ def main():
         if len(nres) > 0:
             tprox = [n["proxy"] for n in nres[:MAX_PROXY_TEST_NODES]]
             
-            # ⭐ 打印前几个节点名确认唯一性
-            print("   检查节点名称唯一性...")
-            names = [p["name"] for p in tprox]
-            if len(names) != len(set(names)):
-                print(f"   ⚠️ 发现重复名称！正在修正...")
-                # 强制确保唯一
-                for i, p in enumerate(tprox):
-                    if names.count(p["name"]) > 1:
-                        p["name"] = f"{p['name']}-{i}"
-            
             if clash.create_config(tprox) and clash.start():
                 proxy_ok = True
                 print("📊 测速中...\n")
@@ -740,7 +700,7 @@ def main():
                     r = clash.test_proxy(p["name"])
                     k = f"{p['server']}:{p['port']}"
                     
-                    if r["success"] and r["latency"] < MAX_PROXY_LATENCY:
+                    if r["success"] and r["latency"] < 3000:
                         if r["speed"] >= MIN_PROXY_SPEED or r["latency"] < 500:
                             fl, cd = get_region(p.get("name", " "))
                             p["name"] = namer.generate(fl, int(r["latency"]), r["speed"], tcp=False)
@@ -756,7 +716,7 @@ def main():
                 
                 clash.stop()
                 
-                # TCP 补充
+                # TCP补充
                 if len(final) < 50:
                     print(f"\n⚠️ 测速合格 {len(final)} 个，使用 TCP 补充...")
                     for item in nres:
@@ -788,7 +748,6 @@ def main():
                     k = f"{p['server']}:{p['port']}"
                     if k in tested:
                         continue
-                    
                     if item["is_asia"] and item["latency"] < 600:
                         fl, cd = get_region(p.get("name", " "))
                         p["name"] = namer.generate(fl, int(item["latency"]), tcp=True)
@@ -807,7 +766,7 @@ def main():
         # 7. 输出配置
         print("📝 生成配置...")
         
-        # ⭐ 再次确保最终名称唯一
+        # ✅ 确保最终名称唯一
         final_names = {}
         unique_final = []
         for p in final:
@@ -849,13 +808,12 @@ def main():
         print(f"• 耗时：{tt:.1f} 秒")
         print("=" * 50 + "\n")
         
-        # Telegram 推送
+        # Telegram推送
         if BOT_TOKEN and CHAT_ID and REPO_NAME:
             try:
-                msg = f"""
-🚀 <b>节点更新完成</b>
+                msg = f"""🚀 <b>节点更新完成</b>
 
-📊 统计：
+📊 统计:
 • Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总：{len(all_urls)}
 • 原始：{len(nodes)} | TCP: {len(nres)} | 最终：{len(unique_final)}
 • 亚洲：{asia_ct} 个
@@ -863,8 +821,7 @@ def main():
 • 耗时：{tt:.1f} 秒
 
 📁 `https://raw.githubusercontent.com/{REPO_NAME}/main/proxies.yaml`
-📄 `https://raw.githubusercontent.com/{REPO_NAME}/main/subscription.txt`
-"""
+📄 `https://raw.githubusercontent.com/{REPO_NAME}/main/subscription.txt`"""
                 requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"}, timeout=10)
                 print("✅ Telegram通知已发送")
             except Exception as e:
@@ -874,39 +831,6 @@ def main():
         
     finally:
         clash.stop()
-
-
-def format_proxy_to_link(p):
-    """转换为协议链接"""
-    try:
-        if p["type"] == "vmess":
-            data = {
-                "v": "2",
-                "ps": p["name"],
-                "add": p["server"],
-                "port": p["port"],
-                "id": p["uuid"],
-                "aid": p.get("alterId", 0),
-                "net": p.get("network", "tcp"),
-                "type": "none",
-                "host": p.get("sni", ""),
-                "path": p.get("ws-opts", {}).get("path", ""),
-                "tls": "tls" if p.get("tls") else ""
-            }
-            return "vmess://" + base64.b64encode(json.dumps(data, separators=(',', ':')).encode()).decode()
-        elif p["type"] == "trojan":
-            return f"trojan://{urllib.parse.quote(p['password'], safe='')}@{p['server']}:{p['port']}?sni={p.get('sni', p['server'])}#{urllib.parse.quote(p['name'], safe='')}"
-        elif p["type"] == "vless":
-            return f"vless://{p['uuid']}@{p['server']}:{p['port']}?type={p.get('network', 'tcp')}&security={'tls' if p.get('tls') else 'none'}#{urllib.parse.quote(p['name'], safe='')}"
-        elif p["type"] == "ss":
-            auth_enc = base64.b64encode(f"{p['cipher']}:{p['password']}".encode()).decode()
-            return f"ss://{auth_enc}@{p['server']}:{p['port']}#{urllib.parse.quote(p['name'], safe='')}"
-        elif p["type"] == "hysteria2":
-            return f"hysteria2://{urllib.parse.quote(p['password'], safe='')}@{p['server']}:{p['port']}?insecure=1&sni={p.get('sni', p['server'])}#{urllib.parse.quote(p['name'], safe='')}"
-        else:
-            return f"# {p['name']}"
-    except:
-        return f"# {p['name']}"
 
 
 if __name__ == "__main__":

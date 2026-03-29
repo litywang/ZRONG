@@ -12,6 +12,7 @@ permissions:
 jobs:
   crawl-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20  # 明确设置超时时间
     
     steps:
       - uses: actions/checkout@v5
@@ -29,14 +30,10 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
         run: |
-          timeout 900 python crawler.py || echo "TIMEOUT_REACHED"
-          ls -la *.yaml *.txt 2>/dev/null || echo "No output files"
-          
-      - name: Show Output Files
-        run: |
-          echo "=== Output Files ==="
-          ls -lh proxies.yaml subscription.txt 2>/dev/null || true
-          wc -l proxies.yaml subscription.txt 2>/dev/null || true
+          echo "🚀 开始运行爬虫..."
+          python crawler.py
+          echo "✅ 爬虫运行结束"
+          ls -lh *.yaml *.txt 2>/dev/null || echo "⚠️ 未找到输出文件"
           
       - name: Commit Output Files
         run: |
@@ -46,11 +43,6 @@ jobs:
           git diff-index --quiet HEAD || git commit -m "🔄 Auto update $(date '+%Y-%m-%d %H:%M')"
           git push || echo "Nothing to push"
           
-      - name: Verify Files on Repo
-        run: |
-          echo "Files committed successfully:"
-          git log --oneline -3
-          
       - name: Upload Logs on Failure
         uses: actions/upload-artifact@v4
         if: failure()
@@ -59,4 +51,6 @@ jobs:
           path: |
             clash_temp/
             *.log
+            *.yaml
+            *.txt
           retention-days: 7

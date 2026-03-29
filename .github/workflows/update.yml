@@ -1,62 +1,39 @@
-name: Update Subscription Nodes
+name: Update Proxies
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 */6 * * *'   # 每 6 小时
   workflow_dispatch:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
-  crawl-and-test:
+  build:
     runs-on: ubuntu-latest
-    
+
     steps:
-      - uses: actions/checkout@v5
-      
-      - name: Setup Python
-        uses: actions/setup-python@v6
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-          
-      - name: Install Dependencies
-        run: pip install requests pyyaml urllib3
-        
-      - name: Run Crawler
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests pyyaml
+
+      - name: Run crawler
+        run: python crawler.py
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+      - name: Commit and push changes
         run: |
-          timeout 900 python crawler.py || echo "TIMEOUT_REACHED"
-          ls -la *.yaml *.txt 2>/dev/null || echo "No output files"
-          
-      - name: Show Output Files
-        run: |
-          echo "=== Output Files ==="
-          ls -lh proxies.yaml subscription.txt 2>/dev/null || true
-          wc -l proxies.yaml subscription.txt 2>/dev/null || true
-          
-      - name: Commit Output Files
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add -A
-          git diff-index --quiet HEAD || git commit -m "🔄 Auto update $(date '+%Y-%m-%d %H:%M')"
-          git push || echo "Nothing to push"
-          
-      - name: Verify Files on Repo
-        run: |
-          echo "Files committed successfully:"
-          git log --oneline -3
-          
-      - name: Upload Logs on Failure
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: crash-logs-${{ github.run_id }}
-          path: |
-            clash_temp/
-            *.log
-          retention-days: 7
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add proxies.yaml subscription.txt
+          git commit -m "Update proxies $(date)" || echo "No changes"
+          git push

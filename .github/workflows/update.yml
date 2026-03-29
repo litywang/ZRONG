@@ -2,7 +2,7 @@ name: Update Subscription Nodes
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 */3 * * *'  # 每 3 小时更新一次
   workflow_dispatch:
 
 permissions:
@@ -12,7 +12,7 @@ permissions:
 jobs:
   crawl-and-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     
     steps:
       - uses: actions/checkout@v5
@@ -26,14 +26,18 @@ jobs:
           python-version: '3.12'
           
       - name: Install Dependencies
-        run: pip install requests pyyaml urllib3
-        
+        run: |
+          pip install requests pyyaml urllib3
+          sudo apt-get update && sudo apt-get install -y golang-go || true
+          
       - name: Run Crawler
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
+          ENABLE_UNLOCK: ${{ vars.ENABLE_UNLOCK || 'true' }}
+          UNLOCK_PLATFORMS: ${{ vars.UNLOCK_PLATFORMS || '["Netflix","Disney+","ChatGPT","YouTube","Spotify"]' }}
         run: |
-          echo "🚀 开始运行爬虫..."
+          echo "🚀 开始运行爬虫 v19.0..."
           python crawler.py
           echo "✅ 爬虫运行结束"
           
@@ -50,7 +54,7 @@ jobs:
           git config --local user.name "GitHub Action"
           git status
           git add proxies.yaml subscription.txt
-          git diff-index --quiet HEAD || git commit -m "🔄 Auto update $(date '+%Y-%m-%d %H:%M')"
+          git diff-index --quiet HEAD || git commit -m "🔄 Auto update v19.0 $(date '+%Y-%m-%d %H:%M')"
           git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main || echo "Nothing to push"
           echo "✅ 提交完成"
           

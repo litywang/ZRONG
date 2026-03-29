@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v12.0 Final - 完全优化版
+聚合订阅爬虫 v12.0 Final - 完全可用版
 作者: YourName | Version: 12.0
-修复: FileExistsError + Clash名称重复 + 所有语法错误
+修复: FileExistsError + Clash名称重复 + 所有语法错误 + 文件名一致性
 借鉴: wzdnzd/aggregator 核心算法
 """
 
@@ -18,7 +18,7 @@ import threading
 
 # ==================== 配置区 ====================
 CANDIDATE_URLS = [
-    # V2RayAggregator (最推荐 - 每日更新)
+    # V2RayAggregator (最推荐)
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vmess.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/trojan.txt",
@@ -26,8 +26,6 @@ CANDIDATE_URLS = [
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/Eternity.txt",
     # Pawdroid
     "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
-    # Epodonios
-    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
     # barry-far
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt",
     # 其他高质量源
@@ -47,15 +45,11 @@ TIMEOUT = 30
 MAX_FETCH_NODES = 2000
 MAX_TCP_TEST_NODES = 300
 MAX_PROXY_TEST_NODES = 100
-MAX_FINAL_NODES = 100  # 增加到100
+MAX_FINAL_NODES = 80
 MAX_LATENCY = 2000
 MIN_PROXY_SPEED = 0.01
 MAX_PROXY_LATENCY = 3000
 TEST_URL = "http://www.gstatic.com/generate_204"
-
-SUB_RETRY = 5
-TOLERANCE_HOURS = 72
-MAX_CONTENT_SIZE = 15 * 1024 * 1024
 
 CLASH_PORT = 17890
 CLASH_API_PORT = 19090
@@ -77,13 +71,12 @@ LOG_FILE = WORK_DIR / "clash.log"
 
 
 def ensure_clash_dir():
-    """✅ 修复 FileExistsError"""
+    """✅ 修复 FileExistsError - 安全创建目录"""
     if WORK_DIR.exists() and not WORK_DIR.is_dir():
         WORK_DIR.unlink()
     WORK_DIR.mkdir(parents=True, exist_ok=True)
 
 
-# ==================== 速率限制器 ====================
 class RateLimiter:
     def __init__(self):
         self.min_interval = 1.0 / REQUESTS_PER_SECOND
@@ -102,7 +95,6 @@ class RateLimiter:
 limiter = RateLimiter()
 
 
-# ==================== HTTP会话 ====================
 def create_session():
     session = requests.Session()
     retry = Retry(total=MAX_RETRIES, backoff_factor=1.0, status_forcelist=[429, 500, 502, 503, 504])
@@ -116,14 +108,12 @@ def create_session():
 session = create_session()
 
 
-# ==================== 唯一ID生成 ====================
 def generate_unique_id(proxy):
     """✅ 生成唯一代理ID用于 Clash 名称"""
     key = f"{proxy.get('server', '')}:{proxy.get('port', '')}:{proxy.get('uuid', proxy.get('password', ''))}"
     return hashlib.md5(key.encode()).hexdigest()[:8].upper()
 
 
-# ==================== 协议解析器 ====================
 def parse_vmess(node):
     try:
         if not node.startswith("vmess://"):
@@ -137,7 +127,6 @@ def parse_vmess(node):
             return None
         c = json.loads(d)
         
-        # ✅ 关键修复：生成唯一名称避免 Clash 重复错误
         uid = generate_unique_id({'server': c.get('add') or c.get('host'), 'port': int(c.get('port', 443)), 'uuid': c.get('id')})
         
         p = {
@@ -305,7 +294,6 @@ def parse_node(node):
     return None
 
 
-# ==================== Telegram爬取 ====================
 def get_telegram_pages(channel):
     try:
         url = f"https://t.me/s/{channel}"
@@ -356,7 +344,6 @@ def crawl_telegram_channels(channels, pages=2, limits=20):
     return all_subscribes
 
 
-# ==================== 辅助工具 ====================
 def fetch(url):
     limiter.wait()
     try:
@@ -432,7 +419,6 @@ def is_asia(p):
     return any(k in t for k in ["hk", "tw", "jp", "sg", "kr", "asia"])
 
 
-# ==================== 节点命名 ====================
 class NodeNamer:
     FANCY = {'A':'𝔄','B':'𝔅','C':'𝔆','D':'𝔇','E':'𝔈','F':'𝔉','G':'𝔊','H':'𝔋','I':'ℑ','J':'𝔍','K':'𝔎','L':'𝔏','M':'𝔐','N':'𝔑','O':'𝔒','P':'𝔓','Q':'𝔔','R':'𝔕','S':'𝔖','T':'𝔗','U':'𝔘','V':'𝔙','W':'𝔚','X':'𝔛','Y':'𝔜','Z':'𝔝'}
     
@@ -452,7 +438,6 @@ class NodeNamer:
         return f"{code}{num}-{pfx}|⚡{lat}ms{'(TCP)' if tcp else ''}"
 
 
-# ==================== Clash管理器 ====================
 class ClashManager:
     def __init__(self):
         self.process = None
@@ -574,7 +559,6 @@ class ClashManager:
         return result
 
 
-# ==================== 协议链接转换 ====================
 def format_proxy_to_link(p):
     try:
         if p["type"] == "vmess":
@@ -599,7 +583,6 @@ def format_proxy_to_link(p):
         return f"# {p['name']}"
 
 
-# ==================== 主程序 ====================
 def main():
     st = time.time()
     clash = ClashManager()
@@ -611,7 +594,7 @@ def main():
     print("=" * 50)
     
     try:
-        # 1. Telegram频道爬取
+        # 1. Telegram 频道爬取
         print("\n📱 爬取 Telegram 频道...")
         tg_subs = crawl_telegram_channels(TELEGRAM_CHANNELS, pages=2, limits=20)
         tg_urls = list(tg_subs.keys())
@@ -700,7 +683,7 @@ def main():
                     r = clash.test_proxy(p["name"])
                     k = f"{p['server']}:{p['port']}"
                     
-                    if r["success"] and r["latency"] < 3000:
+                    if r["success"] and r["latency"] < MAX_PROXY_LATENCY:
                         if r["speed"] >= MIN_PROXY_SPEED or r["latency"] < 500:
                             fl, cd = get_region(p.get("name", " "))
                             p["name"] = namer.generate(fl, int(r["latency"]), r["speed"], tcp=False)
@@ -763,7 +746,7 @@ def main():
         print(f"\n✅ 最终：{len(final)} 个")
         print(f"📊 真实测速：{'✅' if proxy_ok else '❌'}\n")
         
-        # 7. 输出配置
+        # 7. 输出配置 ✅ 统一为 subscription.txt
         print("📝 生成配置...")
         
         # ✅ 确保最终名称唯一
@@ -789,7 +772,7 @@ def main():
             yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
         
         b64_lines = [f"{format_proxy_to_link(p)}" for p in unique_final]
-        with open("subscription.txt", 'w', encoding='utf-8') as f:
+        with open("subscription.txt", 'w', encoding='utf-8') as f:  # ✅ 统一为 subscription.txt
             f.write('\n'.join(b64_lines))
         
         # 统计
@@ -808,7 +791,7 @@ def main():
         print(f"• 耗时：{tt:.1f} 秒")
         print("=" * 50 + "\n")
         
-        # Telegram推送
+        # Telegram推送 ✅ 修正文件名
         if BOT_TOKEN and CHAT_ID and REPO_NAME:
             try:
                 msg = f"""🚀 <b>节点更新完成</b>
@@ -820,8 +803,10 @@ def main():
 • 最低：{min_lat:.1f} ms
 • 耗时：{tt:.1f} 秒
 
-📁 `https://raw.githubusercontent.com/{REPO_NAME}/main/proxies.yaml`
-📄 `https://raw.githubusercontent.com/{REPO_NAME}/main/subscription.txt`"""
+📁 YAML: `https://raw.githubusercontent.com/{REPO_NAME}/main/proxies.yaml`
+📄 TXT: `https://raw.githubusercontent.com/{REPO_NAME}/main/subscription.txt`
+
+🌐 支持协议: VMess | Trojan | SS | SSR | Hysteria2 | VLESS"""
                 requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"}, timeout=10)
                 print("✅ Telegram通知已发送")
             except Exception as e:

@@ -1,13 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Clash 节点筛选器 - GitHub Actions v3.0 (完整优化版)
-功能：
-  ✅ 真实代理测速（通过 Mihomo 内核）
-  ✅ 节点自动重命名（地区 + 序号 + 特殊字体）
-  ✅ 亚洲节点优先
-  ✅ TCP 保底策略
-  ✅ 详细错误诊断
+Clash 节点筛选器 - v4.0 (Xray 真实测试版)
+基于 V2RayAggregator[[17]] 和 XrayChecker[[29]] 优化
 """
 
 import requests
@@ -24,41 +19,41 @@ import subprocess
 import signal
 import gzip
 import shutil
-from urllib.parse import urlparse, parse_qs, unquote
+from urllib.parse import urlparse, parse_qs, unquote, quote
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 # ==================== 配置区 ====================
+# 高质量订阅源（参考 V2RayAggregator[[17]]）
 CANDIDATE_URLS = [
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt",
-    "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
-    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
-    "https://raw.githubusercontent.com/roosterkid/openproxylist/refs/heads/main/V2RAY_RAW.txt",
-    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vmess.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/trojan.txt",
+    "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
+    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vless.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vmess.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/trojan.txt",
     "https://raw.githubusercontent.com/vxiaov/free_proxies/main/clash/clash.yaml",
     "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.yml",
+    "https://raw.githubusercontent.com/SnapdragonLee/SystemProxy/master/dist/clash_config.yaml",
 ]
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", "Accept": "*/*"}
 TIMEOUT = 10
 
 # 节点数量配置
-MAX_FETCH_NODES = 1500
-MAX_TCP_TEST_NODES = 300
-MAX_PROXY_TEST_NODES = 100
-MAX_FINAL_NODES = 80
+MAX_FETCH_NODES = 2000
+MAX_TCP_TEST_NODES = 400
+MAX_PROXY_TEST_NODES = 150
+MAX_FINAL_NODES = 100
 
-# 测速阈值（放宽）
-MAX_LATENCY = 800
-MIN_PROXY_SPEED = 0.05
-MAX_PROXY_LATENCY = 1500
-TEST_URL = "https://www.google.com/generate_204"
+# 测速阈值（参考 XrayChecker[[29]]）
+MAX_LATENCY = 1000
+MIN_PROXY_SPEED = 0.03
+MAX_PROXY_LATENCY = 2000
+TEST_URL = "http://www.gstatic.com/generate_204"  # XrayChecker 推荐测试端点[[29]]
 
 # Clash 配置
 CLASH_PORT = 17890
@@ -66,8 +61,8 @@ CLASH_API_PORT = 19090
 CLASH_VERSION = "v1.19.0"
 
 # 节点命名配置
-NODE_NAME_STYLE = "fancy"  # normal / fancy / emoji
-NODE_NAME_PREFIX = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"  # 自定义前缀（特殊字体）
+NODE_NAME_STYLE = "fancy"
+NODE_NAME_PREFIX = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
@@ -81,15 +76,11 @@ CONFIG_FILE = WORK_DIR / "config.yaml"
 LOG_FILE = WORK_DIR / "clash.log"
 
 def ensure_clash_dir():
-    """确保 clash_temp 目录存在"""
     WORK_DIR.mkdir(parents=True, exist_ok=True)
     return WORK_DIR
 
-# ==================== 节点重命名功能 ====================
+# ==================== 节点重命名 ====================
 class NodeNamer:
-    """节点命名管理器"""
-    
-    # 特殊字体映射
     FANCY_CHARS = {
         'A': '𝔄', 'B': '𝔅', 'C': '𝔆', 'D': '𝔇', 'E': '𝔈', 'F': '𝔉', 'G': '𝔊', 'H': '𝔋',
         'I': 'ℑ', 'J': '𝔍', 'K': '𝔎', 'L': '𝔏', 'M': '𝔐', 'N': '𝔑', 'O': '𝔒', 'P': '𝔓',
@@ -101,7 +92,6 @@ class NodeNamer:
         'y': '𝔶', 'z': '𝔷',
     }
     
-    # 地区代码映射
     REGION_CODES = {
         "🇭🇰": "HK", "🇹🇼": "TW", "🇯🇵": "JP", "🇸🇬": "SG",
         "🇰🇷": "KR", "🇹🇭": "TH", "🇻🇳": "VN", "🇺🇸": "US",
@@ -112,47 +102,29 @@ class NodeNamer:
     def __init__(self, style: str = "fancy", prefix: str = NODE_NAME_PREFIX):
         self.style = style
         self.prefix = prefix
-        self.counters = {}  # 各地区计数器
+        self.counters = {}
     
     def to_fancy(self, text: str) -> str:
-        """转换为特殊字体"""
-        result = []
-        for char in text:
-            result.append(self.FANCY_CHARS.get(char, char))
-        return ''.join(result)
+        return ''.join(self.FANCY_CHARS.get(char, char) for char in text)
     
     def get_region_code(self, flag: str) -> str:
-        """获取地区代码"""
         return self.REGION_CODES.get(flag, "OT")
     
     def generate_name(self, flag: str, latency: int, speed: float = None, tcp_only: bool = False) -> str:
-        """生成节点名称"""
         region_code = self.get_region_code(flag)
-        
-        # 初始化计数器
         if region_code not in self.counters:
             self.counters[region_code] = 0
         self.counters[region_code] += 1
         num = self.counters[region_code]
         
         if self.style == "fancy":
-            # 特殊字体风格：HK1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
             if speed:
                 name = f"{region_code}{num}-{self.to_fancy(self.prefix)}|⚡{latency}ms|📥{speed:.1f}MB"
             elif tcp_only:
                 name = f"{region_code}{num}-{self.to_fancy(self.prefix)}|⚡{latency}ms(TCP)"
             else:
                 name = f"{region_code}{num}-{self.to_fancy(self.prefix)}|⚡{latency}ms"
-        elif self.style == "emoji":
-            # Emoji 风格：🇭🇰1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-            if speed:
-                name = f"{flag}{num}-{self.to_fancy(self.prefix)}|⚡{latency}ms|📥{speed:.1f}MB"
-            elif tcp_only:
-                name = f"{flag}{num}-{self.to_fancy(self.prefix)}|⚡{latency}ms(TCP)"
-            else:
-                name = f"{flag}{num}-{self.to_fancy(self.prefix)}|⚡{latency}ms"
         else:
-            # 普通风格：HK1-Anftlity
             plain_prefix = "Anftlity"
             if speed:
                 name = f"{region_code}{num}-{plain_prefix}|⚡{latency}ms|📥{speed:.1f}MB"
@@ -160,7 +132,6 @@ class NodeNamer:
                 name = f"{region_code}{num}-{plain_prefix}|⚡{latency}ms(TCP)"
             else:
                 name = f"{region_code}{num}-{plain_prefix}|⚡{latency}ms"
-        
         return name
 
 # ==================== Clash 管理 ====================
@@ -172,7 +143,6 @@ class ClashManager:
     
     def download_clash(self) -> bool:
         print("📥 下载 Mihomo 内核...")
-        
         if CLASH_PATH.exists():
             print(f"✅ 内核已存在：{CLASH_PATH}")
             return True
@@ -185,7 +155,6 @@ class ClashManager:
         for i, download_url in enumerate(urls, 1):
             try:
                 print(f"   尝试源 {i}/2...")
-                
                 temp_gz = WORK_DIR / "mihomo.gz"
                 resp = requests.get(download_url, timeout=120, stream=True)
                 resp.raise_for_status()
@@ -193,8 +162,6 @@ class ClashManager:
                 with open(temp_gz, "wb") as f:
                     for chunk in resp.iter_content(chunk_size=8192):
                         f.write(chunk)
-                
-                print(f"   下载完成：{temp_gz.stat().st_size} 字节")
                 
                 with gzip.open(temp_gz, "rb") as f_in:
                     with open(CLASH_PATH, "wb") as f_out:
@@ -213,17 +180,14 @@ class ClashManager:
                         self.error_details.append(f"内核验证失败：{result.stderr.decode()[:200]}")
                 else:
                     self.error_details.append("内核文件不存在")
-                    
             except Exception as e:
                 self.error_details.append(f"下载源 {i} 失败：{e}")
                 print(f"   ❌ 源 {i} 失败：{e}")
                 continue
-        
         return False
     
     def create_test_config(self, proxies: list) -> bool:
         ensure_clash_dir()
-        
         seen_names = {}
         unique_proxies = []
         for p in proxies[:MAX_PROXY_TEST_NODES]:
@@ -261,14 +225,12 @@ class ClashManager:
     
     def start(self) -> bool:
         ensure_clash_dir()
-        
         if not CLASH_PATH.exists():
             if not self.download_clash():
                 self.error_details.append("Clash 内核下载失败")
                 return False
         
         print("🚀 启动 Clash 内核...")
-        
         LOG_FILE.touch()
         
         try:
@@ -282,9 +244,8 @@ class ClashManager:
                 )
             
             print("   等待 API 就绪...")
-            for i in range(25):
+            for i in range(30):
                 time.sleep(1)
-                
                 if self.process.poll() is not None:
                     try:
                         with open(LOG_FILE, "r") as f:
@@ -304,11 +265,10 @@ class ClashManager:
                         return True
                 except:
                     if i % 5 == 4:
-                        print(f"   等待中... ({i+1}/25 秒)")
+                        print(f"   等待中... ({i+1}/30 秒)")
             
             self.error_details.append("API 就绪超时")
             return False
-            
         except Exception as e:
             self.error_details.append(f"启动异常：{e}")
             return False
@@ -323,22 +283,26 @@ class ClashManager:
                 pass
     
     def test_proxy(self, proxy_name: str) -> dict:
+        """通过 Clash 代理进行真实连接测试（参考 XrayChecker[[29]]）"""
         result = {"success": False, "latency": 9999, "speed": 0.0, "error": ""}
         try:
+            # 切换节点
             api_url = f"http://127.0.0.1:{CLASH_API_PORT}/proxies/TEST"
             put_resp = requests.put(api_url, json={"name": proxy_name}, timeout=5)
             if put_resp.status_code != 204:
                 result["error"] = f"切换：{put_resp.status_code}"
                 return result
             
-            time.sleep(0.2)
+            time.sleep(0.3)
             proxies = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
             
+            # 测试延迟（使用 gstatic.com，参考 XrayChecker[[29]]）
             start = time.time()
             resp = requests.get(TEST_URL, proxies=proxies, timeout=10, allow_redirects=False)
             latency = (time.time() - start) * 1000
             
             if resp.status_code in [200, 204, 301, 302]:
+                # 测试速度
                 speed_start = time.time()
                 speed_resp = requests.get("https://speed.cloudflare.com/__down?bytes=524288", proxies=proxies, timeout=15)
                 speed_elapsed = time.time() - speed_start
@@ -356,7 +320,7 @@ class ClashManager:
     def get_error_report(self) -> str:
         return "\n".join(self.error_details) if self.error_details else "无详细错误信息"
 
-# ==================== 节点解析 ====================
+# ==================== 节点解析（增强版） ====================
 def is_base64(s: str) -> bool:
     try:
         s = s.strip()
@@ -389,7 +353,6 @@ def fetch_url(url: str) -> str:
         return ""
 
 def get_region_from_name(name: str) -> tuple:
-    """从节点名称提取地区标识和代码"""
     name_lower = name.lower()
     if any(k in name_lower for k in ["hk", "hongkong", "港"]):
         return "🇭🇰", "HK"
@@ -590,7 +553,7 @@ def main():
     proxy_test_success = False
     
     print("=" * 50)
-    print("🚀 Clash 节点筛选器 - GitHub Actions v3.0")
+    print("🚀 Clash 节点筛选器 - v4.0 (真实代理测试)")
     print("=" * 50)
     print(f"📁 工作目录：{os.getcwd()}")
     print(f"🔧 GITHUB_ACTIONS: {GITHUB_ACTIONS}")
@@ -645,7 +608,7 @@ def main():
         node_list = list(all_nodes.values())[:MAX_TCP_TEST_NODES]
         node_results = []
         
-        with ThreadPoolExecutor(max_workers=25) as executor:
+        with ThreadPoolExecutor(max_workers=30) as executor:
             futures = {}
             for proxy in node_list:
                 future = executor.submit(lambda p: (p, tcp_ping(p["server"], p["port"]), is_asia_node(p)), proxy)
@@ -662,7 +625,7 @@ def main():
         print(f"✅ TCP 合格：{len(node_results)} 个（亚洲：{sum(1 for n in node_results if n['is_asia'])}）\n")
         
         # 4. 真实代理测速
-        print("🚀 第二阶段：真实代理测速...")
+        print("🚀 第二阶段：真实代理测速（通过 Clash API）...")
         final_nodes = []
         tested_keys = set()
         
@@ -676,18 +639,11 @@ def main():
                     for i, item in enumerate(node_results[:MAX_PROXY_TEST_NODES]):
                         proxy = item["proxy"]
                         result = clash.test_proxy(proxy["name"])
-                        
                         unique_key = f"{proxy['server']}:{proxy['port']}"
                         
                         if result["success"] and result["latency"] < MAX_PROXY_LATENCY:
-                            if result["speed"] >= MIN_PROXY_SPEED or result["latency"] < 300:
-                                # 生成新名称
-                                new_name = namer.generate_name(
-                                    proxy["name"],
-                                    int(result["latency"]),
-                                    result["speed"],
-                                    tcp_only=False
-                                )
+                            if result["speed"] >= MIN_PROXY_SPEED or result["latency"] < 500:
+                                new_name = namer.generate_name(proxy["name"], int(result["latency"]), result["speed"], tcp_only=False)
                                 proxy["name"] = new_name
                                 proxy["_latency"] = result["latency"]
                                 proxy["_speed"] = result["speed"]
@@ -702,7 +658,7 @@ def main():
                     
                     clash.stop()
                     
-                    # 保底策略：如果合格节点不足，使用 TCP 结果补充
+                    # 保底策略
                     if len(final_nodes) < MAX_FINAL_NODES // 2:
                         print(f"\n⚠️ 测速合格节点不足 ({len(final_nodes)} 个)，使用 TCP 结果补充...")
                         for item in node_results:
@@ -712,22 +668,14 @@ def main():
                             unique_key = f"{proxy['server']}:{proxy['port']}"
                             if unique_key in tested_keys:
                                 continue
-                            if item["is_asia"] and item["latency"] < 400:
-                                new_name = namer.generate_name(
-                                    proxy["name"],
-                                    int(item["latency"]),
-                                    tcp_only=True
-                                )
+                            if item["is_asia"] and item["latency"] < 500:
+                                new_name = namer.generate_name(proxy["name"], int(item["latency"]), tcp_only=True)
                                 proxy["name"] = new_name
                                 final_nodes.append(proxy)
                                 tested_keys.add(unique_key)
                                 print(f"   📌 {new_name} (TCP 补充)")
-                            elif item["latency"] < 200:
-                                new_name = namer.generate_name(
-                                    proxy["name"],
-                                    int(item["latency"]),
-                                    tcp_only=True
-                                )
+                            elif item["latency"] < 250:
+                                new_name = namer.generate_name(proxy["name"], int(item["latency"]), tcp_only=True)
                                 proxy["name"] = new_name
                                 final_nodes.append(proxy)
                                 tested_keys.add(unique_key)
@@ -742,12 +690,12 @@ def main():
                         unique_key = f"{proxy['server']}:{proxy['port']}"
                         if unique_key in tested_keys:
                             continue
-                        if item["is_asia"] and latency < 400:
+                        if item["is_asia"] and latency < 500:
                             new_name = namer.generate_name(proxy["name"], int(latency), tcp_only=True)
                             proxy["name"] = new_name
                             final_nodes.append(proxy)
                             tested_keys.add(unique_key)
-                        elif latency < 150:
+                        elif latency < 200:
                             new_name = namer.generate_name(proxy["name"], int(latency), tcp_only=True)
                             proxy["name"] = new_name
                             final_nodes.append(proxy)
@@ -768,7 +716,7 @@ def main():
         clash_config = {
             "proxies": final_nodes,
             "proxy-groups": [
-                {"name": "🚀 Auto", "type": "url-test", "proxies": [p["name"] for p in final_nodes], "url": "https://www.google.com/generate_204", "interval": 300, "tolerance": 50},
+                {"name": "🚀 Auto", "type": "url-test", "proxies": [p["name"] for p in final_nodes], "url": "http://www.gstatic.com/generate_204", "interval": 300, "tolerance": 50},
                 {"name": "🌍 Select", "type": "select", "proxies": ["🚀 Auto"] + [p["name"] for p in final_nodes]}
             ],
             "rules": ["MATCH,🌍 Select"]

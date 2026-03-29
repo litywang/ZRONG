@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v21.0 Ultimate - 完全重构优化版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 21.0
-核心原则：质量优先 + 三层严格检测 + 零语法错误 + 全量源保留
-修复：URL 空格 404 错误 + 语法错误 + Git 提交失败 + Clash 崩溃
+聚合订阅爬虫 v19.0 Final - 严格检测完整版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 19.0
+核心原则：三層严格检测 + 全量优质源保留 + 零语法错误 + 最佳稳定性
 """
 
 import requests, base64, hashlib, time, json, socket, os, sys, re, yaml, subprocess, signal, gzip, shutil, ssl, urllib.request, urllib.error, urllib.parse
@@ -17,9 +16,8 @@ import threading
 
 
 # ==================== 配置区 ====================
-# ⭐ 全量高质量订阅源 (不精简，保留 Epodonios/Barry-far 等)
 CANDIDATE_URLS = [
-    # Mahdibland (V2RayAggregator)
+    # V2RayAggregator (最推荐)
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vmess.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/trojan.txt",
@@ -28,29 +26,23 @@ CANDIDATE_URLS = [
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/Eternity.txt",
     # Pawdroid
     "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
-    # Epodonios (全协议拆分保持)
+    # Epodonios
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vless.txt",
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vmess.txt",
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/trojan.txt",
-    # Barry-far (全协议拆分保持)
+    # Barry-far
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vless.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vmess.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/trojan.txt",
     # 其他高质量源
-    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
-    "https://raw.githubusercontent.com/roosterkid/openproxylist/refs/heads/main/V2RAY_RAW.txt",
-    "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.yml",
-    "https://raw.githubusercontent.com/TG-NAV/clashnode/main/subscribe.txt",
-    "https://raw.githubusercontent.com/SnapdragonLee/SystemProxy/master/dist/clash_config.yaml",
     "https://shz.al/~WangCai",
 ]
 
 TELEGRAM_CHANNELS = [
-    "v2ray_sub", "free_v2ray", "clash_meta", "v2rayng_config", "proxies_free",
-    "v2ray_collector", "mr_v2ray", "vmess_vless_v2rayng", "freeVPNjd", "wxdy666",
-    "jiedianbodnn", "dns68",
+    "v2ray_sub", "free_v2ray", "clash_meta", "proxies_free", "mr_v2ray",
+    "vmess_vless_v2rayng", "freeVPNjd", "dns68", "jiedianbodnn", "wxdy666",
 ]
 
 HEADERS = {"User-Agent": "Mozilla/5.0; Clash.Meta; Mihomo; Shadowrocket"}
@@ -70,8 +62,8 @@ CLASH_API_PORT = 19090
 CLASH_VERSION = "v1.19.0"
 NODE_NAME_PREFIX = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
 
-MAX_WORKERS = 5
-REQUESTS_PER_SECOND = 0.8
+MAX_WORKERS = 3
+REQUESTS_PER_SECOND = 0.5
 MAX_RETRIES = 5
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -83,11 +75,8 @@ CLASH_PATH = WORK_DIR / "mihomo"
 CONFIG_FILE = WORK_DIR / "config.yaml"
 LOG_FILE = WORK_DIR / "clash.log"
 
-# 工具二进制文件路径
-ST_BINARY_PATH = WORK_DIR / "st-binary"
 
-
-# ==================== 工具函数 ====================
+# ==================== 工具函数 (保证先于主程序定义) ====================
 def ensure_clash_dir():
     """安全创建目录"""
     if WORK_DIR.exists() and not WORK_DIR.is_dir():
@@ -132,57 +121,13 @@ def create_session():
 session = create_session()
 
 
-# ⭐ 关键修复：确保 URL 无空格
 def strip_url(u):
+    """关键修复：确保 URL 无空格"""
     if u: return u.strip().replace("\n", "").replace(" ", "")
     return ""
 
 
-# ==================== 订阅验证 ====================
-def is_base64_encode(content):
-    try:
-        content = content.strip()
-        if len(content) < 10:
-            return False
-        base64.b64decode(content + "=" * (4 - len(content) % 4), validate=True)
-        return True
-    except:
-        return False
-
-
-def fetch(url):
-    limiter.wait(url)
-    try:
-        resp = session.get(url, timeout=TIMEOUT)
-        return resp.text.strip()
-    except:
-        return ""
-
-
-def check_url(u):
-    limiter.wait(u)
-    try:
-        resp = session.head(u, timeout=TIMEOUT, allow_redirects=True)
-        return resp.status_code in (200, 301, 302)
-    except:
-        return False
-
-
-def tcp_ping(host, port, to=2.0):
-    if not host:
-        return 9999.0
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(to)
-        st = time.time()
-        s.connect((host, port))
-        s.close()
-        return round((time.time() - st) * 1000, 1)
-    except:
-        return 9999.0
-
-
-# ==================== 节点解析 ====================
+# ==================== 节点解析器 ====================
 def generate_unique_id(proxy):
     key = f"{proxy.get('server', '')}:{proxy.get('port', '')}:{proxy.get('uuid', proxy.get('password', ''))}"
     return hashlib.md5(key.encode()).hexdigest()[:8].upper()
@@ -198,7 +143,11 @@ def parse_vmess(node):
         if not d.startswith("{"): return None
         c = json.loads(d)
         uid = generate_unique_id({'server': c.get('add') or c.get('host'), 'port': int(c.get('port', 443)), 'uuid': c.get('id')})
-        p = {"name": f"VM-{uid}", "type": "vmess", "server": c.get("add") or c.get("host", ""), "port": int(c.get("port", 443)), "uuid": c.get("id", ""), "alterId": int(c.get("aid", 0)), "cipher": "auto", "udp": True, "skip-cert-verify": True}
+        p = {
+            "name": f"VM-{uid}", "type": "vmess", "server": c.get("add") or c.get("host", ""),
+            "port": int(c.get("port", 443)), "uuid": c.get("id", ""), "alterId": int(c.get("aid", 0)),
+            "cipher": "auto", "udp": True, "skip-cert-verify": True
+        }
         net = c.get("net", "tcp").lower()
         if net in ["ws", "h2", "grpc"]: p["network"] = net
         if c.get("tls") == "tls" or c.get("security") == "tls":
@@ -224,7 +173,10 @@ def parse_vless(node):
         gp = lambda k: params.get(k, [""])[0]
         sec = gp("security")
         uid = generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443), 'uuid': uuid})
-        proxy = {"name": f"VL-{uid}", "type": "vless", "server": p_url.hostname, "port": int(p_url.port or 443), "uuid": uuid, "udp": True, "skip-cert-verify": True}
+        proxy = {
+            "name": f"VL-{uid}", "type": "vless", "server": p_url.hostname, "port": int(p_url.port or 443),
+            "uuid": uuid, "udp": True, "skip-cert-verify": True
+        }
         if sec in ["tls", "reality"]:
             proxy["tls"] = True
             proxy["sni"] = gp("sni") or proxy["server"]
@@ -257,7 +209,10 @@ def parse_trojan(node):
         params = parse_qs(p_url.query)
         gp = lambda k: params.get(k, [""])[0]
         uid = generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443), 'password': pwd})
-        proxy = {"name": f"TJ-{uid}", "type": "trojan", "server": p_url.hostname, "port": int(p_url.port or 443), "password": pwd, "udp": True, "skip-cert-verify": True, "sni": gp("sni") or p_url.hostname}
+        proxy = {
+            "name": f"TJ-{uid}", "type": "trojan", "server": p_url.hostname, "port": int(p_url.port or 443),
+            "password": pwd, "udp": True, "skip-cert-verify": True, "sni": gp("sni") or p_url.hostname
+        }
         alpn = gp("alpn")
         if alpn: proxy["alpn"] = [a.strip() for a in alpn.split(",")]
         fp = gp("fp")
@@ -294,32 +249,130 @@ def parse_node(node):
     return None
 
 
-# ==================== 节点命名 ====================
-class NodeNamer:
-    FANCY = {'A':'𝔄','B':'𝔅','C':'𝔆','D':'𝔇','E':'𝔈','F':'𝔉','G':'𝔊','H':'𝔋','I':'ℑ','J':'𝔍','K':'𝔎','L':'𝔏','M':'𝔐','N':'𝔑','O':'𝔒','P':'𝔓','Q':'𝔔','R ':'𝔕','S':'𝔖','T':'𝔗','U':'𝔘','V':'𝔙','W':'𝔚','X':'𝔛','Y':'𝔜','Z':'𝔝'}
-    
-    def __init__(self):
-        self.counters = {}
+# ==================== 辅助工具 ====================
+def get_region(name):
+    """获取地区标识"""
+    nl = name.lower()
+    if any(k in nl for k in ["hk", "hongkong", "港"]):
+        return "🇭🇰", "HK"
+    elif any(k in nl for k in ["tw", "taiwan", "台"]):
+        return "🇹🇼", "TW"
+    elif any(k in nl for k in ["jp", "japan", "日"]):
+        return "🇯🇵", "JP"
+    elif any(k in nl for k in ["sg", "singapore", "新"]):
+        return "🇸🇬", "SG"
+    elif any(k in nl for k in ["kr", "korea", "韩"]):
+        return "🇰🇷", "KR"
+    elif any(k in nl for k in ["us", "usa", "美"]):
+        return "🇺🇸", "US"
+    return "🌍", "OT"
 
-    def to_fancy(self, t):
-        return ''.join(self.FANCY.get(c.upper(), c) for c in t)
 
-    def generate(self, flag, lat, speed=None, tcp=False):
-        nl = flag.lower() if flag else "ot"
-        if any(k in nl for k in ["hk", "hongkong", "港"]): code, region = "🇭🇰", "HK"
-        elif any(k in nl for k in ["tw", "taiwan", "台"]): code, region = "🇹🇼", "TW"
-        elif any(k in nl for k in ["jp", "japan", "日"]): code, region = "🇯🇵", "JP"
-        elif any(k in nl for k in ["sg", "singapore", "新"]): code, region = "🇸🇬", "SG"
-        elif any(k in nl for k in ["kr", "korea", "韩"]): code, region = "🇰🇷", "KR"
-        elif any(k in nl for k in ["us", "usa", "美"]): code, region = "🇺🇸", "US"
-        else: code, region = "🌍", "OT"
-        
-        self.counters[region] = self.counters.get(region, 0) + 1
-        num = self.counters[region]
-        pfx = self.to_fancy(NODE_NAME_PREFIX)
-        if speed:
-            return f"{code}{num}-{pfx}|⚡{lat}ms|📥{speed:.1f}MB"
-        return f"{code}{num}-{pfx}|⚡{lat}ms{'(TCP)' if tcp else ''}"
+def is_asia(p):
+    t = f"{p.get('name', '')} {p.get('server', '')}".lower()
+    return any(k in t for k in ["hk", "tw", "jp", "sg", "kr", "asia"])
+
+
+def is_base64(s):
+    try:
+        s = s.strip()
+        if len(s) < 10 or not re.match(r'^[A-Za-z0-9+/=]+$', s):
+            return False
+        base64.b64decode(s + "=" * (4 - len(s) % 4), validate=True)
+        return True
+    except:
+        return False
+
+
+def decode_b64(c):
+    try:
+        c = c.strip()
+        m = len(c) % 4
+        if m:
+            c += "=" * (4 - m)
+        d = base64.b64decode(c).decode("utf-8", errors="ignore")
+        return d if "://" in d else c
+    except:
+        return c
+
+
+def fetch(url):
+    limiter.wait(url)
+    try:
+        return session.get(url, timeout=TIMEOUT).text.strip()
+    except:
+        return ""
+
+
+def tcp_ping(host, port, to=2.0):
+    if not host:
+        return 9999.0
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(to)
+        st = time.time()
+        s.connect((host, port))
+        s.close()
+        return round((time.time() - st) * 1000, 1)
+    except:
+        return 9999.0
+
+
+def check_url(u):
+    limiter.wait(u)
+    try:
+        return session.head(u, timeout=TIMEOUT, allow_redirects=True).status_code in (200, 301, 302)
+    except:
+        return False
+
+
+# ==================== Telegram 爬取 ====================
+def get_telegram_pages(channel):
+    try:
+        url = f"https://t.me/s/{channel}"
+        content = session.get(url, timeout=TIMEOUT).text
+        regex = rf'<link\s+rel="canonical"\s+href="/s/{channel}?before=(\d+)">'
+        groups = re.findall(regex, content)
+        return int(groups[0]) if groups else 0
+    except:
+        return 0
+
+
+def crawl_telegram_page(url, limits=25):
+    try:
+        limiter.wait(url)
+        content = session.get(url, timeout=TIMEOUT).text
+        if not content: return {}
+        sub_regex = r'https?://(?:[a-zA-Z0-9\u4e00-\u9fa5\-]+\.)+[a-zA-Z0-9\u4e00-\u9fa5\-]+(?::\d+)?[^"\s<>]*'
+        links = re.findall(sub_regex, content)
+        collections = {}
+        for link in links[:limits]:
+            link = link.strip().replace("http://", "https://", 1)  # ⭐ 去空处理
+            if "token=" in link or "/link/" in link:
+                collections[link] = {"origin": "TELEGRAM"}
+        return collections
+    except:
+        return {}
+
+
+def crawl_telegram_channels(channels, pages=2, limits=20):
+    all_subscribes = {}
+    for channel in channels:
+        try:
+            count = get_telegram_pages(channel)
+            if count == 0: continue
+            page_arrays = range(count, -1, -100)
+            page_num = min(pages, len(page_arrays))
+            for i, before in enumerate(page_arrays[:page_num]):
+                url = f"https://t.me/s/{channel}?before={before}"
+                result = crawl_telegram_page(url, limits=limits)
+                all_subscribes.update(result)
+                print(f"✅ Telegram 频道 {channel} 第{i+1}页：{len(result)} 个订阅")
+                time.sleep(1)
+        except Exception as e:
+            print(f"❌ Telegram 频道 {channel}: {e}")
+            continue
+    return all_subscribes
 
 
 # ==================== Clash 管理 ====================
@@ -356,8 +409,8 @@ class ClashManager:
             names.append(name)
             p["name"] = name
         config = {
-            "port": CLASH_PORT, "socks-port": CLASH_PORT+1, "allow-lan": False, "mode": "rule",
-            "log-level": "warning", "external-controller": f"127.0.0.1:{CLASH_API_PORT}",
+            "port": CLASH_PORT, "socks-port": CLASH_PORT + 1, "allow-lan": False, "mode": "rule",
+            "log-level": "error", "external-controller": f"127.0.0.1:{CLASH_API_PORT}",
             "secret": "", "ipv6": False, "unified-delay": True, "tcp-concurrent": True,
             "proxies": proxies[:MAX_PROXY_TEST_NODES],
             "proxy-groups": [{"name": "TEST", "type": "select", "proxies": names}],
@@ -423,51 +476,24 @@ class ClashManager:
         return result
 
 
-# ==================== Telegram 爬取 ====================
-def get_telegram_pages(channel):
-    try:
-        url = f"https://t.me/s/{channel}"
-        content = session.get(url, timeout=TIMEOUT).text
-        regex = rf'<link\s+rel="canonical"\s+href="/s/{channel}?before=(\d+)">'
-        groups = re.findall(regex, content)
-        return int(groups[0]) if groups else 0
-    except: return 0
+# ==================== 节点命名 ====================
+class NodeNamer:
+    FANCY = {'A':'𝔄','B':'𝔅','C':'𝔆','D':'𝔇','E':'𝔈','F':'𝔉','G':'𝔊','H':'𝔋','I':'ℑ','J':'𝔍','K':'𝔎','L':'𝔏','M':'𝔐','N':'𝔑','O':'𝔒','P':'𝔓','Q':'𝔔','R':'𝔕','S':'𝔖','T':'𝔗','U':'𝔘','V':'𝔙','W':'𝔚','X':'𝔛','Y':'𝔜','Z':'𝔝'}
+    
+    def __init__(self):
+        self.counters = {}
 
+    def to_fancy(self, t):
+        return ''.join(self.FANCY.get(c.upper(), c) for c in t)
 
-def crawl_telegram_page(url, limits=25):
-    try:
-        limiter.wait(url)
-        content = session.get(url, timeout=TIMEOUT).text
-        if not content: return {}
-        sub_regex = r'https?://(?:[a-zA-Z0-9\u4e00-\u9fa5\-]+\.)+[a-zA-Z0-9\u4e00-\u9fa5\-]+(?::\d+)?[^"\s<>]*'
-        links = re.findall(sub_regex, content)
-        collections = {}
-        for link in links[:limits]:
-            link = link.strip().replace("http://", "https://", 1) # 关键：去空
-            if "token=" in link or "/link/" in link:
-                collections[link] = {"origin": "TELEGRAM"}
-        return collections
-    except: return {}
-
-
-def crawl_telegram_channels(channels, pages=2, limits=20):
-    all_subscribes = {}
-    for channel in channels:
-        try:
-            count = get_telegram_pages(channel)
-            if count == 0: continue
-            page_arrays = range(count, -1, -100)
-            page_num = min(pages, len(page_arrays))
-            for i, before in enumerate(page_arrays[:page_num]):
-                url = f"https://t.me/s/{channel}?before={before}"
-                result = crawl_telegram_page(url, limits=limits)
-                all_subscribes.update(result)
-                print(f"✅ Telegram 频道 {channel} 第{i+1}页：{len(result)} 个订阅")
-                time.sleep(1)
-        except Exception as e:
-            print(f"❌ Telegram 频道 {channel}: {e}")
-            continue
-    return all_subscribes
+    def generate(self, flag, lat, speed=None, tcp=False):
+        code, region = get_region(flag)
+        self.counters[region] = self.counters.get(region, 0) + 1
+        num = self.counters[region]
+        pfx = self.to_fancy(NODE_NAME_PREFIX)
+        if speed:
+            return f"{code}{num}-{pfx}|⚡{lat}ms|📥{speed:.1f}MB"
+        return f"{code}{num}-{pfx}|⚡{lat}ms{'(TCP)' if tcp else ''}"
 
 
 # ==================== 协议链接转换 ====================
@@ -486,7 +512,8 @@ def format_proxy_to_link(p):
             auth_enc = base64.b64encode(f"{p['cipher']}:{p['password']}".encode()).decode()
             return f"ss://{auth_enc}@{p['server']}:{p['port']}#{urllib.parse.quote(p['name'], safe='')}"
         return f"# {p['name']}"
-    except: return f"# {p['name']}"
+    except:
+        return f"# {p['name']}"
 
 
 # ==================== 主程序 ====================
@@ -497,7 +524,7 @@ def main():
     proxy_ok = False
     
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v21.0 Ultimate")
+    print("🚀 聚合订阅爬虫 v19.0 Final")
     print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶")
     print("=" * 50)
 
@@ -507,7 +534,7 @@ def main():
         # 1. Telegram 频道爬取
         print("\n📱 爬取 Telegram 频道...")
         tg_subs = crawl_telegram_channels(TELEGRAM_CHANNELS, pages=2, limits=20)
-        tg_urls = list(set([strip_url(u) for u in tg_subs.keys()])) # 去重 + 去空
+        tg_urls = list(set([strip_url(u) for u in tg_subs.keys()]))
         all_urls.extend(tg_urls)
         print(f"✅ Telegram 订阅：{len(tg_urls)} 个\n")
         
@@ -527,9 +554,8 @@ def main():
         for u in all_urls:
             c = fetch(u)
             if not c: continue
-            if is_base64_encode(c): c = decode_b64(c)
-            # 修复：split lines -> splitlines
-            for l in c.splitlines(): 
+            if is_base64(c): c = decode_b64(c)
+            for l in c.splitlines():  # ⭐ 修复：splitlines() 不是 split lines()
                 l = l.strip()
                 if not l or l.startswith("#"): continue
                 p = parse_node(l)
@@ -546,7 +572,7 @@ def main():
             print("❌ 无有效节点!")
             return
         
-        # 5. TCP 测试 (第一层)
+        # 5. TCP 测试
         print("⚡ 第一层：TCP 延迟测试...")
         nlist = list(nodes.values())[:MAX_TCP_TEST_NODES]
         nres = []
@@ -554,21 +580,26 @@ def main():
         def test_tcp_node(proxy):
             try:
                 lat = tcp_ping(proxy["server"], proxy["port"])
-                return {"proxy": proxy, "latency": float(lat), "is_asia": any(k in f"{proxy.get('name','')} {proxy.get('server','')}".lower() for k in ["hk","tw","jp","sg","kr","asia"])}
+                return {"proxy": proxy, "latency": float(lat), "is_asia": is_asia(proxy)}
             except Exception:
                 return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
         
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
             futures = {ex.submit(test_tcp_node, p): p for p in nlist}
+            completed = 0
             for future in as_completed(futures):
                 try:
                     result = future.result(timeout=TIMEOUT + 10)
                     if result["latency"] < MAX_LATENCY:
                         nres.append(result)
+                    completed += 1
+                    if completed % 50 == 0:
+                        print(f"   进度：{completed}/{len(nlist)} | 合格：{len(nres)}")
                 except: pass
         
         nres.sort(key=lambda x: (-x["is_asia"], x["latency"]))
-        print(f"✅ 第一层合格：{len(nres)} 个（亚洲：{sum(1 for n in nres if n['is_asia'])}）\n")
+        asia_count = sum(1 for n in nres if n["is_asia"])
+        print(f"✅ 第一层合格：{len(nres)} 个（亚洲：{asia_count}）\n")
         
         # 6. 真实测速 + TCP 保底
         print("🚀 真实代理测速...")
@@ -666,12 +697,12 @@ def main():
             yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
         
         b64_lines = [format_proxy_to_link(p) for p in unique_final]
-        with open("subscription.txt", "w", encoding="utf-8") as f: # 统一文件名
+        with open("subscription.txt", "w", encoding="utf-8") as f:
             f.write('\n'.join(b64_lines))
         
         # 统计
         tt = time.time() - st
-        asia_ct = sum(1 for p in unique_final if any(k in f"{p.get('name','')} {p.get('server','')}".lower() for k in ["hk","tw","jp","sg","kr","asia"]))
+        asia_ct = sum(1 for p in unique_final if is_asia(p))
         lats = [tcp_ping(p["server"], p["port"]) for p in unique_final[:20]] if unique_final else []
         min_lat = min(lats) if lats else 0
         

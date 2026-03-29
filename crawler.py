@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 聚合订阅爬虫 v21.1 Final - 速率限制修复版
-作者：Anftlity | Version: 21.1
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 21.1
 核心修复：RateLimiter.wait() 参数错误 + 语法清理
 """
 
@@ -22,31 +22,56 @@ CANDIDATE_URLS = [
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/ss.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/hysteria2.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/Eternity.txt",
+    # Pawdroid
     "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
+    # Epodonios
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vless.txt",
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vmess.txt",
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/trojan.txt",
+    # barry-far
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vless.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vmess.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/trojan.txt",
+    # 其他高质量源
+    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
+    "https://raw.githubusercontent.com/roosterkid/openproxylist/refs/heads/main/V2RAY_RAW.txt",
+    "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.yml",
+    "https://raw.githubusercontent.com/TG-NAV/clashnode/main/subscribe.txt",
+    "https://raw.githubusercontent.com/SnapdragonLee/SystemProxy/master/dist/clash_config.yaml",
+    "https://shz.al/~WangCai",
+    # wzdnzd/aggregator 数据源
+    "https://raw.githubusercontent.com/wzdnzd/aggregator/main/data/proxies.yaml",
+    "https://cdn.jsdelivr.net/gh/vxiaov/free_proxies@main/clash/clash.provider.yaml",
+    "https://raw.githubusercontent.com/Misaka-blog/chromego_merge/main/sub/merged_proxies_new.yaml",
     "https://shz.al/~WangCai",
 ]
 
-TELEGRAM_CHANNELS = ["proxies_free", "mr_v2ray", "dns68"]
+TELEGRAM_CHANNELS = [
+    "v2ray_sub", "free_v2ray", "clash_meta", "v2rayng_config", "proxies_free",
+    "v2ray_collector", "mr_v2ray", "vmess_vless_v2rayng", "freeVPNjd", "wxdy666",
+    "jiedianbodnn", "dns68", "AlphaV2ray", "V2rayN", "proxies_share"
+]
 
 HEADERS = {"User-Agent": "Mozilla/5.0; Clash.Meta; Mihomo"}
 TIMEOUT = 30
 
-MAX_FETCH_NODES = 2000
-MAX_TCP_TEST_NODES = 300
-MAX_PROXY_TEST_NODES = 100
-MAX_FINAL_NODES = 80
-MAX_LATENCY = 2000
+MAX_FETCH_NODES = 5000
+MAX_TCP_TEST_NODES = 2000
+MAX_PROXY_TEST_NODES = 200
+MAX_FINAL_NODES = 188
+MAX_LATENCY = 3000
 MIN_PROXY_SPEED = 0.01
-MAX_PROXY_LATENCY = 3000
+MAX_PROXY_LATENCY = 2000
 TEST_URL = "http://www.gstatic.com/generate_204"
 
 CLASH_PORT = 17890
 CLASH_API_PORT = 19090
 CLASH_VERSION = "v1.19.0"
-NODE_NAME_PREFIX = "Anftlity"
+NODE_NAME_PREFIX = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
 
-MAX_WORKERS = 3
+MAX_WORKERS = 5
 REQUESTS_PER_SECOND = 0.5
 MAX_RETRIES = 5
 
@@ -475,7 +500,7 @@ def main():
     
     print("=" * 50)
     print("🚀 聚合订阅爬虫 v21.1 Final")
-    print("作者：Anftlity")
+    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶")
     print("=" * 50)
     
     all_urls = []
@@ -666,7 +691,7 @@ def main():
 📄 TXT: `{txt_raw_url}`
 
 🌐 支持协议：VMess | Trojan | SS | SSR | Hysteria2 | VLESS
-作者：Anftlity"""
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"""
                 requests.post(
                     f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
                     json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"},

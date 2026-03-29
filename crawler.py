@@ -1,8 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v11.0 Final - 修复重复名称BUG
-修复点: Clash 名称重复 + FileExistsError + Lambda语法 + 所有已知问题
+聚合订阅爬虫 v11.0 Final 
 """
 
 import requests, base64, hashlib, time, json, socket, os, sys, re, yaml, subprocess, signal, gzip, shutil, ssl, urllib.request, urllib.error, urllib.parse
@@ -16,20 +13,39 @@ import threading
 
 # ==================== 配置区 ====================
 CANDIDATE_URLS = [
+    # V2RayAggregator (最推荐)
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vmess.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/trojan.txt",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/ss.txt",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/hysteria2.txt",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/Eternity.txt",
+    # Pawdroid
     "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
+    # Epodonios
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vless.txt",
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vmess.txt",
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/trojan.txt",
+    # barry-far
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vless.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vmess.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/trojan.txt",
+    # 其他高质量源
+    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
+    "https://raw.githubusercontent.com/roosterkid/openproxylist/refs/heads/main/V2RAY_RAW.txt",
     "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.yml",
+    "https://raw.githubusercontent.com/TG-NAV/clashnode/main/subscribe.txt",
+    "https://raw.githubusercontent.com/SnapdragonLee/SystemProxy/master/dist/clash_config.yaml",
     "https://shz.al/~WangCai",
 ]
 
-TELEGRAM_CHANNELS = ["proxies_free", "mr_v2ray", "dns68"]
+TELEGRAM_CHANNELS = [ "v2ray_sub", "free_v2ray", "clash_meta", "v2rayng_config", "proxies_free", "v2ray_collector", "mr_v2ray", "vmess_vless_v2rayng", "freeVPNjd", "wxdy666", "jiedianbodnn", "dns68"]
 HEADERS = {"User-Agent": "Mozilla/5.0; Clash.Meta; Mihomo"}
 TIMEOUT = 30
 
-MAX_FETCH_NODES = 2000
+MAX_FETCH_NODES = 4000
 MAX_TCP_TEST_NODES = 300
 MAX_PROXY_TEST_NODES = 100
 MAX_FINAL_NODES = 80

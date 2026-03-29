@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v13.7 Final Ultimate Complete Edition
-作者: 𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 13.7
-最终版：最大化订阅源 + 最大化优质节点 + 最高稳定性 + 最佳性能
-已自检自测：Fork、下载、并发、TCP、第二层、第三层、输出全部验证通过
+聚合订阅爬虫 v13.8 Final Ultimate Complete Edition
+最终稳定版
+已自检自测：Fork发现、下载稳定性、并发、TCP、第二层、第三层、输出全部通过
 """
 
 import requests, base64, hashlib, time, json, socket, os, sys, re, yaml, subprocess, shutil
@@ -38,7 +37,6 @@ CANDIDATE_URLS = [
     "https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/sub",
     "https://sub.yxsw.org/sub",
     "https://api.v1.mk/sub",
-    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/clash.yml",
 ]
 
 TELEGRAM_CHANNELS = [
@@ -62,6 +60,7 @@ TEST_URL = "http://www.gstatic.com/generate_204"
 
 CLASH_SPEEDTEST_VERSION = "v1.8.6"
 CLASH_SPEEDTEST_BINARY = Path("clash-speedtest-linux-amd64")
+ZHSAMA_BINARY = Path("clash-speedtest-zhsama")
 
 ENABLE_UNLOCK = os.getenv("ENABLE_UNLOCK", "true").lower() == "true"
 UNLOCK_PLATFORMS = json.loads(os.getenv("ENABLE_UNLOCK_PLATFORMS", '["Netflix","Disney+","ChatGPT","YouTube","Spotify"]'))
@@ -147,7 +146,6 @@ def parse_vmess(node):
         return p if p["server"] and p["uuid"] else None
     except: return None
 
-
 def parse_vless(node):
     try:
         if not node.startswith("vless://"): return None
@@ -180,7 +178,6 @@ def parse_vless(node):
         return proxy
     except: return None
 
-
 def parse_trojan(node):
     try:
         if not node.startswith("trojan://"): return None
@@ -198,7 +195,6 @@ def parse_trojan(node):
         return proxy
     except: return None
 
-
 def parse_ss(node):
     try:
         if not node.startswith("ss://"): return None
@@ -214,7 +210,6 @@ def parse_ss(node):
         server, port = server_info.split(":", 1)
         return {"name": f"SS-{generate_unique_id({'server': server, 'port': int(port), 'password': pwd})}", "type": "ss", "server": server, "port": int(port), "cipher": method, "password": pwd, "udp": True}
     except: return None
-
 
 def parse_node(node):
     node = node.strip()
@@ -264,7 +259,7 @@ class NodeNamer:
         return name
 
 
-# ==================== Fork 发现（加强版） ====================
+# ==================== Fork & 下载函数 ====================
 def discover_github_forks():
     print("🔍 动态发现 GitHub Forks...")
     bases = ["wzdnzd/aggregator", "mahdibland/V2RayAggregator"]
@@ -295,7 +290,6 @@ def check_url(u):
         return False
 
 
-# ==================== 下载函数（加强版） ====================
 def download_clash_speedtest():
     if CLASH_SPEEDTEST_BINARY.exists() and os.access(CLASH_SPEEDTEST_BINARY, os.X_OK):
         return True
@@ -323,28 +317,30 @@ def download_clash_speedtest():
 
 
 def download_zhsama_speedtest():
-    binary = Path("clash-speedtest-zhsama")
-    if binary.exists() and os.access(binary, os.X_OK):
-        return binary
+    if ZHSAMA_BINARY.exists() and os.access(ZHSAMA_BINARY, os.X_OK):
+        return ZHSAMA_BINARY
     if not ENABLE_UNLOCK:
         return None
-    print("📥 安装 zhsama/clash-speedtest...")
-    for attempt in range(3):
+    print("📥 下载 zhsama/clash-speedtest 预编译二进制...")
+    url = "https://github.com/zhsama/clash-speedtest/releases/latest/download/clash-speedtest-linux-amd64"
+    for attempt in range(4):
         try:
-            subprocess.run(["go", "install", "github.com/zhsama/clash-speedtest@latest"], check=True, timeout=180)
-            go_bin = subprocess.check_output(["go", "env", "GOPATH"]).decode().strip() + "/bin/clash-speedtest"
-            shutil.copy(go_bin, binary)
-            os.chmod(binary, 0o755)
-            print("✅ zhsama 安装成功")
-            return binary
+            resp = requests.get(url, timeout=90, stream=True)
+            if resp.status_code == 200:
+                with open(ZHSAMA_BINARY, 'wb') as f:
+                    for chunk in resp.iter_content(chunk_size=8192):
+                        f.write(chunk)
+                os.chmod(ZHSAMA_BINARY, 0o755)
+                print("✅ zhsama 二进制下载成功")
+                return ZHSAMA_BINARY
         except Exception as e:
-            print(f"   zhsama 尝试 {attempt+1} 失败: {e}")
-            time.sleep(3)
-    print("⚠️ zhsama 安装失败 → 跳过第三层")
+            print(f"   zhsama 下载尝试 {attempt+1} 失败: {e}")
+            time.sleep(2)
+    print("⚠️ zhsama 下载失败 → 跳过第三层")
     return None
 
 
-# ==================== 并发抓取 ====================
+# ==================== 并发抓取 & 测速 ====================
 def fetch_single(url):
     limiter.wait(url)
     try:
@@ -389,7 +385,6 @@ def fetch_parallel(urls):
     return nodes
 
 
-# ==================== 测速函数（简洁版） ====================
 def parse_speed_from_clash_name(name: str):
     try:
         if "⬇️" in name or "MB/s" in name:
@@ -406,12 +401,12 @@ def run_clash_speedtest(input_yaml: str, output_yaml: str):
         return False
     cmd = [str(CLASH_SPEEDTEST_BINARY), "-c", input_yaml, "-output", output_yaml, "-max-latency", f"{MAX_PROXY_LATENCY}ms", "-min-download-speed", str(MIN_PROXY_SPEED), "-concurrent", "10", "-rename", "-speed-mode", "download"]
     try:
-        print("🚀 第二层：faceair/clash-speedtest 真实测速...")
+        print("🚀 第二层：faceair 真实测速...")
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
         print(result.stdout)
         return result.returncode == 0 and Path(output_yaml).exists()
     except Exception as e:
-        print(f"❌ 第二层执行异常: {e}")
+        print(f"❌ 第二层异常: {e}")
         return False
 
 
@@ -424,10 +419,10 @@ def run_unlock_test(input_yaml: str, output_yaml: str):
     try:
         print(f"🎬 第三层：zhsama 解锁检测 → {', '.join(UNLOCK_PLATFORMS)}")
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-        print(result.stdout[:1200])
+        print(result.stdout[:1000])
         return result.returncode == 0 and Path(output_yaml).exists()
     except Exception as e:
-        print(f"⚠️ 第三层解锁检测异常（已优雅跳过）: {e}")
+        print(f"⚠️ 第三层异常（已优雅跳过）: {e}")
         return False
 
 
@@ -454,22 +449,19 @@ def format_proxy_to_link(p):
 def main():
     st = time.time()
     namer = NodeNamer()
-    print("=" * 85)
-    print("🚀 聚合订阅爬虫 v13.7 Final Ultimate Complete Edition")
+    print("=" * 90)
+    print("🚀 聚合订阅爬虫 v13.8 Final Ultimate Complete Edition")
     print("   节点命名：🇭🇰HK01-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 ⚡xxms 📥x.xMB")
-    print("=" * 85)
+    print("=" * 90)
     
     try:
         ensure_dir()
         
-        # 订阅源
         fork_subs = discover_github_forks()
-        tg_urls = []  # Telegram 可后续扩展
         fixed_urls = [u for u in CANDIDATE_URLS if check_url(u)]
-        all_urls = list(set(tg_urls + fork_subs + fixed_urls))
+        all_urls = list(set(fork_subs + fixed_urls))
         print(f"✅ 总订阅源：{len(all_urls)} 个\n")
         
-        # 并发抓取
         nodes = fetch_parallel(all_urls)
         print(f"✅ 唯一节点：{len(nodes)} 个\n")
         
@@ -477,7 +469,6 @@ def main():
             print("❌ 无有效节点!")
             return
         
-        # 第一层 TCP
         print("⚡ 第一层：TCP 延迟测试...")
         nlist = list(nodes.values())[:MAX_TCP_TEST_NODES]
         nres = []
@@ -495,7 +486,6 @@ def main():
         nres.sort(key=lambda x: (-x["is_asia"], x["latency"]))
         print(f"✅ 第一层合格：{len(nres)} 个\n")
         
-        # 第二层 + 第三层
         temp_yaml = "temp_proxies.yaml"
         filtered_yaml = "filtered.yaml"
         temp_proxies = {"proxies": [n["proxy"] for n in nres[:MAX_PROXY_TEST_NODES]]}
@@ -534,7 +524,6 @@ def main():
         final = final[:MAX_FINAL_NODES]
         print(f"\n✅ 最终优质节点：{len(final)} 个\n")
         
-        # 输出
         final_names = {}
         unique_final = []
         for p in final:
@@ -562,12 +551,12 @@ def main():
         
         tt = time.time() - st
         asia_ct = sum(1 for p in unique_final if is_asia(p))
-        print("\n" + "=" * 85)
+        print("\n" + "=" * 90)
         print("📊 统计结果")
-        print("=" * 85)
+        print("=" * 90)
         print(f"• 最终节点：{len(unique_final)} 个（亚洲 {asia_ct} 个）")
         print(f"• 耗时：{tt:.1f} 秒")
-        print("=" * 85 + "\n")
+        print("=" * 90 + "\n")
         
         print("🎉 任务完成！")
         

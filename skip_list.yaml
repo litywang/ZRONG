@@ -1,0 +1,25 @@
+# 节点跳过关键字（匹配则排除）
+skip_keywords:
+  - "测试"
+  - "TEST"
+  - "过期"
+  - "广告"
+  - "推广"
+  - "免费"
+  - "广告ID"
+
+# 白名单关键字（只保留包含这些关键字的节点）
+only_include: []
+
+# 排除的端口
+exclude_ports:
+  - 25
+  - 135
+  - 139
+  - 445
+
+# 最大重试次数阈值
+max_retry_time: 3
+
+# 保留最近更新的X个节点（按name排序）
+keep_latest_n: null

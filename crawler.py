@@ -11,7 +11,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
-from urllib.parse import urlparse, unquote, parse_qs
 import threading
 import random
 from datetime import datetime
@@ -24,48 +23,33 @@ CANDIDATE_URLS = [
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/ss.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/hysteria2.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/Eternity.txt",
-    # Pawdroid
     "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
-    # Epodonios
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vless.txt",
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vmess.txt",
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/trojan.txt",
-    # barry-far
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vless.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vmess.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/trojan.txt",
-    # 其他高质量源
-    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
-    "https://raw.githubusercontent.com/roosterkid/openproxylist/refs/heads/main/V2RAY_RAW.txt",
-    "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.yml",
-    "https://raw.githubusercontent.com/TG-NAV/clashnode/main/subscribe.txt",
-    "https://raw.githubusercontent.com/SnapdragonLee/SystemProxy/master/dist/clash_config.yaml",
-    "https://shz.al/~WangCai",
-    # wzdnzd/aggregator 数据源
-    "https://raw.githubusercontent.com/wzdnzd/aggregator/main/data/proxies.yaml",
-    "https://cdn.jsdelivr.net/gh/vxiaov/free_proxies@main/clash/clash.provider.yaml",
-    "https://raw.githubusercontent.com/Misaka-blog/chromego_merge/main/sub/merged_proxies_new.yaml",
     "https://shz.al/~WangCai",
 ]
 
 TELEGRAM_CHANNELS = [
-    "v2ray_sub", "free_v2ray", "clash_meta", "v2rayng_config", "proxies_free",
-    "v2ray_collector", "mr_v2ray", "vmess_vless_v2rayng", "freeVPNjd", "wxdy666",
-    "jiedianbodnn", "dns68", "AlphaV2ray", "V2rayN", "proxies_share"
+    "v2ray_sub", "free_v2ray", "clash_meta", "proxies_free", "mr_v2ray",
+    "vmess_vless_v2rayng", "freeVPNjd", "dns68", "jiedianbodnn", "wxdy666",
 ]
 
 HEADERS = {"User-Agent": "Mozilla/5.0; Clash.Meta; Mihomo; Shadowrocket"}
 TIMEOUT = 30
 
-MAX_FETCH_NODES = 5000
-MAX_TCP_TEST_NODES = 2000
-MAX_PROXY_TEST_NODES = 200
-MAX_FINAL_NODES = 188
-MAX_LATENCY = 3000
+MAX_FETCH_NODES = 2000
+MAX_TCP_TEST_NODES = 300
+MAX_PROXY_TEST_NODES = 100
+MAX_FINAL_NODES = 80
+MAX_LATENCY = 2000
 MIN_PROXY_SPEED = 0.01
-MAX_PROXY_LATENCY = 2000
+MAX_PROXY_LATENCY = 3000
 TEST_URL = "http://www.gstatic.com/generate_204"
 
 CLASH_PORT = 17890
@@ -73,7 +57,7 @@ CLASH_API_PORT = 19090
 CLASH_VERSION = "v1.19.0"
 NODE_NAME_PREFIX = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
 
-MAX_WORKERS = 5
+MAX_WORKERS = 3
 REQUESTS_PER_SECOND = 0.5
 MAX_RETRIES = 5
 
@@ -86,6 +70,7 @@ CLASH_PATH = WORK_DIR / "mihomo"
 CONFIG_FILE = WORK_DIR / "config.yaml"
 LOG_FILE = WORK_DIR / "clash.log"
 
+
 USER_AGENT_POOL = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15",
@@ -93,6 +78,7 @@ USER_AGENT_POOL = [
     "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)",
     "Mozilla/5.0 (Android 11; Mobile; rv:84.0) Gecko/84.0 Firefox/84.0",
 ]
+
 
 # ==================== 工具函数 (保证先于主程序定义) ====================
 def ensure_clash_dir():
@@ -271,35 +257,29 @@ def parse_node(node):
 def get_region(name):
     """获取地区标识"""
     nl = name.lower()
-    if any(k in nl for k in ["hk", "hongkong", "港"]):
-        return "🇭🇰", "HK"
-    elif any(k in nl for k in ["tw", "taiwan", "台"]):
-        return "🇹🇼", "TW"
-    elif any(k in nl for k in ["jp", "japan", "日"]):
-        return "🇯🇵", "JP"
-    elif any(k in nl for k in ["sg", "singapore", "新"]):
-        return "🇸🇬", "SG"
-    elif any(k in nl for k in ["kr", "korea", "韩"]):
-        return "🇰🇷", "KR"
-    elif any(k in nl for k in ["us", "usa", "美"]):
-        return "🇺🇸", "US"
+    if any(k in nl for k in ["hk", "hongkong", "港"]): return "🇭🇰", "HK"
+    elif any(k in nl for k in ["tw", "taiwan", "台"]): return "🇹🇼", "TW"
+    elif any(k in nl for k in ["jp", "japan", "日"]): return "🇯🇵", "JP"
+    elif any(k in nl for k in ["sg", "singapore", "新"]): return "🇸🇬", "SG"
+    elif any(k in nl for k in ["kr", "korea", "韩"]): return "🇰🇷", "KR"
+    elif any(k in nl for k in ["us", "usa", "美"]): return "🇺🇸", "US"
     return "🌍", "OT"
 
 
 def is_asia(p):
     t = f"{p.get('name', '')} {p.get('server', '')}".lower()
     return any(k in t for k in [
-    "hk", "hongkong", "港", 
-    "tw", "taiwan", "台", 
-    "jp", "japan", "日", 
-    "sg", "singapore", "新加坡", "新", 
-    "kr", "korea", "韩", 
-    "asia", "hkt", 
-    "th", "thailand", "泰", 
-    "vn", "vietnam", "越",
-    "my", "malaysia", "马",
-    "id", "indonesia", "印"
-])
+        "hk", "hongkong", "港",
+        "tw", "taiwan", "台",
+        "jp", "japan", "日",
+        "sg", "singapore", "新加坡", "新",
+        "kr", "korea", "韩",
+        "asia", "hkt",
+        "th", "thailand", "泰",
+        "vn", "vietnam", "越",
+        "my", "malaysia", "马",
+        "id", "indonesia", "印"
+    ])
 
 
 def is_base64(s):
@@ -361,40 +341,34 @@ def get_telegram_pages(channel):
     try:
         url = f"https://t.me/s/{channel}"
         content = session.get(url, timeout=TIMEOUT).text
-        
-        # ⭐ 新格式：HTML 标签更宽松
         new_regex = rf'<a\s[^>]*href=["\']?/s/{channel}[\'"?]?before=[\d]+'
-        
-        # 旧格式：Canonical 标签
         old_regex = rf'<link\s+rel="canonical"\s+href="/s/{channel}/?\??before=(\d+)">'
-        
-        # 尝试新格式优先匹配
         groups = re.findall(new_regex, content)
         if not groups:
             groups = re.findall(old_regex, content)
-            
         return int(groups[0]) if groups else 0
     except Exception as e:
         print(f"⚠️ {channel}页码获取失败：{str(e)[:50]}")
         return 0
 
 
+def clean_url(url):
+    """清理 URL 中的不可见字符、空格、换行符等"""
+    if not url:
+        return ""
+    cleaned = "".join(url.split())
+    cleaned = cleaned.replace("%20 ", "").replace(" %20", "")
+    punctuation = [".", ",", ";", "!", "?", ":", "'", '"', ">", "<", "/", "\\", "("]
+    while cleaned[-1:] in punctuation:
+        cleaned = cleaned[:-1]
+    return cleaned
+
+
 def crawl_telegram_page(url, pts, include="", exclude="", limits=25):
-    """
-    ⭐ 全面优化版 Telegram 单个页面爬取
-    
-    优化点：
-    1. 增强正则匹配能力，支持更多链接格式
-    2. URL 自动清理（去空格、换行）
-    3. 多 UA 轮换防封
-    4. 详细日志输出
-    5. 错误重试机制
-    6. 兼容 11 种主流协议前缀
-    """
+    """全面优化版 Telegram 单个页面爬取"""
     try:
-        # ⭐ 关键修复：URL 去空 + 超时控制
         limiter.wait(url)
-        headers = USER_AGENT_POOL[:5]  # 随机选择 5 个 UA 之一
+        headers = USER_AGENT_POOL[:5]
         resp = session.get(url, timeout=TIMEOUT, headers={"User-Agent": random.choice(headers)})
         
         if not resp.text:
@@ -402,21 +376,12 @@ def crawl_telegram_page(url, pts, include="", exclude="", limits=25):
             return {}
         
         content = resp.text.strip()
-        
-        # ⭐ 增强正则匹配：支持多种格式
-        # 1. GitHub raw 链接
         github_regex = r'https?://(?:raw\.githubusercontent\.com|github\.com)/[^\s<>]+'
-        
-        # 2. 通用订阅链接
         sub_regex = r'https?://(?:[a-zA-Z0-9\u4e00-\u9fa5\-]+\.)+[a-zA-Z0-9\u4e00-\u9fa5\-]+(?::\d+)?[^"\s<>]*'
         
         links = set()
-        
-        # 匹配 GitHub 原始链接
         for match in re.findall(github_regex, content):
             links.add(match.replace("http://", "https://", 1))
-        
-        # 匹配其他订阅链接
         for match in re.findall(sub_regex, content):
             link = match.strip().replace("http://", "https://", 1).rstrip('.,;')
             if link and len(link) > 10:
@@ -424,47 +389,28 @@ def crawl_telegram_page(url, pts, include="", exclude="", limits=25):
         
         collections = {}
         matched_count = 0
-        
         for link in list(links)[:limits]:
-            # ⭐ 关键修复：URL 必须清理！
             link = clean_url(link)
-            
             if not link or len(link) < 10:
                 continue
-                
-            # 验证链接类型
-            is_valid = False
             
-            # Token 链接
+            is_valid = False
             if any(kw in link.lower() for kw in ["token=", "/subscribe", "/api"]):
                 is_valid = True
-                
-            # 文件扩展名
             elif any(link.lower().endswith(ext) for ext in [".txt", ".yaml", ".yml", ".json"]):
                 is_valid = True
-                
-            # 特定路径
             elif any(kw in link.lower() for kw in ["/link/", "/sub/", "/clash"]):
                 is_valid = True
-                
-            # Telegram 分享链接（可能需要进一步验证）
-            elif "t.me/" in link.lower():
-                pass  # 暂时跳过 Telegram 内部链接
-                
+            
             if is_valid:
-                # ⭐ 过滤条件检查
                 if exclude and re.search(exclude, link):
-                    print(f"   ❌ 跳过 (排除规则): {link[:60]}")
                     continue
-                    
                 if include and not re.search(include, link):
-                    print(f"   ❌ 跳过 (包含规则): {link[:60]}")
                     continue
-                    
-                # ⭐ 记录日志用于调试
+                
                 if matched_count < 10 or matched_count % 20 == 0:
                     print(f"   ✅ 有效链接 #{matched_count+1}: {link[:70]}...")
-                    
+                
                 collections[link] = {"push_to": pts, "origin": "TELEGRAM"}
                 matched_count += 1
         
@@ -474,7 +420,6 @@ def crawl_telegram_page(url, pts, include="", exclude="", limits=25):
             print(f"   ✅ {len(collections)} 个有效订阅链接已收集")
         
         return collections
-        
     except requests.exceptions.Timeout:
         print(f"   ⏱️ 请求超时：{url[:60]}")
         return {}
@@ -505,18 +450,15 @@ def crawl_telegram_channels(channels, pages=2, limits=20):
                 url = f"https://t.me/s/{channel}?before={before}"
                 result = crawl_telegram_page(url, pts=["local"], limits=limits)
                 
-                # ⭐ 增量更新并去重
                 for link, meta in result.items():
                     if link not in all_subscribes:
                         all_subscribes[link] = meta
-                        
+                
                 total_sub = len(all_subscribes)
                 page_count = i + 1
                 channel_count = len([c for c in all_subscribes.values() if c["origin"] == "TELEGRAM"])
                 
-                print(f"📄 [{channel}/{page_count}] 进度：{total_sub} 总 | {channel_count} 电报 | {result.get('count', 0)} 新")
-                
-                # ⭐ 防封延时（智能调整）
+                print(f"📄 [{channel}/{page_count}] 进度：{total_sub} 总 | {channel_count} 电报 | {len(result)} 新")
                 time.sleep(random.uniform(1, 3))
                 
         except KeyboardInterrupt:
@@ -526,7 +468,6 @@ def crawl_telegram_channels(channels, pages=2, limits=20):
             print(f"❌ {channel} 整体爬取失败：{str(e)[:50]}")
             continue
     
-    # 最终统计
     tg_subs = {k: v for k, v in all_subscribes.items() if v["origin"] == "TELEGRAM"}
     fixed_subs = {k: v for k, v in all_subscribes.items() if v["origin"] != "TELEGRAM"}
     
@@ -537,28 +478,6 @@ def crawl_telegram_channels(channels, pages=2, limits=20):
     
     return tg_subs
 
-
-# ⭐ 辅助工具：URL 清理函数
-def clean_url(url):
-    """
-    清理 URL 中的不可见字符、空格、换行符等
-    确保 URL 可被 requests 正常访问
-    """
-    if not url:
-        return ""
-    
-    # 移除所有空白字符（包括不可见字符）
-    cleaned = "".join(url.split())
-    
-    # 替换常见的 URL 编码错误
-    cleaned = cleaned.replace("%20 ", "").replace(" %20", "")
-    
-    # 去除末尾标点符号（URL 通常不以这些符号结尾）
-    punctuation = [".", ",", ";", "!", "?", ":", "'", '"', ">", "<", "/", "\\", "("]
-    while cleaned[-1:] in punctuation:
-        cleaned = cleaned[:-1]
-    
-    return cleaned
 
 # ==================== Clash 管理 ====================
 class ClashManager:
@@ -593,6 +512,7 @@ class ClashManager:
             seen.add(name)
             names.append(name)
             p["name"] = name
+        
         config = {
             "port": CLASH_PORT, "socks-port": CLASH_PORT + 1, "allow-lan": False, "mode": "rule",
             "log-level": "error", "external-controller": f"127.0.0.1:{CLASH_API_PORT}",
@@ -709,10 +629,9 @@ def main():
     proxy_ok = False
     
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v19.0 Final")
+    print("🚀 聚合订阅爬虫 v20.0 Final")
     print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶")
     print("=" * 50)
-
     all_urls = []
     
     try:
@@ -740,7 +659,7 @@ def main():
             c = fetch(u)
             if not c: continue
             if is_base64(c): c = decode_b64(c)
-            for l in c.splitlines():  # ⭐ 修复：splitlines() 不是 split lines()
+            for l in c.splitlines():
                 l = l.strip()
                 if not l or l.startswith("#"): continue
                 p = parse_node(l)
@@ -781,7 +700,6 @@ def main():
                     if completed % 50 == 0:
                         print(f"   进度：{completed}/{len(nlist)} | 合格：{len(nres)}")
                 except: pass
-        
         nres.sort(key=lambda x: (-x["is_asia"], x["latency"]))
         asia_count = sum(1 for n in nres if n["is_asia"])
         print(f"✅ 第一层合格：{len(nres)} 个（亚洲：{asia_count}）\n")
@@ -793,16 +711,13 @@ def main():
         
         if len(nres) > 0:
             tprox = [n["proxy"] for n in nres[:MAX_PROXY_TEST_NODES]]
-            
             if clash.create_config(tprox) and clash.start():
                 proxy_ok = True
                 print("📊 测速中...\n")
-                
                 for i, item in enumerate(nres[:MAX_PROXY_TEST_NODES]):
                     p = item["proxy"]
                     r = clash.test_proxy(p["name"])
                     k = f"{p['server']}:{p['port']}"
-                    
                     if r["success"] and r["latency"] < MAX_PROXY_LATENCY:
                         if r["speed"] >= MIN_PROXY_SPEED or r["latency"] < 500:
                             fl, cd = get_region(p.get("name", ""))
@@ -810,11 +725,9 @@ def main():
                             final.append(p)
                             tested.add(k)
                             print(f"   ✅ {p['name']}")
-                    
                     if len(final) >= MAX_FINAL_NODES: break
                     if (i + 1) % 10 == 0:
                         print(f"   进度：{i + 1}/{min(len(nres), MAX_PROXY_TEST_NODES)} | 合格：{len(final)}")
-                
                 clash.stop()
                 
                 if len(final) < 50:
@@ -860,7 +773,6 @@ def main():
         
         # 7. 输出配置
         print("📝 生成配置...")
-        
         final_names = {}
         unique_final = []
         for p in final:
@@ -901,31 +813,21 @@ def main():
         print(f"• 耗时：{tt:.1f} 秒")
         print("=" * 50 + "\n")
         
-        # Telegram 推送
+        # Telegram 推送 (修复版 - 变量拼接避免编码问题)
         if BOT_TOKEN and CHAT_ID and REPO_NAME:
             try:
-                msg = f"""🚀 <b>节点更新完成</b>
-
-    # ==================== Telegram 推送 (v21.0 修复版) ====================
-    if BOT_TOKEN and CHAT_ID:
-        try:
-            ts = int(time.time())
-            
-            # ⭐ 构建带缓存破坏符的链接
-            yaml_raw_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/proxies.yaml?t={ts}"
-            txt_raw_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/subscription.txt?t={ts}"
-            
-            # ⭐ 备用网页链接
-            repo_path = f"https://github.com/{REPO_NAME}/blob/main/"
-            yaml_html_url = f"{repo_path}proxies.yaml"
-            txt_html_url = f"{repo_path}subscription.txt"
-            
-            # ⭐ 使用多行拼接避免编码问题
-            start_icon = "🚀"
-            end_icon = "🎉"
-            update_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            
-            msg = f"""{start_icon}<b>节点更新完成</b>{end_icon}
+                ts = int(time.time())
+                yaml_raw_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/proxies.yaml?t={ts}"
+                txt_raw_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/subscription.txt?t={ts}"
+                repo_path = f"https://github.com/{REPO_NAME}/blob/main/"
+                yaml_html_url = f"{repo_path}proxies.yaml"
+                txt_html_url = f"{repo_path}subscription.txt"
+                
+                start_icon = "🚀"
+                end_icon = "🎉"
+                update_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                
+                msg = f"""{start_icon}<b>节点更新完成</b>{end_icon}
 
 📊 <b>统计数据:</b>
 • Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总订阅：{len(all_urls)}
@@ -933,7 +835,6 @@ def main():
 • 亚洲：{asia_ct} 个 ({asia_ct * 100 // max(len(unique_final), 1)}%)
 • 最低延迟：{min_lat:.1f} ms
 • 平均耗时：{tt:.1f} 秒
-
 ━━━━━━━━━━━━━━━━━━━━━━━
 
 💾 <b>直链下载:</b>
@@ -950,15 +851,15 @@ TXT: <a href="{txt_html_url}">{txt_html_url}</a>
 👨‍💻 <b>作者:</b> 𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
 
 <b>更新时间:</b> {update_time}"""
-        
-            requests.post(
-                f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", 
-                json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"}, 
-                timeout=10
-            )
-            print("✅ Telegram通知已发送")
-        except Exception as e:
-            print(f"⚠️ Telegram推送失败：{e}")
+                
+                requests.post(
+                    f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                    json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"},
+                    timeout=10
+                )
+                print("✅ Telegram通知已发送")
+            except Exception as e:
+                print(f"⚠️ Telegram推送失败：{e}")
         
         print("🎉 任务完成！")
         
@@ -969,8 +870,6 @@ TXT: <a href="{txt_html_url}">{txt_html_url}</a>
         sys.exit(1)
     finally:
         clash.stop()
-        for f in ["temp_proxies.yaml", "filtered.yaml", "unlocked.yaml"]:
-            Path(f).unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

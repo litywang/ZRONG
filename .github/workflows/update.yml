@@ -2,12 +2,11 @@ name: Update Subscription Nodes
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # 每6小时一次
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   crawl-and-test:
@@ -36,26 +35,16 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add proxies.yaml subscription_base64.txt 2>/dev/null || true
+          git add proxies.yaml subscription.txt 2>/dev/null || true
           git commit -m "🔄 Auto update $(date '+%Y-%m-%d %H:%M')" || echo "No changes to commit"
           git push
           
-      - name: Upload Artifact on Success
-        uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: nodes-${{ github.run_id }}
-          path: |
-            proxies.yaml
-            subscription_base64.txt
-          retention-days: 7
-        
-      - name: Upload Logs on Failure  
+      - name: Upload Logs on Failure
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: logs-${{ github.run_id }}
+          name: crash-logs-${{ github.run_id }}
           path: |
             clash_temp/
             *.log
-          retention-days: 3
+          retention-days: 7

@@ -1,18 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Clash 节点筛选器 - v10.0 Final (完整整合版)
-整合 wzdnzd/aggregator 核心功能：
-  ✅ 多源订阅爬取 (Google/Telegram/GitHub/网页)
-  ✅ 完整订阅验证 (流量/过期时间/15MB 限制)
-  ✅ 11 种协议完整解析 (VMess/VLESS/Trojan/SS/SSR/Hysteria2 等)
-  ✅ Clash.Meta 真实代理测试
-  ✅ 请求速率限制 + 自动重试 (解决 503 错误)
-  ✅ TCP 保底策略 (确保有可用节点)
-  ✅ 节点重命名 (特殊字体 + 地区标识)
-  ✅ 多维度过滤 (名称/延迟/速度/地区)
-"""
-
 import requests, base64, hashlib, time, json, socket, os, sys, re, yaml, subprocess, signal, gzip, shutil, ssl, urllib.request, urllib.error, urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path

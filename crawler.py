@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v21.0 Pure Fix Edition
-作者：Anftlity
-修复：语法错误 + URL 空格 + Telegram 爬取
-原则：不加戏，只修复，稳定运行
+聚合订阅爬虫 v21.1 Final - 速率限制修复版
+作者：Anftlity | Version: 21.1
+核心修复：RateLimiter.wait() 参数错误 + 语法清理
 """
 
 import requests, base64, hashlib, time, json, socket, os, sys, re, yaml, subprocess, signal, gzip, shutil, ssl, urllib.request, urllib.error, urllib.parse
@@ -21,10 +20,10 @@ CANDIDATE_URLS = [
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vmess.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/trojan.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/ss.txt",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/hysteria2.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/Eternity.txt",
     "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt",
-    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
     "https://shz.al/~WangCai",
 ]
 
@@ -69,22 +68,29 @@ def ensure_clash_dir():
     WORK_DIR.mkdir(parents=True, exist_ok=True)
 
 
-class RateLimiter:
+# ⭐ 关键修复：升级 RateLimiter 为 SmartRateLimiter
+class SmartRateLimiter:
     def __init__(self):
         self.min_interval = 1.0 / REQUESTS_PER_SECOND
-        self.last_call = 0
-        self.lock = threading.Lock()
+        self.last_call = {}
+        self.locks = {}
 
-    def wait(self):
-        with self.lock:
+    def wait(self, url=""):
+        """支持多域名独立限流"""
+        domain = urlparse(url).netloc or "default"
+        if domain not in self.locks:
+            self.locks[domain] = threading.Lock()
+            self.last_call[domain] = 0
+        
+        with self.locks[domain]:
             now = time.time()
-            elapsed = now - self.last_call
+            elapsed = now - self.last_call[domain]
             if elapsed < self.min_interval:
                 time.sleep(self.min_interval - elapsed)
-            self.last_call = time.time()
+            self.last_call[domain] = time.time()
 
 
-limiter = RateLimiter()
+limiter = SmartRateLimiter()
 
 
 def create_session():
@@ -294,7 +300,8 @@ def check_url(u):
 
 class NodeNamer:
     FANCY = {'A':'𝔄','B':'𝔅','C':'𝔆','D':'𝔇','E':'𝔈','F':'𝔉','G':'𝔊','H':'𝔋','I':'ℑ','J':'𝔍','K':'𝔎','L':'𝔏','M':'𝔐','N':'𝔑','O':'𝔒','P':'𝔓','Q':'𝔔','R':'𝔕','S':'𝔖','T':'𝔗','U':'𝔘','V':'𝔙','W':'𝔚','X':'𝔛','Y':'𝔜','Z':'𝔝'}
-    
+    REGIONS = {"🇭🇰": "HK", "🇹🇼": "TW", "🇯🇵": "JP", "🇸🇬": "SG", "🇰🇷": "KR", "🇺🇸": "US", "🌍": "OT"}
+
     def __init__(self):
         self.counters = {}
 
@@ -406,7 +413,7 @@ def crawl_telegram_channels(channels, pages=2, limits=20):
     all_subscribes = {}
     for channel in channels:
         try:
-            count = 0  # 简化处理，固定值
+            count = 0  # 简化处理避免页面解析失败
             page_arrays = range(count, -1, -100)
             page_num = min(pages, len(page_arrays))
             
@@ -455,6 +462,11 @@ def format_proxy_to_link(p):
         return f"# {p['name']}"
 
 
+def strip_url(u):
+    if u: return u.strip().replace("\n", "").replace(" ", "")
+    return ""
+
+
 def main():
     st = time.time()
     clash = ClashManager()
@@ -462,7 +474,7 @@ def main():
     proxy_ok = False
     
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v21.0 Pure Fix")
+    print("🚀 聚合订阅爬虫 v21.1 Final")
     print("作者：Anftlity")
     print("=" * 50)
     
@@ -471,7 +483,7 @@ def main():
     try:
         print("\n📱 爬取 Telegram 频道...")
         tg_subs = crawl_telegram_channels(TELEGRAM_CHANNELS, pages=1, limits=10)
-        tg_urls = list(tg_subs.keys())
+        tg_urls = list(set([strip_url(u) for u in tg_subs.keys()]))
         all_urls.extend(tg_urls)
         print(f"✅ Telegram 订阅：{len(tg_urls)} 个\n")
         
@@ -526,7 +538,8 @@ def main():
                         nres.append(result)
                 except: pass
         nres.sort(key=lambda x: (-x["is_asia"], x["latency"]))
-        print(f"✅ TCP 合格：{len(nres)} 个（亚洲：{sum(1 for n in nres if n['is_asia'])}）\n")
+        asia_count = sum(1 for n in nres if n["is_asia"])
+        print(f"✅ TCP 合格：{len(nres)} 个（亚洲：{asia_count}）\n")
         
         print("🚀 真实代理测速...")
         final = []
@@ -639,7 +652,6 @@ def main():
                 ts = int(time.time())
                 yaml_raw_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/proxies.yaml?t={ts}"
                 txt_raw_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/subscription.txt?t={ts}"
-                html_url = f"https://github.com/{REPO_NAME}/blob/main/"
                 
                 msg = f"""🚀 节点更新完成
                 
@@ -655,7 +667,6 @@ def main():
 
 🌐 支持协议：VMess | Trojan | SS | SSR | Hysteria2 | VLESS
 作者：Anftlity"""
-                
                 requests.post(
                     f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
                     json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"},
@@ -663,7 +674,7 @@ def main():
                 )
                 print("✅ Telegram 通知已发送")
             except Exception as e:
-                print(f"⚠️ Telegram推送失败：{e}")
+                print(f"⚠️ Telegram 推送失败：{e}")
         
         print("🎉 任务完成！")
         
@@ -674,11 +685,6 @@ def main():
         sys.exit(1)
     finally:
         clash.stop()
-
-
-def strip_url(u):
-    if u: return u.strip().replace("\n", "").replace(" ", "")
-    return ""
 
 
 if __name__ == "__main__":

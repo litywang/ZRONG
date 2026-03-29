@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v16.0 Final - 完全修复优化版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 16.0
-修复：类型错误 + 超时挂起 + Clash 冲突 + 输出冗余
-优化：异常捕获 + 资源清理 + 性能提升
+聚合订阅爬虫 v18.0 Final - 404 错误修复版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 18.0
+修复：文件提交 + 订阅源验证 + 亚洲节点比例 + 运行速度
 """
 
 import requests, base64, hashlib, time, json, socket, os, sys, re, yaml, subprocess, signal, gzip, shutil, ssl, urllib.request, urllib.error, urllib.parse
@@ -15,15 +14,20 @@ from requests.adapters import HTTPAdapter
 from urllib.parse import urlparse, unquote, parse_qs
 import threading
 
+
 # ==================== 配置区 ====================
 CANDIDATE_URLS = [
+    # V2RayAggregator (最稳定)
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vmess.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/trojan.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/ss.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/Eternity.txt",
+    # Pawdroid
     "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
+    # barry-far
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt",
+    # 其他高质量源
     "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
     "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.yml",
     "https://shz.al/~WangCai",
@@ -37,12 +41,12 @@ TELEGRAM_CHANNELS = [
 HEADERS = {"User-Agent": "Mozilla/5.0; Clash.Meta; Mihomo"}
 TIMEOUT = 30
 
-# 性能配置 (避免 503 和超时)
+# ⭐ 优化配置 (提升速度 + 增加亚洲节点)
 MAX_FETCH_NODES = 2000
 MAX_TCP_TEST_NODES = 300
 MAX_PROXY_TEST_NODES = 100
 MAX_FINAL_NODES = 80
-MAX_LATENCY = 2000  # 确保是 int
+MAX_LATENCY = 2000
 MIN_PROXY_SPEED = 0.01
 MAX_PROXY_LATENCY = 3000
 TEST_URL = "http://www.gstatic.com/generate_204"
@@ -52,9 +56,9 @@ CLASH_API_PORT = 19090
 CLASH_VERSION = "v1.19.0"
 NODE_NAME_PREFIX = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
 
-# 并发控制
-MAX_WORKERS = 3
-REQUESTS_PER_SECOND = 0.5
+# ⭐ 提升并发 (GitHub Actions 可承受)
+MAX_WORKERS = 5
+REQUESTS_PER_SECOND = 1.0
 MAX_RETRIES = 5
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -66,21 +70,14 @@ CLASH_PATH = WORK_DIR / "mihomo"
 CONFIG_FILE = WORK_DIR / "config.yaml"
 LOG_FILE = WORK_DIR / "clash.log"
 
+
 # ==================== 工具函数 ====================
 def ensure_clash_dir():
-    """安全创建目录，避免 FileExistsError"""
-    if WORK_DIR.exists():
-        if not WORK_DIR.is_dir():
-            WORK_DIR.unlink()
-            WORK_DIR.mkdir(parents=True, exist_ok=True)
-    else:
-        WORK_DIR.mkdir(parents=True, exist_ok=True)
-
-def clean_clash_dir():
-    """清理 Clash 临时文件"""
-    if WORK_DIR.exists():
-        shutil.rmtree(WORK_DIR)
+    """安全创建目录"""
+    if WORK_DIR.exists() and not WORK_DIR.is_dir():
+        WORK_DIR.unlink()
     WORK_DIR.mkdir(parents=True, exist_ok=True)
+
 
 class RateLimiter:
     def __init__(self, calls_per_second=REQUESTS_PER_SECOND):
@@ -96,7 +93,9 @@ class RateLimiter:
                 time.sleep(self.min_interval - elapsed)
             self.last_call = time.time()
 
+
 limiter = RateLimiter()
+
 
 def create_session():
     session = requests.Session()
@@ -107,25 +106,29 @@ def create_session():
     session.headers.update(HEADERS)
     return session
 
+
 session = create_session()
+
 
 def fetch(url):
     limiter.wait()
     try:
-        resp = session.get(url, timeout=TIMEOUT)
-        return resp.text.strip()
+        return session.get(url, timeout=TIMEOUT).text.strip()
     except:
         return ""
 
+
 def check_url(u):
+    """✅ 修复：放宽验证条件"""
     limiter.wait()
     try:
-        return session.head(u, timeout=TIMEOUT, allow_redirects=True).status_code in (200, 301, 302)
+        resp = session.get(u, timeout=TIMEOUT, stream=True)
+        return resp.status_code in (200, 301, 302)
     except:
         return False
 
+
 def tcp_ping(host, port, to=2.0):
-    """✅ 修复：确保返回 float 类型"""
     if not host:
         return 9999.0
     try:
@@ -138,6 +141,7 @@ def tcp_ping(host, port, to=2.0):
     except:
         return 9999.0
 
+
 def is_base64(s):
     try:
         s = s.strip()
@@ -147,6 +151,7 @@ def is_base64(s):
         return True
     except:
         return False
+
 
 def decode_b64(c):
     try:
@@ -159,6 +164,7 @@ def decode_b64(c):
     except:
         return c
 
+
 def get_region(name):
     nl = name.lower()
     if any(k in nl for k in ["hk", "hongkong", "港"]): return "🇭🇰", "HK"
@@ -169,14 +175,19 @@ def get_region(name):
     elif any(k in nl for k in ["us", "usa", "美"]): return "🇺🇸", "US"
     return "🌍", "OT"
 
+
 def is_asia(p):
+    """✅ 修复：扩大亚洲节点识别范围"""
     t = f"{p.get('name', '')} {p.get('server', '')}".lower()
-    return any(k in t for k in ["hk", "tw", "jp", "sg", "kr", "asia"])
+    return any(k in t for k in ["hk", "hongkong", "tw", "taiwan", "jp", "japan", 
+                                 "sg", "singapore", "kr", "korea", "asia", "hkt", "th", "vn"])
+
 
 # ==================== 节点解析 ====================
 def generate_unique_id(proxy):
     key = f"{proxy.get('server', '')}:{proxy.get('port', '')}:{proxy.get('uuid', proxy.get('password', ''))}"
     return hashlib.md5(key.encode()).hexdigest()[:8].upper()
+
 
 def parse_vmess(node):
     try:
@@ -201,6 +212,7 @@ def parse_vmess(node):
             if wo: p["ws-opts"] = wo
         return p if p["server"] and p["uuid"] else None
     except: return None
+
 
 def parse_vless(node):
     try:
@@ -235,6 +247,7 @@ def parse_vless(node):
         return proxy
     except: return None
 
+
 def parse_trojan(node):
     try:
         if not node.startswith("trojan://"): return None
@@ -253,6 +266,7 @@ def parse_trojan(node):
         return proxy
     except: return None
 
+
 def parse_ss(node):
     try:
         if not node.startswith("ss://"): return None
@@ -270,6 +284,7 @@ def parse_ss(node):
         return {"name": f"SS-{uid}", "type": "ss", "server": server, "port": int(port), "cipher": method, "password": pwd, "udp": True}
     except: return None
 
+
 def parse_node(node):
     node = node.strip()
     if not node or node.startswith("#"): return None
@@ -279,13 +294,17 @@ def parse_node(node):
     elif node.startswith("ss://"): return parse_ss(node)
     return None
 
+
 # ==================== 节点命名 ====================
 class NodeNamer:
     FANCY = {'A':'𝔄','B':'𝔅','C':'𝔆','D':'𝔇','E':'𝔈','F':'𝔉','G':'𝔊','H':'𝔋','I':'ℑ','J':'𝔍','K':'𝔎','L':'𝔏','M':'𝔐','N':'𝔑','O':'𝔒','P':'𝔓','Q':'𝔔','R':'𝔕','S':'𝔖','T':'𝔗','U':'𝔘','V':'𝔙','W':'𝔚','X':'𝔛','Y':'𝔜','Z':'𝔝'}
+    
     def __init__(self):
         self.counters = {}
+
     def to_fancy(self, t):
         return ''.join(self.FANCY.get(c, c) for c in t)
+
     def generate(self, flag, lat, speed=None, tcp=False):
         code, region = get_region(flag)
         self.counters[region] = self.counters.get(region, 0) + 1
@@ -294,6 +313,7 @@ class NodeNamer:
         if speed:
             return f"{code}{num}-{pfx}|⚡{lat}ms|📥{speed:.1f}MB"
         return f"{code}{num}-{pfx}|⚡{lat}ms{'(TCP)' if tcp else ''}"
+
 
 # ==================== Clash 管理 ====================
 class ClashManager:
@@ -398,6 +418,7 @@ class ClashManager:
             result["error"] = str(e)[:80]
         return result
 
+
 # ==================== Telegram 爬取 ====================
 def get_telegram_pages(channel):
     try:
@@ -407,6 +428,7 @@ def get_telegram_pages(channel):
         groups = re.findall(regex, content)
         return int(groups[0]) if groups else 0
     except: return 0
+
 
 def crawl_telegram_page(url, limits=25):
     try:
@@ -422,6 +444,7 @@ def crawl_telegram_page(url, limits=25):
                 collections[link] = {"origin": "TELEGRAM"}
         return collections
     except: return {}
+
 
 def crawl_telegram_channels(channels, pages=2, limits=20):
     all_subscribes = {}
@@ -442,6 +465,7 @@ def crawl_telegram_channels(channels, pages=2, limits=20):
             continue
     return all_subscribes
 
+
 # ==================== 协议链接转换 ====================
 def format_proxy_to_link(p):
     try:
@@ -460,6 +484,7 @@ def format_proxy_to_link(p):
         return f"# {p['name']}"
     except: return f"# {p['name']}"
 
+
 # ==================== 主程序 ====================
 def main():
     st = time.time()
@@ -468,7 +493,7 @@ def main():
     proxy_ok = False
     
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v16.0 Final")
+    print("🚀 聚合订阅爬虫 v18.0 Final")
     print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶")
     print("=" * 50)
     
@@ -477,16 +502,22 @@ def main():
         print("\n📱 爬取 Telegram 频道...")
         tg_subs = crawl_telegram_channels(TELEGRAM_CHANNELS, pages=2, limits=20)
         tg_urls = list(tg_subs.keys())
-        all_urls = tg_urls
+        all_urls = list(tg_urls)  # ✅ 修复：转为列表
         
-        # 2. 固定订阅源
+        # 2. 固定订阅源 ✅ 修复：放宽验证条件
         print("🔍 验证固定订阅源...")
-        fixed_urls = [u for u in CANDIDATE_URLS if check_url(u)]
+        fixed_urls = []
+        for u in CANDIDATE_URLS:
+            if check_url(u):
+                fixed_urls.append(u)
+                print(f"   ✅ {u[:60]}...")
+            else:
+                print(f"   ❌ {u[:60]}...")
         all_urls.extend(fixed_urls)
         
         # 3. 去重
         all_urls = list(set(all_urls))
-        print(f"✅ 总订阅源：{len(all_urls)} 个\n")
+        print(f"\n✅ 总订阅源：{len(all_urls)} 个 (Telegram: {len(tg_urls)}, 固定：{len(fixed_urls)})\n")
         
         # 4. 抓取节点
         print("📥 抓取节点...")
@@ -495,8 +526,7 @@ def main():
             c = fetch(u)
             if not c: continue
             if is_base64(c): c = decode_b64(c)
-            # ✅ 修复：splitlines() 而不是 split lines()
-            for l in c.splitlines():
+            for l in c.splitlines():  # ✅ 修复：splitlines()
                 l = l.strip()
                 if not l or l.startswith("#"): continue
                 p = parse_node(l)
@@ -530,7 +560,6 @@ def main():
             for future in as_completed(futures):
                 try:
                     result = future.result(timeout=TIMEOUT + 10)
-                    # ✅ 修复：强制类型转换，避免 str vs int
                     lat = float(result["latency"])
                     if lat < MAX_LATENCY:
                         nres.append(result)
@@ -617,10 +646,9 @@ def main():
         print(f"\n✅ 最终：{len(final)} 个")
         print(f"📊 真实测速：{'✅' if proxy_ok else '❌'}\n")
         
-        # 7. 输出配置
+        # 7. 输出配置 ✅ 修复：统一文件名
         print("📝 生成配置...")
         
-        # 确保最终名称唯一
         final_names = {}
         unique_final = []
         for p in final:
@@ -641,10 +669,19 @@ def main():
         with open("proxies.yaml", 'w', encoding='utf-8') as f:
             yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
         
-        # ✅ 统一输出：只生成 subscription.txt (纯链接)
+        # ✅ 修复：统一输出 subscription.txt
         b64_lines = [f"{format_proxy_to_link(p)}" for p in unique_final]
         with open("subscription.txt", 'w', encoding='utf-8') as f:
             f.write('\n'.join(b64_lines))
+        
+        # ✅ 验证文件生成
+        print(f"\n📁 文件验证:")
+        for fname in ["proxies.yaml", "subscription.txt"]:
+            if Path(fname).exists():
+                size = Path(fname).stat().st_size
+                print(f"   ✅ {fname}: {size} 字节")
+            else:
+                print(f"   ❌ {fname}: 未生成")
         
         # 统计
         tt = time.time() - st
@@ -693,9 +730,9 @@ def main():
         sys.exit(1)
     finally:
         clash.stop()
-        # 清理临时文件
         for f in ["temp_proxies.yaml", "filtered.yaml", "unlocked.yaml"]:
             Path(f).unlink(missing_ok=True)
+
 
 if __name__ == "__main__":
     try:

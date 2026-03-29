@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v13.2 Final Mixed Edition
-作者: 𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 13.2 Final
+聚合订阅爬虫 v13.3 Optimized & Stable Edition
+作者: 𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 13.3
 """
 
 import requests, base64, hashlib, time, json, socket, os, sys, re, yaml, subprocess, signal, gzip, shutil, urllib.request, urllib.error, urllib.parse
@@ -12,6 +12,7 @@ from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 from urllib.parse import urlparse, unquote, parse_qs
 import threading
+from functools import lru_cache
 
 
 # ==================== 配置区 ====================
@@ -27,7 +28,7 @@ CANDIDATE_URLS = [
     "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
     "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.yml",
     "https://shz.al/~WangCai",
-    # 新增2025-2026活跃源
+    # 新增活跃源
     "https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/main/all_extracted_configs.txt",
     "https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/sub",
     "https://raw.githubusercontent.com/anaer/Sub/main/sub",
@@ -38,7 +39,7 @@ CANDIDATE_URLS = [
     "https://api.v1.mk/sub",
     "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/clash.yml",
     "https://raw.githubusercontent.com/wzdnzd/aggregator/main/data/proxies.yaml",
-    # 用户提供的6个高质量新源（已验证2026-03-29）
+    # 用户提供的6个高质量新源（已验证）
     "https://cdn.jsdelivr.net/gh/vxiaov/free_proxies@main/clash/clash.provider.yaml",
     "https://raw.githubusercontent.com/Misaka-blog/chromego_merge/main/sub/merged_proxies_new.yaml",
     "https://raw.githubusercontent.com/MrMohebi/xray-proxy-grabber-telegram/master/collected-proxies/clash-meta/all.yaml",
@@ -55,26 +56,27 @@ TELEGRAM_CHANNELS = [
 ]
 
 HEADERS = {"User-Agent": "Mozilla/5.0; Clash.Meta; Mihomo"}
-TIMEOUT = 30
+TIMEOUT = 25
 
-MAX_FETCH_NODES = 8000
-MAX_TCP_TEST_NODES = 2000
-MAX_PROXY_TEST_NODES = 400
-MAX_FINAL_NODES = 300
+MAX_FETCH_NODES = 10000
+MAX_TCP_TEST_NODES = 2500
+MAX_PROXY_TEST_NODES = 500
+MAX_FINAL_NODES = 350
 MAX_LATENCY = 3000
 MIN_PROXY_SPEED = 5.0
 MAX_PROXY_LATENCY = 800
 TEST_URL = "http://www.gstatic.com/generate_204"
 
-# 测速工具版本
-CLASH_SPEEDTEST_VERSION = "v1.8.6"          # faceair
+CLASH_SPEEDTEST_VERSION = "v1.8.6"
 CLASH_SPEEDTEST_BINARY = Path("clash-speedtest-linux-amd64")
 
-NODE_NAME_PREFIX = "Anftlity"               # 花体品牌
+ENABLE_UNLOCK = os.getenv("ENABLE_UNLOCK", "true").lower() == "true"
 
-MAX_WORKERS = 8
-REQUESTS_PER_SECOND = 1.0
-MAX_RETRIES = 5
+NODE_NAME_PREFIX = "Anftlity"
+
+MAX_WORKERS = 12
+REQUESTS_PER_SECOND = 2.0
+MAX_RETRIES = 7
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
@@ -87,28 +89,33 @@ def ensure_dir():
     WORK_DIR.mkdir(parents=True, exist_ok=True)
 
 
-class RateLimiter:
+class SmartRateLimiter:
+    """改进版限流器：按域名独立限流，避免全局卡顿"""
     def __init__(self):
+        self.locks = {}
+        self.last_call = {}
         self.min_interval = 1.0 / REQUESTS_PER_SECOND
-        self.last_call = 0
-        self.lock = threading.Lock()
 
-    def wait(self):
-        with self.lock:
+    def wait(self, url):
+        domain = urlparse(url).netloc or "default"
+        if domain not in self.locks:
+            self.locks[domain] = threading.Lock()
+            self.last_call[domain] = 0
+        with self.locks[domain]:
             now = time.time()
-            elapsed = now - self.last_call
+            elapsed = now - self.last_call[domain]
             if elapsed < self.min_interval:
                 time.sleep(self.min_interval - elapsed)
-            self.last_call = time.time()
+            self.last_call[domain] = time.time()
 
 
-limiter = RateLimiter()
+limiter = SmartRateLimiter()
 
 
 def create_session():
     session = requests.Session()
-    retry = Retry(total=MAX_RETRIES, backoff_factor=1.0, status_forcelist=[429, 500, 502, 503, 504])
-    adapter = HTTPAdapter(max_retries=retry)
+    retry = Retry(total=MAX_RETRIES, backoff_factor=0.5, status_forcelist=[429, 500, 502, 503, 504])
+    adapter = HTTPAdapter(max_retries=retry, pool_connections=20, pool_maxsize=20)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
     session.headers.update(HEADERS)
@@ -123,8 +130,8 @@ def generate_unique_id(proxy):
     return hashlib.md5(key.encode()).hexdigest()[:8].upper()
 
 
-# ==================== 节点解析函数 ====================
-def parse_vmess(node):
+# ==================== 节点解析函数（保持不变但增加异常保护） ====================
+def parse_vmess(node): 
     try:
         if not node.startswith("vmess://"): return None
         payload = node[8:]
@@ -155,11 +162,10 @@ def parse_vmess(node):
             if c.get("host"): wo["headers"] = {"Host": c.get("host")}
             if wo: p["ws-opts"] = wo
         return p if p["server"] and p["uuid"] else None
-    except:
+    except Exception:
         return None
 
-
-def parse_vless(node):
+def parse_vless(node): 
     try:
         if not node.startswith("vless://"): return None
         p_url = urlparse(node)
@@ -199,11 +205,10 @@ def parse_vless(node):
             if gp("host"): wo["headers"] = {"Host": gp("host")}
             if wo: proxy["ws-opts"] = wo
         return proxy
-    except:
+    except Exception:
         return None
 
-
-def parse_trojan(node):
+def parse_trojan(node): 
     try:
         if not node.startswith("trojan://"): return None
         p_url = urlparse(node)
@@ -227,11 +232,10 @@ def parse_trojan(node):
         fp = gp("fp")
         if fp: proxy["client-fingerprint"] = fp
         return proxy
-    except:
+    except Exception:
         return None
 
-
-def parse_ss(node):
+def parse_ss(node): 
     try:
         if not node.startswith("ss://"): return None
         parts = node[5:].split("#")
@@ -253,9 +257,8 @@ def parse_ss(node):
             "password": pwd,
             "udp": True
         }
-    except:
+    except Exception:
         return None
-
 
 def parse_node(node):
     node = node.strip()
@@ -267,12 +270,12 @@ def parse_node(node):
     return None
 
 
-# ==================== 订阅源增强 ====================
-def discover_github_forks(base_repo="wzdnzd/aggregator", max_forks=80):
+# ==================== 订阅源增强（并发抓取） ====================
+def discover_github_forks(base_repo="wzdnzd/aggregator", max_forks=60):
     print("🔍 动态发现 GitHub Forks...")
     url = f"https://api.github.com/repos/{base_repo}/forks?per_page=100&sort=newest"
     forks = []
-    for page in range(1, 6):
+    for page in range(1, 5):
         try:
             resp = session.get(url + f"&page={page}", timeout=15)
             if resp.status_code != 200: break
@@ -282,7 +285,7 @@ def discover_github_forks(base_repo="wzdnzd/aggregator", max_forks=80):
     subs = []
     for f in forks[:max_forks]:
         fullname, branch = f["full_name"], f.get("default_branch", "main")
-        for path in ["data/proxies.yaml", "proxies.yaml", "aggregate/data/proxies.yaml", "data/subscribes.txt", "sub/splitted/vless.txt", "sub/splitted/vmess.txt"]:
+        for path in ["data/proxies.yaml", "proxies.yaml", "data/subscribes.txt", "sub/splitted/vless.txt"]:
             raw_url = f"https://raw.githubusercontent.com/{fullname}/{branch}/{path}"
             if check_url(raw_url):
                 subs.append(raw_url)
@@ -290,7 +293,7 @@ def discover_github_forks(base_repo="wzdnzd/aggregator", max_forks=80):
     return subs
 
 
-def get_telegram_pages(channel):
+def get_telegram_pages(channel): 
     try:
         url = f"https://t.me/s/{channel}"
         content = session.get(url, timeout=TIMEOUT).text
@@ -303,7 +306,7 @@ def get_telegram_pages(channel):
 
 def crawl_telegram_page(url, limits=50):
     try:
-        limiter.wait()
+        limiter.wait(url)
         content = session.get(url, timeout=TIMEOUT).text
         sub_regex = r'https?://[a-zA-Z0-9._-]+(?:\.[a-zA-Z0-9._-]+)+(?::\d+)?[^"\s<>]*?(?:sub|link|clash|base64|yaml)[^"\s<>]*'
         links = re.findall(sub_regex, content)
@@ -313,43 +316,96 @@ def crawl_telegram_page(url, limits=50):
             if any(k in link for k in ["token=", "/link/", "sub", "clash"]):
                 collections[link] = {"origin": "TELEGRAM"}
         return collections
-    except:
+    except Exception:
         return {}
 
 
 def crawl_telegram_channels(channels, pages=5, limits=50):
     all_subscribes = {}
-    for channel in channels:
-        try:
-            count = get_telegram_pages(channel)
-            if count == 0: continue
-            page_arrays = range(count, -1, -100)
-            page_num = min(pages, len(page_arrays))
-            for i, before in enumerate(page_arrays[:page_num]):
-                url = f"https://t.me/s/{channel}?before={before}"
-                result = crawl_telegram_page(url, limits=limits)
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        futures = {ex.submit(lambda ch=ch: (ch, crawl_telegram_channels_single(ch, pages, limits))): ch for ch in channels}
+        for future in as_completed(futures):
+            try:
+                ch, result = future.result()
                 all_subscribes.update(result)
-                print(f"✅ Telegram频道 {channel} 第{i+1}页：{len(result)} 个订阅")
-                time.sleep(0.8)
-        except Exception as e:
-            print(f"❌ Telegram频道 {channel}: {e}")
-            continue
+                print(f"✅ Telegram频道 {ch} 完成")
+            except Exception as e:
+                print(f"❌ Telegram频道异常: {e}")
     return all_subscribes
 
 
-def fetch(url):
-    limiter.wait()
+def crawl_telegram_channels_single(channel, pages, limits):
+    subs = {}
+    try:
+        count = get_telegram_pages(channel)
+        if count == 0: return subs
+        page_arrays = range(count, -1, -100)
+        page_num = min(pages, len(page_arrays))
+        for i, before in enumerate(page_arrays[:page_num]):
+            url = f"https://t.me/s/{channel}?before={before}"
+            result = crawl_telegram_page(url, limits)
+            subs.update(result)
+            time.sleep(0.6)
+    except Exception:
+        pass
+    return subs
+
+
+def fetch_parallel(urls):
+    """并发抓取所有订阅源"""
+    nodes = {}
+    print(f"📥 并发抓取 {len(urls)} 个订阅源...")
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
+        future_to_url = {ex.submit(fetch_single, u): u for u in urls}
+        for future in as_completed(future_to_url):
+            u = future_to_url[future]
+            try:
+                c = future.result()
+                if not c: continue
+                if is_base64_encode(c):
+                    c = decode_b64(c)
+                process_content(c, nodes)
+            except Exception as e:
+                print(f"❌ 抓取 {u} 失败: {e}")
+    return nodes
+
+
+def fetch_single(url):
+    limiter.wait(url)
     try:
         return session.get(url, timeout=TIMEOUT).text.strip()
-    except:
+    except Exception:
         return ""
 
 
+def process_content(c, nodes):
+    if c.startswith("proxies:") or "proxy-providers" in c:
+        try:
+            data = yaml.safe_load(c)
+            for p in data.get("proxies", []):
+                if isinstance(p, dict):
+                    key = f"{p.get('server')}:{p.get('port')}:{p.get('uuid', p.get('password', ''))}"
+                    h = hashlib.md5(key.encode()).hexdigest()
+                    if h not in nodes:
+                        nodes[h] = p
+        except Exception:
+            pass
+    for l in c.splitlines():
+        p = parse_node(l.strip())
+        if p:
+            key = f"{p['server']}:{p['port']}:{p.get('uuid', p.get('password', ''))}"
+            h = hashlib.md5(key.encode()).hexdigest()
+            if h not in nodes:
+                nodes[h] = p
+            if len(nodes) >= MAX_FETCH_NODES:
+                break
+
+
 def check_url(u):
-    limiter.wait()
+    limiter.wait(u)
     try:
         return session.head(u, timeout=TIMEOUT, allow_redirects=True).status_code in (200, 301, 302)
-    except:
+    except Exception:
         return False
 
 
@@ -362,7 +418,7 @@ def tcp_ping(host, port, to=2.0):
         s.connect((host, port))
         s.close()
         return round((time.time() - st) * 1000, 1)
-    except:
+    except Exception:
         return 9999
 
 
@@ -372,7 +428,7 @@ def is_base64_encode(content):
         if len(content) < 10: return False
         base64.b64decode(content + "=" * (4 - len(content) % 4), validate=True)
         return True
-    except:
+    except Exception:
         return False
 
 
@@ -383,7 +439,7 @@ def decode_b64(c):
         if m: c += "=" * (4 - m)
         d = base64.b64decode(c).decode("utf-8", errors="ignore")
         return d if "://" in d else c
-    except:
+    except Exception:
         return c
 
 
@@ -403,7 +459,7 @@ def is_asia(p):
     return any(k in t for k in ["hk", "tw", "jp", "sg", "kr", "asia"])
 
 
-# ==================== 节点命名器（严格HK01-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶风格） ====================
+# ==================== 节点命名器 ====================
 class NodeNamer:
     FANCY = {'A':'𝔄','B':'𝔅','C':'𝔆','D':'𝔇','E':'𝔈','F':'𝔉','G':'𝔊','H':'𝔋','I':'ℑ','J':'𝔍','K':'𝔎','L':'𝔏','M':'𝔐','N':'𝔑','O':'𝔒','P':'𝔓','Q':'𝔔','R':'𝔕','S':'𝔖','T':'𝔗','U':'𝔘','V':'𝔙','W':'𝔚','X':'𝔛','Y':'𝔜','Z':'𝔝'}
     
@@ -431,24 +487,25 @@ class NodeNamer:
         return name
 
 
-# ==================== clash-speedtest 第二层（真实速度） ====================
+# ==================== 测速工具（第二层 + 第三层） ====================
 def download_clash_speedtest():
     if CLASH_SPEEDTEST_BINARY.exists():
         return True
     url = f"https://github.com/faceair/clash-speedtest/releases/download/{CLASH_SPEEDTEST_VERSION}/{CLASH_SPEEDTEST_BINARY.name}"
     print(f"📥 下载 faceair/clash-speedtest {CLASH_SPEEDTEST_VERSION}...")
-    try:
-        resp = requests.get(url, timeout=120, stream=True)
-        if resp.status_code != 200: return False
-        with open(CLASH_SPEEDTEST_BINARY, 'wb') as f:
-            for chunk in resp.iter_content(chunk_size=8192):
-                f.write(chunk)
-        os.chmod(CLASH_SPEEDTEST_BINARY, 0o755)
-        print("✅ faceair/clash-speedtest 下载完成")
-        return True
-    except Exception as e:
-        print(f"❌ 下载异常: {e}")
-        return False
+    for _ in range(3):
+        try:
+            resp = requests.get(url, timeout=120, stream=True)
+            if resp.status_code != 200: continue
+            with open(CLASH_SPEEDTEST_BINARY, 'wb') as f:
+                for chunk in resp.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            os.chmod(CLASH_SPEEDTEST_BINARY, 0o755)
+            print("✅ faceair/clash-speedtest 下载完成")
+            return True
+        except Exception:
+            time.sleep(2)
+    return False
 
 
 def parse_speed_from_clash_name(name: str):
@@ -465,16 +522,9 @@ def parse_speed_from_clash_name(name: str):
 def run_clash_speedtest(input_yaml: str, output_yaml: str):
     if not download_clash_speedtest():
         return False
-    cmd = [
-        str(CLASH_SPEEDTEST_BINARY),
-        "-c", input_yaml,
-        "-output", output_yaml,
-        "-max-latency", f"{MAX_PROXY_LATENCY}ms",
-        "-min-download-speed", str(MIN_PROXY_SPEED),
-        "-concurrent", "8",
-        "-rename",
-        "-speed-mode", "download"
-    ]
+    cmd = [str(CLASH_SPEEDTEST_BINARY), "-c", input_yaml, "-output", output_yaml,
+           "-max-latency", f"{MAX_PROXY_LATENCY}ms", "-min-download-speed", str(MIN_PROXY_SPEED),
+           "-concurrent", "10", "-rename", "-speed-mode", "download"]
     try:
         print("🚀 第二层：faceair/clash-speedtest 真实测速...")
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
@@ -485,11 +535,12 @@ def run_clash_speedtest(input_yaml: str, output_yaml: str):
         return False
 
 
-# ==================== zhsama/clash-speedtest 第三层（流媒体解锁） ====================
 def download_zhsama_speedtest():
     binary = Path("clash-speedtest-zhsama")
     if binary.exists():
         return binary
+    if not ENABLE_UNLOCK:
+        return None
     print("📥 安装 zhsama/clash-speedtest（Go）...")
     try:
         subprocess.run(["go", "install", "github.com/zhsama/clash-speedtest@latest"], check=True, timeout=120)
@@ -499,7 +550,7 @@ def download_zhsama_speedtest():
         print("✅ zhsama/clash-speedtest 安装完成")
         return binary
     except Exception as e:
-        print(f"⚠️ zhsama安装失败（跳过第三层）: {e}")
+        print(f"⚠️ zhsama安装失败（第三层跳过）: {e}")
         return None
 
 
@@ -509,17 +560,10 @@ def run_unlock_test(input_yaml: str, output_yaml: str):
         return False
     unlock_platforms = ["Netflix", "Disney+", "ChatGPT", "YouTube", "Spotify", "Bilibili", "HBO Max", "Hulu"]
     platforms_json = json.dumps(unlock_platforms)
-    cmd = [
-        str(binary),
-        "-c", input_yaml,
-        "-output", output_yaml,
-        "-max-latency", "800ms",
-        "-min-speed", "5",
-        "-unlockPlatforms", platforms_json,
-        "-unlockConcurrent", "4",
-        "-concurrent", "8",
-        "-rename"
-    ]
+    cmd = [str(binary), "-c", input_yaml, "-output", output_yaml,
+           "-max-latency", "800ms", "-min-speed", "5",
+           "-unlockPlatforms", platforms_json, "-unlockConcurrent", "4",
+           "-concurrent", "8", "-rename"]
     try:
         print(f"🎬 第三层：zhsama解锁检测 → {', '.join(unlock_platforms)}")
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
@@ -546,25 +590,25 @@ def format_proxy_to_link(p):
             auth_enc = base64.b64encode(f"{p['cipher']}:{p['password']}".encode()).decode()
             return f"ss://{auth_enc}@{p['server']}:{p['port']}#{urllib.parse.quote(p['name'], safe='')}"
         return f"# {p['name']}"
-    except:
+    except Exception:
         return f"# {p['name']}"
 
 
-# ==================== 主函数（三层混合方案） ====================
+# ==================== 主函数（优化后三层混合方案） ====================
 def main():
     st = time.time()
     namer = NodeNamer()
     proxy_ok = False
     
-    print("=" * 70)
-    print("🚀 聚合订阅爬虫 v13.2 Final Mixed Edition")
+    print("=" * 80)
+    print("🚀 聚合订阅爬虫 v13.3 Optimized & Stable Edition")
     print("   节点命名：🇭🇰HK01-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 ⚡xxms 📥x.xMB")
-    print("=" * 70)
+    print("=" * 80)
     
     try:
         ensure_dir()
         
-        # 1. 订阅源收集（最大化）
+        # 1. 订阅源收集（并发）
         print("\n🔍 动态发现 GitHub Forks...")
         fork_subs = discover_github_forks()
         
@@ -576,39 +620,11 @@ def main():
         fixed_urls = [u for u in CANDIDATE_URLS if check_url(u)]
         
         all_urls = list(set(tg_urls + fork_subs + fixed_urls))
-        print(f"✅ 总订阅源：{len(all_urls)} 个（Telegram:{len(tg_urls)} | Fork:{len(fork_subs)} | 固定:{len(fixed_urls)}）\n")
+        print(f"✅ 总订阅源：{len(all_urls)} 个\n")
         
-        # 2. 抓取节点（支持YAML）
-        print("📥 抓取节点...")
-        nodes = {}
-        for u in all_urls:
-            c = fetch(u)
-            if not c: continue
-            if is_base64_encode(c):
-                c = decode_b64(c)
-            # YAML支持
-            if c.startswith("proxies:") or "proxy-providers" in c:
-                try:
-                    data = yaml.safe_load(c)
-                    for p in data.get("proxies", []):
-                        if isinstance(p, dict):
-                            key = f"{p.get('server')}:{p.get('port')}:{p.get('uuid', p.get('password', ''))}"
-                            h = hashlib.md5(key.encode()).hexdigest()
-                            if h not in nodes:
-                                nodes[h] = p
-                except:
-                    pass
-            for l in c.splitlines():
-                p = parse_node(l.strip())
-                if p:
-                    key = f"{p['server']}:{p['port']}:{p.get('uuid', p.get('password', ''))}"
-                    h = hashlib.md5(key.encode()).hexdigest()
-                    if h not in nodes:
-                        nodes[h] = p
-                if len(nodes) >= MAX_FETCH_NODES:
-                    break
-            if len(nodes) >= MAX_FETCH_NODES:
-                break
+        # 2. 并发抓取节点
+        print("📥 并发抓取节点...")
+        nodes = fetch_parallel(all_urls)
         print(f"✅ 唯一节点：{len(nodes)} 个\n")
         
         if not nodes:
@@ -637,7 +653,7 @@ def main():
         nres.sort(key=lambda x: (-x["is_asia"], x["latency"]))
         print(f"✅ 第一层合格：{len(nres)} 个\n")
         
-        # 4. 第二层：faceair真实速度
+        # 4. 第二层 + 第三层
         print("🚀 第二层：faceair/clash-speedtest 真实测速...")
         temp_yaml = "temp_proxies.yaml"
         filtered_yaml = "filtered.yaml"
@@ -652,16 +668,19 @@ def main():
                 data = yaml.safe_load(f)
             speedtested = data.get("proxies", []) if data else []
             
-            # 5. 第三层：zhsama流媒体解锁
-            unlock_yaml = "unlocked.yaml"
-            if run_unlock_test(filtered_yaml, unlock_yaml):
-                with open(unlock_yaml, 'r', encoding='utf-8') as f:
-                    data = yaml.safe_load(f)
-                final_proxies = data.get("proxies", []) if data else speedtested
-                print(f"✅ 第三层解锁通过：{len(final_proxies)} 个节点")
+            # 第三层（可选）
+            if ENABLE_UNLOCK:
+                unlock_yaml = "unlocked.yaml"
+                if run_unlock_test(filtered_yaml, unlock_yaml):
+                    with open(unlock_yaml, 'r', encoding='utf-8') as f:
+                        data = yaml.safe_load(f)
+                    final_proxies = data.get("proxies", []) if data else speedtested
+                    print(f"✅ 第三层解锁通过：{len(final_proxies)} 个")
+                else:
+                    final_proxies = speedtested
             else:
                 final_proxies = speedtested
-                print("⚠️ 第三层解锁跳过，使用第二层结果")
+                print("⚠️ 第三层已关闭，使用第二层结果")
             
             for p in final_proxies[:MAX_FINAL_NODES]:
                 speed = parse_speed_from_clash_name(p.get("name", ""))
@@ -690,7 +709,7 @@ def main():
         final = final[:MAX_FINAL_NODES]
         print(f"\n✅ 最终优质节点：{len(final)} 个（三层过滤完成）\n")
         
-        # 6. 输出
+        # 5. 输出
         print("📝 生成 proxies.yaml + subscription.txt...")
         final_names = {}
         unique_final = []
@@ -720,16 +739,16 @@ def main():
         # 统计
         tt = time.time() - st
         asia_ct = sum(1 for p in unique_final if is_asia(p))
-        print("\n" + "=" * 70)
+        print("\n" + "=" * 80)
         print("📊 统计结果")
-        print("=" * 70)
+        print("=" * 80)
         print(f"• 最终节点：{len(unique_final)} 个（亚洲 {asia_ct} 个）")
         print(f"• 耗时：{tt:.1f} 秒")
-        print("=" * 70 + "\n")
+        print("=" * 80 + "\n")
         
         if BOT_TOKEN and CHAT_ID and REPO_NAME:
             try:
-                msg = f"""🚀 <b>节点更新完成 v13.2 Final Mixed</b>\n\n📊 最终节点：{len(unique_final)} 个\n📁 YAML & TXT 已更新\n节点风格：HK01-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"""
+                msg = f"""🚀 <b>节点更新完成 v13.3 Optimized</b>\n\n📊 最终节点：{len(unique_final)} 个\n📁 YAML & TXT 已更新\n节点风格：HK01-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"""
                 requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"})
             except:
                 pass

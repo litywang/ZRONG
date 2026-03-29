@@ -1,78 +1,61 @@
-# .github/workflows/update.yml
-name: Update Clash Nodes
+name: Update Subscription Nodes
 
 on:
   schedule:
-    - cron: '0 */4 * * *'
+    - cron: '0 */6 * * *'  # 每6小时一次
   workflow_dispatch:
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
-  update:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
+  crawl-and-test:
+    runs-on: ubuntu-latest
     
     steps:
       - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
       
-      - uses: actions/setup-python@v6
+      - name: Setup Python
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-          cache: 'pip'
-      
-      # ✅ 添加系统信息调试
-      - name: System Info
+          
+      - name: Install Dependencies
         run: |
-          echo "=== 系统信息 ==="
-          uname -a
-          pwd
-          ls -la
-          free -h
-          df -h
-      
-      - run: pip install requests pyyaml
-      
-      - run: python crawler.py
+          pip install requests pyyaml urllib3
+          
+      - name: Run Crawler
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
-      
-      # ✅ 显示 clash_temp 目录内容
-      - name: Show clash_temp contents
-        if: always()
         run: |
-          echo "=== clash_temp 目录 ==="
-          ls -la clash_temp/ 2>/dev/null || echo "目录不存在"
-          echo "=== clash.log 内容 ==="
-          cat clash_temp/clash.log 2>/dev/null || echo "日志不存在"
-          echo "=== 错误报告 ==="
-          cat clash_error_report.txt 2>/dev/null || echo "报告不存在"
-      
-      - name: Upload Clash logs
-        if: always()
+          timeout 900 python crawler.py || echo "TIMEOUT_REACHED"
+          
+      - name: Commit Output Files
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add proxies.yaml subscription_base64.txt 2>/dev/null || true
+          git commit -m "🔄 Auto update $(date '+%Y-%m-%d %H:%M')" || echo "No changes to commit"
+          git push
+          
+      - name: Upload Artifact on Success
         uses: actions/upload-artifact@v4
+        if: success()
         with:
-          name: clash-logs-${{ github.run_number }}
+          name: nodes-${{ github.run_id }}
+          path: |
+            proxies.yaml
+            subscription_base64.txt
+          retention-days: 7
+        
+      - name: Upload Logs on Failure  
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: logs-${{ github.run_id }}
           path: |
             clash_temp/
-            clash_error_report.txt
+            *.log
           retention-days: 3
-          if-no-files-found: warn
-      
-      - name: Cleanup temp files
-        if: always()
-        run: rm -rf clash_temp
-      
-      - run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add -A
-          git diff --staged --quiet || git commit -m "🔄 Update nodes $(date '+%Y-%m-%d %H:%M')"
-          git push

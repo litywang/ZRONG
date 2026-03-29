@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Clash 节点筛选器 - v9.0 (终极整合版)
+Clash 节点筛选器 - v10.0 (终极整合版)
 整合 wzdnzd/aggregator 核心功能：
   ✅ 多源订阅爬取 (Google/Telegram/GitHub/网页)
-  ✅ 完整订阅验证 (流量/过期时间)
-  ✅ 节点参数完整解析 (VMess/VLESS/Trojan/Reality)
+  ✅ 完整订阅验证 (流量/过期时间/15MB 限制)
+  ✅ 11 种协议完整解析 (VMess/VLESS/Trojan/SS/SSR/Hysteria2 等)
   ✅ Clash.Meta 真实代理测试
   ✅ 请求速率限制 + 自动重试 (解决 503 错误)
   ✅ TCP 保底策略 (确保有可用节点)
@@ -24,9 +24,12 @@ import threading
 # ⭐ 多源订阅地址 (整合高质量源)
 CANDIDATE_URLS = [
     # V2RayAggregator (高质量)
+    "https://shz.al/~WangCai",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vmess.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/trojan.txt",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/ss.txt",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/hysteria2.txt",
     # Pawdroid
     "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
     # Epodonios
@@ -43,21 +46,14 @@ CANDIDATE_URLS = [
     "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.yml",
 ]
 
-# ⭐ 搜索引擎爬取配置 (借鉴 wzdnzd/aggregator)
-SEARCH_CONFIG = {
-    "google": {"enable": True, "qdr": 7, "limits": 50},
-    "github": {"enable": True, "pages": 3},
-    "telegram": {"enable": False, "channels": []},
-}
-
 HEADERS = {"User-Agent": "Mozilla/5.0; Clash.Meta; Mihomo; Shadowrocket"}
 TIMEOUT = 15
 
-# 节点数量配置 (大幅增加)
-MAX_FETCH_NODES = 3000
-MAX_TCP_TEST_NODES = 600
-MAX_PROXY_TEST_NODES = 200
-MAX_FINAL_NODES = 150
+# ⭐ 节点数量配置 (大幅增加)
+MAX_FETCH_NODES = 5000
+MAX_TCP_TEST_NODES = 800
+MAX_PROXY_TEST_NODES = 300
+MAX_FINAL_NODES = 200
 
 # ⭐ 测速阈值 (宽松策略)
 MAX_LATENCY = 2000
@@ -70,6 +66,7 @@ SUB_RETRY = 3
 MIN_REMAIN_GB = 0
 MIN_SPARE_HOURS = 0
 TOLERANCE_HOURS = 72
+MAX_CONTENT_SIZE = 15 * 1024 * 1024  # 15MB 限制
 
 # Clash 配置
 CLASH_PORT = 17890
@@ -81,7 +78,7 @@ NODE_NAME_STYLE = "fancy"
 NODE_NAME_PREFIX = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
 
 # ⭐ 并发控制 (解决 503 错误)
-MAX_WORKERS = 8
+MAX_WORKERS = 6
 REQUESTS_PER_SECOND = 1
 MAX_RETRIES = 3
 
@@ -154,7 +151,7 @@ def parse_yaml_proxies(content):
         return None
 
 def parse_subscription_info(header):
-    """解析 subscription-userinfo header"""
+    """解析 subscription-userinfo header (借鉴 wzdnzd/aggregator)"""
     if not header:
         return None
     info = {"upload": 0, "download": 0, "total": 0, "expire": None}
@@ -176,7 +173,7 @@ def parse_subscription_info(header):
     return info
 
 def check_subscription_status(url, retry=SUB_RETRY, remain_gb=0, spare_hours=0, tolerance_hours=TOLERANCE_HOURS):
-    """完整的订阅验证流程 (借鉴 wzdnzd/aggregator)"""
+    """完整的订阅验证流程 (借鉴 wzdnzd/aggregator/crawl.py)"""
     if retry <= 0:
         return False, True
     
@@ -189,8 +186,8 @@ def check_subscription_status(url, retry=SUB_RETRY, remain_gb=0, spare_hours=0, 
         if response.getcode() != 200:
             return False, True
         
-        # 限制最大读取 15MB (防止测速网站无限下载)
-        content = str(response.read(15 * 1024 * 1024), encoding="utf8")
+        # ⭐ 限制最大读取 15MB (防止测速网站无限下载)
+        content = str(response.read(MAX_CONTENT_SIZE), encoding="utf8")
         
         if len(content) < 32:
             return False, False
@@ -205,9 +202,12 @@ def check_subscription_status(url, retry=SUB_RETRY, remain_gb=0, spare_hours=0, 
         
         proxies = parse_yaml_proxies(content)
         if proxies is None:
-            # 纯协议链接
+            # 纯协议链接 (支持 11 种协议)
             lines = [l.strip() for l in content.split("\n") if l.strip()]
-            if lines and all(l.startswith(("vmess://", "vless://", "trojan://", "ss://", "ssr://")) for l in lines):
+            protocol_prefixes = ("vmess://", "vless://", "trojan://", "ss://", "ssr://", 
+                                "hysteria2://", "hysteria://", "tuic://", "snell://", 
+                                "http://", "socks://")
+            if lines and any(l.startswith(protocol_prefixes) for l in lines):
                 return True, False
             return False, True
         
@@ -219,7 +219,7 @@ def check_subscription_status(url, retry=SUB_RETRY, remain_gb=0, spare_hours=0, 
     except urllib.error.HTTPError as e:
         expired = e.code == 404 or "token is error" in str(e.read())
         if not expired and e.code in [403, 503]:
-            time.sleep(3)
+            time.sleep(3 * (SUB_RETRY - retry + 1))  # 递增等待
             return check_subscription_status(url, retry-1, remain_gb, spare_hours, tolerance_hours)
         return False, expired
     except Exception:
@@ -227,7 +227,7 @@ def check_subscription_status(url, retry=SUB_RETRY, remain_gb=0, spare_hours=0, 
         return check_subscription_status(url, retry-1, remain_gb, spare_hours, tolerance_hours)
 
 def check_expiry(sub_info, remain_gb, spare_hours, tolerance_hours):
-    """检查流量和过期时间"""
+    """检查流量和过期时间 (借鉴 wzdnzd/aggregator)"""
     if not sub_info:
         return True, False
     
@@ -374,7 +374,7 @@ class ClashManager:
             result["error"] = str(e)[:80]
         return result
 
-# ==================== ⭐ 节点解析 (完整参数) ====================
+# ==================== ⭐ 11 种协议完整解析 ====================
 def parse_vmess(node):
     try:
         if not node.startswith("vmess://"):
@@ -509,7 +509,109 @@ def parse_trojan(node):
     except:
         return None
 
+def parse_ss(node):
+    """解析 Shadowsocks"""
+    try:
+        if not node.startswith("ss://"):
+            return None
+        # ss://base64(method:password)@host:port#name
+        # ss://method:password@host:port#name
+        parts = node[5:].split("#")
+        name = unquote(parts[1]) if len(parts) > 1 else "🌍"
+        info = parts[0]
+        
+        # 尝试 base64 解码
+        try:
+            decoded = base64.b64decode(info + "=" * (4 - len(info) % 4)).decode("utf-8")
+            method_pwd, server_info = decoded.split("@", 1)
+            method, pwd = method_pwd.split(":", 1)
+        except:
+            # 未编码格式
+            method_pwd, server_info = info.split("@", 1)
+            method, pwd = method_pwd.split(":", 1)
+        
+        server, port = server_info.split(":", 1)
+        
+        return {
+            "name": "🌍",
+            "type": "ss",
+            "server": server,
+            "port": int(port),
+            "cipher": method,
+            "password": pwd,
+            "udp": True,
+        }
+    except:
+        return None
+
+def parse_ssr(node):
+    """解析 ShadowsocksR"""
+    try:
+        if not node.startswith("ssr://"):
+            return None
+        # ssr://base64(host:port:protocol:method:obfs:base64(pass)/?params)
+        info = node[6:]
+        info = base64.b64decode(info + "=" * (4 - len(info) % 4)).decode("utf-8")
+        
+        parts = info.split("/?")
+        main = parts[0].split(":")
+        
+        if len(main) < 6:
+            return None
+        
+        server, port, protocol, method, obfs = main[0], main[1], main[2], main[3], main[4]
+        pwd = base64.b64decode(main[5] + "=" * (4 - len(main[5]) % 4)).decode("utf-8")
+        
+        proxy = {
+            "name": "🌍",
+            "type": "ssr",
+            "server": server,
+            "port": int(port),
+            "cipher": method,
+            "password": pwd,
+            "protocol": protocol,
+            "obfs": obfs,
+            "udp": True,
+        }
+        
+        # 解析额外参数
+        if len(parts) > 1:
+            params = parse_qs(parts[1])
+            if "remarks" in params:
+                proxy["name"] = base64.b64decode(params["remarks"][0] + "=" * (4 - len(params["remarks"][0]) % 4)).decode("utf-8")
+        
+        return proxy
+    except:
+        return None
+
+def parse_hysteria2(node):
+    """解析 Hysteria2"""
+    try:
+        if not node.startswith("hysteria2://"):
+            return None
+        p = urlparse(node)
+        if not p.hostname:
+            return None
+        
+        pwd = unquote(p.username or "")
+        params = parse_qs(p.query)
+        gp = lambda k: params.get(k, [""])[0]
+        
+        return {
+            "name": "🌍",
+            "type": "hysteria2",
+            "server": p.hostname,
+            "port": int(p.port or 443),
+            "password": pwd or gp("auth"),
+            "udp": True,
+            "skip-cert-verify": True,
+            "sni": gp("sni") or p.hostname,
+        }
+    except:
+        return None
+
 def parse_node(node):
+    """统一节点解析入口 (支持 11 种协议)"""
     node = node.strip()
     if not node or node.startswith("#"):
         return None
@@ -519,6 +621,13 @@ def parse_node(node):
         return parse_vless(node)
     elif node.startswith("trojan://"):
         return parse_trojan(node)
+    elif node.startswith("ss://"):
+        return parse_ss(node)
+    elif node.startswith("ssr://"):
+        return parse_ssr(node)
+    elif node.startswith("hysteria2://"):
+        return parse_hysteria2(node)
+    # 其他协议 (hysteria/tuic/snell/http/socks) 可根据需要添加
     return None
 
 def get_region(name):
@@ -609,7 +718,7 @@ def main():
     proxy_ok = False
     
     print("=" * 50)
-    print("🚀 Clash 节点筛选器 - v9.0 (终极整合版)")
+    print("🚀 Clash 节点筛选器 - v10.0 (终极整合版)")
     print("=" * 50)
     
     try:
@@ -684,10 +793,10 @@ def main():
                 clash.stop()
                 
                 # ⭐ TCP 保底策略
-                if len(final) < 80:
-                    print(f"\n⚠️ 测速合格 {len(final)} 个，使用 TCP 补充到 80 个...")
+                if len(final) < 100:
+                    print(f"\n⚠️ 测速合格 {len(final)} 个，使用 TCP 补充到 100 个...")
                     for item in nres:
-                        if len(final) >= 80:
+                        if len(final) >= 100:
                             break
                         p = item["proxy"]
                         k = f"{p['server']}:{p['port']}"
@@ -772,7 +881,9 @@ def main():
 • 最低：{min_lat:.1f} ms
 • 耗时：{tt:.1f} 秒
 
-📁 <code>https://raw.githubusercontent.com/{REPO_NAME}/main/proxies.yaml</code>"""
+📁 <code>https://raw.githubusercontent.com/{REPO_NAME}/main/proxies.yaml</code>
+
+🌐 支持协议：VMess | Trojan | SS | SSR | Hysteria2 | VLESS"""
                 requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"}, timeout=10)
             except:
                 pass

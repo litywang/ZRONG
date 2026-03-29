@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Clash 节点筛选器 - v10.0 (终极整合版)
+Clash 节点筛选器 - v10.0 Final (完整整合版)
 整合 wzdnzd/aggregator 核心功能：
   ✅ 多源订阅爬取 (Google/Telegram/GitHub/网页)
   ✅ 完整订阅验证 (流量/过期时间/15MB 限制)
@@ -23,31 +23,41 @@ import threading
 # ==================== 配置区 ====================
 # ⭐ 多源订阅地址 (整合高质量源)
 CANDIDATE_URLS = [
-    # V2RayAggregator (高质量)
-    "https://shz.al/~WangCai",
+    # V2RayAggregator (最推荐)
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vmess.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/trojan.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/ss.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/hysteria2.txt",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/Eternity.txt",
     # Pawdroid
     "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
     # Epodonios
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
-    # ermaozi
-    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vless.txt",
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vmess.txt",
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/trojan.txt",
     # barry-far
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vless.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vmess.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/trojan.txt",
-    # roosterkid
+    # 其他高质量源
+    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
     "https://raw.githubusercontent.com/roosterkid/openproxylist/refs/heads/main/V2RAY_RAW.txt",
-    # NoMoreWalls
+    "https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/all_extracted_configs.txt",
     "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.yml",
+    "https://raw.githubusercontent.com/TG-NAV/clashnode/main/subscribe.txt",
+    "https://raw.githubusercontent.com/cframe1337/PublicProxyList/main/v2ray.txt",
+    # Clash 专用
+    "https://raw.githubusercontent.com/SnapdragonLee/SystemProxy/master/dist/clash_config.yaml",
+    "https://clashsubs.com/free-subscribe/",  # ClashSub 博客 [[26]]
+    "https://jichangx.com/free-subscription/",  # 机场 X[[27]]
+    "https://shz.al/~WangCai", #WangCai
 ]
 
 HEADERS = {"User-Agent": "Mozilla/5.0; Clash.Meta; Mihomo; Shadowrocket"}
-TIMEOUT = 15
+TIMEOUT = 20
 
 # ⭐ 节点数量配置 (大幅增加)
 MAX_FETCH_NODES = 5000
@@ -78,7 +88,7 @@ NODE_NAME_STYLE = "fancy"
 NODE_NAME_PREFIX = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
 
 # ⭐ 并发控制 (解决 503 错误)
-MAX_WORKERS = 6
+MAX_WORKERS = 5
 REQUESTS_PER_SECOND = 1
 MAX_RETRIES = 3
 
@@ -181,7 +191,7 @@ def check_subscription_status(url, retry=SUB_RETRY, remain_gb=0, spare_hours=0, 
         limiter.wait()
         headers = {"User-Agent": "Clash.Meta; Mihomo; Shadowrocket"}
         request = urllib.request.Request(url=url, headers=headers)
-        response = urllib.request.urlopen(request, timeout=15, context=ssl.create_default_context())
+        response = urllib.request.urlopen(request, timeout=TIMEOUT, context=ssl.create_default_context())
         
         if response.getcode() != 200:
             return False, True
@@ -219,7 +229,8 @@ def check_subscription_status(url, retry=SUB_RETRY, remain_gb=0, spare_hours=0, 
     except urllib.error.HTTPError as e:
         expired = e.code == 404 or "token is error" in str(e.read())
         if not expired and e.code in [403, 503]:
-            time.sleep(3 * (SUB_RETRY - retry + 1))  # 递增等待
+            # ⭐ 503 错误递增等待
+            time.sleep(3 * (SUB_RETRY - retry + 1))
             return check_subscription_status(url, retry-1, remain_gb, spare_hours, tolerance_hours)
         return False, expired
     except Exception:
@@ -514,19 +525,15 @@ def parse_ss(node):
     try:
         if not node.startswith("ss://"):
             return None
-        # ss://base64(method:password)@host:port#name
-        # ss://method:password@host:port#name
         parts = node[5:].split("#")
         name = unquote(parts[1]) if len(parts) > 1 else "🌍"
         info = parts[0]
         
-        # 尝试 base64 解码
         try:
             decoded = base64.b64decode(info + "=" * (4 - len(info) % 4)).decode("utf-8")
             method_pwd, server_info = decoded.split("@", 1)
             method, pwd = method_pwd.split(":", 1)
         except:
-            # 未编码格式
             method_pwd, server_info = info.split("@", 1)
             method, pwd = method_pwd.split(":", 1)
         
@@ -549,7 +556,6 @@ def parse_ssr(node):
     try:
         if not node.startswith("ssr://"):
             return None
-        # ssr://base64(host:port:protocol:method:obfs:base64(pass)/?params)
         info = node[6:]
         info = base64.b64decode(info + "=" * (4 - len(info) % 4)).decode("utf-8")
         
@@ -574,7 +580,6 @@ def parse_ssr(node):
             "udp": True,
         }
         
-        # 解析额外参数
         if len(parts) > 1:
             params = parse_qs(parts[1])
             if "remarks" in params:
@@ -627,7 +632,6 @@ def parse_node(node):
         return parse_ssr(node)
     elif node.startswith("hysteria2://"):
         return parse_hysteria2(node)
-    # 其他协议 (hysteria/tuic/snell/http/socks) 可根据需要添加
     return None
 
 def get_region(name):
@@ -718,7 +722,7 @@ def main():
     proxy_ok = False
     
     print("=" * 50)
-    print("🚀 Clash 节点筛选器 - v10.0 (终极整合版)")
+    print("🚀 Clash 节点筛选器 - v10.0 Final (完整整合版)")
     print("=" * 50)
     
     try:

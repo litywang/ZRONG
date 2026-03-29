@@ -1,8 +1,8 @@
-name: Update Proxies (Stable + Unlock)
+name: Update Proxies (Final Stable with Go Cache)
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 */6 * * *'    # 每 6 小时
   workflow_dispatch:
 
 permissions:
@@ -13,35 +13,47 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Setup Go (for zhsama unlock layer)
+      - name: Setup Go with Cache
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
+          cache: true
 
-      - name: Install dependencies
+      - name: Cache Go Modules (Aggressive)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install Python dependencies
         run: pip install requests pyyaml
 
       - name: Run crawler
         env:
-          ENABLE_UNLOCK: "true"          # 开启第三层解锁检测
+          ENABLE_UNLOCK: "true"
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
         run: python crawler.py
 
-      - name: Commit and push
+      - name: Commit and push changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add proxies.yaml subscription.txt
           if git diff --staged --quiet; then
-            echo "No changes"
+            echo "No changes to commit"
           else
             git commit -m "Update proxies + unlock detection $(date '+%Y-%m-%d %H:%M:%S')"
             git push

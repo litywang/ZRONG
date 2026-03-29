@@ -1,4 +1,4 @@
-name: Update Proxies (With Unlock)
+name: Update Proxies (Stable + Unlock)
 
 on:
   schedule:
@@ -9,17 +9,19 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  update:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - uses: actions/setup-go@v5
+      - name: Setup Go (for zhsama unlock layer)
+        uses: actions/setup-go@v5
         with:
           go-version: '1.23'
 
@@ -28,15 +30,19 @@ jobs:
 
       - name: Run crawler
         env:
-          ENABLE_UNLOCK: "true"           # 开启流媒体解锁检测
+          ENABLE_UNLOCK: "true"          # 开启第三层解锁检测
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
         run: python crawler.py
 
-      - name: Commit & Push
+      - name: Commit and push
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add proxies.yaml subscription.txt
-          git commit -m "Update proxies + unlock detection $(date)" || echo "No changes"
-          git push
+          if git diff --staged --quiet; then
+            echo "No changes"
+          else
+            git commit -m "Update proxies + unlock detection $(date '+%Y-%m-%d %H:%M:%S')"
+            git push
+          fi

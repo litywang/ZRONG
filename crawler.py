@@ -212,22 +212,11 @@ def discover_github_forks():
                 raw_url = f"https://raw.githubusercontent.com/{fullname}/{branch}/{path}"
                 all_urls_to_check.append(raw_url)
     
-    print(f"   🔗 待验证 URL: {len(all_urls_to_check)} 个...")
+    print(f"   🔗 构建 {len(all_urls_to_check)} 个潜在 URL（跳过验证，直接拉取）...")
     
-    # 并行验证 URL（快速 HEAD 检查）
-    valid_urls = []
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
-        futures = {ex.submit(check_url_fast, u): u for u in all_urls_to_check}
-        completed = 0
-        for future in as_completed(futures):
-            completed += 1
-            if future.result():
-                valid_urls.append(futures[future])
-            if completed % 100 == 0:
-                print(f"   ⏳ 验证进度: {completed}/{len(all_urls_to_check)} | 有效: {len(valid_urls)}")
-    
-    subs = list(set(valid_urls))
-    print(f"✅ GitHub Fork 共发现 {len(subs)} 个高质量来源\n")
+    # 直接去重加入，不验证——让 fetch_and_parse 自然淘汰无效源
+    subs = list(set(all_urls_to_check))
+    print(f"✅ GitHub Fork 共发现 {len(subs)} 个候选来源\n")
     return subs
 
 
@@ -961,16 +950,11 @@ def main():
         all_urls.extend(tg_urls)
         print(f"✅ Telegram 订阅：{len(tg_urls)} 个\n")
         
-        # 3. 固定订阅源（并行验证）
-        print("🔍 验证固定订阅源...\n")
-        fixed_urls = []
-        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
-            futures = {ex.submit(check_url_fast, strip_url(u)): u for u in CANDIDATE_URLS}
-            for future in as_completed(futures):
-                if future.result():
-                    fixed_urls.append(strip_url(futures[future]))
+        # 3. 固定订阅源（直接加入，跳过验证，由后续 fetch_and_parse 自然淘汰）
+        print("📥 加载固定订阅源...\n")
+        fixed_urls = [strip_url(u) for u in CANDIDATE_URLS if strip_url(u)]
         all_urls.extend(fixed_urls)
-        print(f"✅ 固定订阅源：{len(fixed_urls)} 个\n")
+        print(f"✅ 固定订阅源：{len(fixed_urls)} 个（跳过验证，直接拉取）\n")
         
         # 4. 去重
         all_urls = list(set(all_urls))

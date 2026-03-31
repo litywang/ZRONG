@@ -40,8 +40,13 @@ CANDIDATE_URLS = [
 ]
 
 TELEGRAM_CHANNELS = [
-    "proxies_free", "mr_v2ray", "dns68", "free_v2ray", "clash_meta",
-    "v2ray_sub", "vmess_vless_v2rayng", "freeVPNjd", "wxdy666", "jiedianbodnn"
+    "v2ray_sub", "free_v2ray", "clash_meta", "proxies_free", "mr_v2ray",
+    "vmess_vless_v2rayng", "freeVPNjd", "dns68", "jiedianbodnn", "wxdy666",
+    "AlphaV2ray", "V2rayN", "proxies_share", "freev2ray", "ClashMeta",
+    "v2rayng_free", "sub_free", "v2ray_share", "hysteria2_free", "tuic_free",
+    "v2rayngvpn", "freev2rayng", "clashvpn", "vmessfree", "vlessfree",
+    "trojanfree", "ssfree", "proxiesdaily", "subdaily", "v2raydaily",
+    "clashnode", "freeclash", "v2rayconfig", "clashconfig", "freeproxy"
 ]
 
 HEADERS = {"User-Agent": "Mozilla/5.0; Clash.Meta; Mihomo; Shadowrocket"}
@@ -400,125 +405,215 @@ def tcp_ping(host, port, to=2.0):
         return 9999.0
 
 
-# ⭐ Telegram 爬取（保持不变）
-def get_telegram_pages(channel):
-    try:
-        url = f"https://t.me/s/{channel}"
-        content = session.get(url, timeout=TIMEOUT).text
-        new_regex = rf'<a\s[^>]*href=["\']?/s/{channel}[\'"?]?before=[\d]+'
-        old_regex = rf'<link\s+rel="canonical"\s+href="/s/{channel}/?\??before=(\d+)">'
-        groups = re.findall(new_regex, content)
-        if not groups:
-            groups = re.findall(old_regex, content)
-        return int(groups[0]) if groups else 0
-    except Exception as e:
-        print(f"⚠️ {channel}页码获取失败：{str(e)[:50]}")
-        return 0
+# ==================== Telegram 爬取 (借鉴 wzdnzd/aggregator) ====================
+def is_valid_url(url):
+    """⭐ 新增：URL 有效性检查（核心优化）"""
+    if not url or len(url) < 10:
+        return False
+    
+    # 去除前后空白字符（关键！）
+    url = url.strip().rstrip('.,;:')
+    
+    # 协议检查
+    if not (url.startswith("http://") or url.startswith("https://")):
+        return False
+    
+    # 排除无效域名
+    invalid_domains = ["t.me", "telegram.org"]
+    if any(domain in url for domain in invalid_domains):
+        return False
+    
+    return True
 
 
 def clean_url(url):
-    """清理 URL 中的不可见字符、空格、换行符等"""
+    """🔥 新增：URL 规范化（比 wzdnzd 更全面）"""
     if not url:
         return ""
-    cleaned = "".join(url.split())
-    cleaned = cleaned.replace("%20 ", "").replace(" %20", "")
-    punctuation = [".", ",", ";", "!", "?", ":", "'", '"', ">", "<", "/", "\\", "("]
-    while cleaned[-1:] in punctuation:
-        cleaned = cleaned[:-1]
+    
+    # 移除所有不可见字符和换行符
+    cleaned = re.sub(r'\s+', '', url)
+    
+    # 统一协议为 https
+    cleaned = cleaned.replace("http://", "https://", 1)
+    
+    # 去除尾部标点
+    cleaned = cleaned.rstrip('.,;:!?"\\')
+    
+    # 长度检查
+    if len(cleaned) < 15:
+        return ""
+    
+    # 域名长度检查
+    domain = urlparse(cleaned).netloc
+    if not domain or len(domain) < 4:
+        return ""
+    
     return cleaned
 
 
-def crawl_telegram_page(url, pts, include="", exclude="", limits=25):
+def check_subscription_quality(url):
+    """⭐ 新增：订阅质量快速筛查（借鉴 wzdnzd）"""
+    quality_indicators = [
+        "token=",
+        "/subscribe/",
+        "/api/v1/client/",
+        ".txt",
+        ".yaml",
+        ".yml",
+        ".json",
+        "/link/"
+    ]
+    
+    url_lower = url.lower()
+    match_count = sum(1 for indicator in quality_indicators if indicator in url_lower)
+    
+    # 至少需要匹配 1 个高质量标记
+    return match_count >= 1
+
+
+def get_telegram_pages(channel):
+    """🔧 修复：兼容新旧两种 HTML 结构"""
+    try:
+        url = f"https://t.me/s/{channel}"
+        content = session.get(url, timeout=TIMEOUT).text
+        
+        # ⭐ 优化正则（借鉴 wzdnzd）- 多种格式兼容
+        patterns = [
+            rf'<meta\s+content="/s/{channel}\?before=(\d+)">?',
+            rf'<link[^>]*href=["\']?/s/{channel}/?\??before=(\d+)["\']?[^>]*>',
+            rf'/s/{channel}[^"]*before=(\d+)',
+        ]
+        
+        for pattern in patterns:
+            groups = re.findall(pattern, content, re.IGNORECASE)
+            if groups and groups[0].isdigit():
+                return int(groups[0])
+        
+        # 降级策略：尝试访问频道主页判断是否存在
+        resp = session.get(f"https://t.me/{channel}", timeout=10)
+        if resp.status_code == 200 and channel in resp.url:
+            return 1  # 至少有一页
+        
+        return 0
+    except Exception as e:
+        print(f"⚠️ {channel} 页码获取失败：{str(e)[:50]}")
+        return 0
+
+
+def crawl_telegram_page(url, limits=25):
+    """🔧 修复：全面增强 URL 提取（完全借鉴 wzdnzd）"""
     try:
         limiter.wait(url)
-        headers = USER_AGENT_POOL[:5]
-        resp = session.get(url, timeout=TIMEOUT, headers={"User-Agent": random.choice(headers)})
-        if not resp.text:
-            print(f"   ⚠️ 页面内容为空：{url[:60]}")
+        headers = {
+            "User-Agent": random.choice(USER_AGENT_POOL),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        }
+        
+        content = session.get(url, timeout=TIMEOUT, headers=headers).text
+        
+        if not content or len(content) < 100:
             return {}
-        content = resp.text.strip()
-        github_regex = r'https?://(?:raw\.githubusercontent\.com|github\.com)/[^\s<>]+'
-        sub_regex = r'https?://(?:[a-zA-Z0-9\u4e00-\u9fa5\-]+\.)+[a-zA-Z0-9\u4e00-\u9fa5\-]+(?::\d+)?[^"\s<>]*'
-        links = set()
-        for match in re.findall(github_regex, content):
-            links.add(match.replace("http://", "https://", 1))
-        for match in re.findall(sub_regex, content):
-            link = match.strip().replace("http://", "https://", 1).rstrip('.,;')
-            if link and len(link) > 10:
-                links.add(link)
+        
         collections = {}
-        matched_count = 0
-        for link in list(links)[:limits]:
+        
+        # ⭐ wzdnzd 核心：多级正则匹配（完整移植）
+        patterns = [
+            # 模式 1: 标准订阅链接
+            r'https?://[a-zA-Z0-9\u4e00-\u9fa5\-]+\.[a-zA-Z0-9\u4e00-\u9fa5\-]+(?::\d+)?(?:/.*)?(?:sub|subscribe|token)[^\s<>]*',
+            
+            # 模式 2: GitHub Raw 链接
+            r'https?://raw\.githubusercontent\.com/[a-zA-Z0-9\-]+/[a-zA-Z0-9\-]+/[a-zA-Z0-9\-]+/(.*\.txt|.*\.yaml|.*\.yml)',
+            
+            # 模式 3: 通用域名 + 路径
+            r'https?://(?:[a-zA-Z0-9\-]+\.)+[a-zA-Z0-9\-]+/(?:(?:sub|subscribe)/|link/[a-zA-Z0-9]+|api/v[0-9]/client/subscribe)',
+        ]
+        
+        all_links = []
+        for pattern in patterns:
+            all_links.extend(re.findall(pattern, content))
+        
+        # ⭐ wzdnzd 核心：去重和质量过滤（直接采用）
+        processed_urls = set()
+        valid_links = []
+        
+        for link in all_links[:limits * 2]:  # 放宽初始收集量
+            # 步骤 1: URL 清理（关键）
             link = clean_url(link)
-            if not link or len(link) < 10:
+            
+            # 步骤 2: 有效性检查
+            if not link or not is_valid_url(link):
                 continue
-            is_valid = False
-            if any(kw in link.lower() for kw in ["token=", "/subscribe", "/api"]):
-                is_valid = True
-            elif any(link.lower().endswith(ext) for ext in [".txt", ".yaml", ".yml", ".json"]):
-                is_valid = True
-            elif any(kw in link.lower() for kw in ["/link/", "/sub/", "/clash"]):
-                is_valid = True
-            if is_valid:
-                if exclude and re.search(exclude, link):
-                    continue
-                if include and not re.search(include, link):
-                    continue
-                if matched_count < 10 or matched_count % 20 == 0:
-                    print(f"   ✅ 有效链接 #{matched_count+1}: {link[:70]}...")
-                collections[link] = {"push_to": pts, "origin": "TELEGRAM"}
-                matched_count += 1
-        if not collections:
-            print(f"   ⚠️ 该页面未发现有效订阅链接：{url[:60]}")
+            
+            # 步骤 3: 去重（集合去重）
+            if link in processed_urls:
+                continue
+            processed_urls.add(link)
+            
+            # 步骤 4: 质量筛选（提高纯度）
+            if check_subscription_quality(link):
+                valid_links.append(link)
+        
+        # 最终限制输出数量
+        for link in valid_links[:limits]:
+            collections[link] = {"origin": "TELEGRAM"}
+        
+        if collections:
+            print(f"   ✅ 该页面发现 {len(collections)} 个有效订阅链接")
         else:
-            print(f"   ✅ {len(collections)} 个有效订阅链接已收集")
+            print(f"   ⚠️ 该页面未发现有效订阅链接：{url[:60]}")
+        
         return collections
+        
     except requests.exceptions.Timeout:
         print(f"   ⏱️ 请求超时：{url[:60]}")
         return {}
-    except requests.exceptions.ConnectionError:
-        print(f"   🔌 连接错误：{url[:60]}")
-        time.sleep(1)
-        return {}
     except Exception as e:
-        print(f"   ❌ 爬取异常：{str(e)[:80]}")
+        print(f"   ❌ 爬取异常：{str(e)[:50]}")
         return {}
 
 
 def crawl_telegram_channels(channels, pages=2, limits=20):
+    """🔧 修复：批量爬取优化（保持原有流程）"""
     all_subscribes = {}
+    
     for channel in channels:
         try:
             count = get_telegram_pages(channel)
             if count == 0:
                 print(f"❌ {channel} 无法获取总页数")
                 continue
+            
             page_arrays = range(count, -1, -100)
             page_num = min(pages, len(page_arrays))
+            
             for i, before in enumerate(page_arrays[:page_num]):
                 url = f"https://t.me/s/{channel}?before={before}"
-                result = crawl_telegram_page(url, pts=["local"], limits=limits)
+                result = crawl_telegram_page(url, limits=limits)
+                
+                # ⭐ 增量更新并去重（确保唯一性）
                 for link, meta in result.items():
                     if link not in all_subscribes:
                         all_subscribes[link] = meta
+                
                 total_sub = len(all_subscribes)
                 page_count = i + 1
                 channel_count = len([c for c in all_subscribes.values() if c["origin"] == "TELEGRAM"])
-                print(f"📄 [{channel}/{page_count}] 进度：{total_sub} 总 | {channel_count} 电报 | {result.get('count', 0)} 新")
-                time.sleep(random.uniform(1, 3))
+                
+                print(f"📄 [{channel}/{page_count}] 进度：{total_sub} 总 | {channel_count} 电报 | {len(result)} 新")
+                
+                # ⭐ wzdnzd 防封延时（智能调整）
+                time.sleep(random.uniform(0.5, 2))
+                
         except KeyboardInterrupt:
             print("⚠️ 用户中断爬取")
             break
         except Exception as e:
             print(f"❌ {channel} 整体爬取失败：{str(e)[:50]}")
             continue
-    tg_subs = {k: v for k, v in all_subscribes.items() if v["origin"] == "TELEGRAM"}
-    fixed_subs = {k: v for k, v in all_subscribes.items() if v["origin"] != "TELEGRAM"}
-    print(f"\n✅ Telegram 频道爬取完成:")
-    print(f"   • 总链接数：{len(all_subscribes)}")
-    print(f"   • Telegram: {len(tg_subs)} | 固定源：{len(fixed_subs)}")
-    print(f"   • 唯一节点估计：~{len(all_subscribes) * 20} 个\n")
-    return tg_subs
+    
+    return all_subscribes
 
 
 # ⭐ Clash 管理（保持不变）

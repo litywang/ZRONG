@@ -34,8 +34,9 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
-          ENABLE_UNLOCK: ${{ vars.ENABLE_UNLOCK || 'true' }}
-          UNLOCK_PLATFORMS: ${{ vars.UNLOCK_PLATFORMS || '["Netflix","Disney+","ChatGPT","YouTube","Spotify"]' }}
+          #ENABLE_UNLOCK: ${{ vars.ENABLE_UNLOCK || 'true' }}#
+          #UNLOCK_PLATFORMS: ${{ vars.UNLOCK_PLATFORMS || '["Netflix","Disney+","ChatGPT","YouTube","Spotify"]' }}#
+          ENABLE_UNLOCK: false 
         run: |
           echo "🚀 开始运行爬虫 v19.0..."
           python crawler.py

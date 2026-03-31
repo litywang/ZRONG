@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v22.1 - 性能优化版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.1
-优化：并行化处理 + 缩短超时 + 提高并发
+聚合订阅爬虫 v22.2 - 全协议增强版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.2
+优化：YAML订阅源解析 + hysteria2/tuic/hysteria 协议支持
 核心原则：三層严格检测 + 全量优质源 + 零语法错误 + 最佳稳定性
 """
 
@@ -360,6 +360,90 @@ def parse_ss(node):
     except: return None
 
 
+def parse_hysteria2(node):
+    """解析 hysteria2:// 链接"""
+    try:
+        if not node.startswith("hysteria2://") and not node.startswith("hy2://"): return None
+        prefix = "hysteria2://" if node.startswith("hysteria2://") else "hy2://"
+        p_url = urlparse(node)
+        if not p_url.hostname: return None
+        pwd = unquote(p_url.username or "")
+        params = parse_qs(p_url.query)
+        gp = lambda k: params.get(k, [""])[0]
+        uid = generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443), 'password': pwd})
+        proxy = {
+            "name": f"H2-{uid}", "type": "hysteria2", "server": p_url.hostname,
+            "port": int(p_url.port or 443), "password": pwd, "udp": True, "skip-cert-verify": True
+        }
+        sni = gp("sni")
+        if sni: proxy["sni"] = sni
+        elif p_url.hostname: proxy["sni"] = p_url.hostname
+        obfs = gp("obfs")
+        if obfs: proxy["obfs"] = obfs
+        obfs_password = gp("obfs-password")
+        if obfs_password: proxy["obfs-password"] = obfs_password
+        insecure = gp("insecure")
+        if insecure == "1": proxy["skip-cert-verify"] = True
+        fp = gp("fp")
+        if fp: proxy["client-fingerprint"] = fp
+        return proxy if proxy["server"] else None
+    except: return None
+
+
+def parse_tuic(node):
+    """解析 tuic:// 链接"""
+    try:
+        if not node.startswith("tuic://"): return None
+        p_url = urlparse(node)
+        if not p_url.hostname: return None
+        uuid_val = p_url.username or ""
+        params = parse_qs(p_url.query)
+        gp = lambda k: params.get(k, [""])[0]
+        uid = generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443), 'password': uuid_val})
+        proxy = {
+            "name": f"TU-{uid}", "type": "tuic", "server": p_url.hostname,
+            "port": int(p_url.port or 443), "uuid": uuid_val, "password": uuid_val,
+            "udp": True, "skip-cert-verify": True
+        }
+        sni = gp("sni")
+        if sni: proxy["sni"] = sni
+        fp = gp("fp")
+        if fp: proxy["client-fingerprint"] = fp
+        alpn = gp("alpn")
+        if alpn: proxy["alpn"] = [a.strip() for a in alpn.split(",")]
+        return proxy if proxy["server"] else None
+    except: return None
+
+
+def parse_hysteria(node):
+    """解析 hysteria:// 链接（v1）"""
+    try:
+        if not node.startswith("hysteria://"): return None
+        p_url = urlparse(node)
+        if not p_url.hostname: return None
+        pwd = unquote(p_url.username or "")
+        params = parse_qs(p_url.query)
+        gp = lambda k: params.get(k, [""])[0]
+        uid = generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443), 'password': pwd})
+        proxy = {
+            "name": f"HY-{uid}", "type": "hysteria", "server": p_url.hostname,
+            "port": int(p_url.port or 443), "password": pwd, "udp": True,
+            "skip-cert-verify": True, "protocol": "udp"
+        }
+        sni = gp("sni")
+        if sni: proxy["sni"] = sni
+        obfs = gp("obfs")
+        if obfs: proxy["obfs"] = obfs
+        auth_str = gp("auth")
+        if auth_str: proxy["auth_str"] = auth_str
+        alpn = gp("alpn")
+        if alpn: proxy["alpn"] = [a.strip() for a in alpn.split(",")]
+        insecure = gp("insecure")
+        if insecure == "1": proxy["skip-cert-verify"] = True
+        return proxy if proxy["server"] else None
+    except: return None
+
+
 def parse_node(node):
     node = node.strip()
     if not node or node.startswith("#"): return None
@@ -367,7 +451,56 @@ def parse_node(node):
     elif node.startswith("vless://"): return parse_vless(node)
     elif node.startswith("trojan://"): return parse_trojan(node)
     elif node.startswith("ss://"): return parse_ss(node)
+    elif node.startswith("hysteria2://") or node.startswith("hy2://"): return parse_hysteria2(node)
+    elif node.startswith("hysteria://"): return parse_hysteria(node)
+    elif node.startswith("tuic://"): return parse_tuic(node)
     return None
+
+
+# ⭐ YAML 订阅源解析
+def parse_yaml_proxies(content):
+    """解析 YAML 格式的 Clash/Mihomo 订阅，提取 proxies 列表"""
+    try:
+        data = yaml.safe_load(content)
+        if not data or not isinstance(data, dict):
+            return []
+        # 支持 proxies: / Proxy: 两种键名
+        proxies = data.get("proxies") or data.get("Proxy") or []
+        if not isinstance(proxies, list):
+            return []
+        results = []
+        for p in proxies:
+            if not isinstance(p, dict) or not p.get("server"):
+                continue
+            ptype = (p.get("type") or "").lower()
+            # 只认 Mihomo/Clash 支持的协议
+            if ptype not in ("vmess", "vless", "trojan", "ss", "ssr", "hysteria", "hysteria2", "tuic",
+                             "wireguard", "shadowtls"):
+                continue
+            # 基本校验：必须有 server + port
+            try:
+                port = int(p.get("port", 0))
+                if port <= 0:
+                    continue
+            except (ValueError, TypeError):
+                continue
+            # 生成唯一 ID 去重
+            key = f"{p['server']}:{port}:{p.get('uuid', p.get('password', ''))}"
+            h = hashlib.md5(key.encode()).hexdigest()[:8].upper()
+            ptype_tag = {"vmess":"VM","vless":"VL","trojan":"TJ","ss":"SS","ssr":"SR",
+                         "hysteria":"HY","hysteria2":"H2","tuic":"TU","wireguard":"WG","shadowtls":"ST"}
+            p["name"] = f"{ptype_tag.get(ptype,'XX')}-{h}"
+            results.append(p)
+        return results
+    except Exception:
+        return []
+
+
+def is_yaml_content(content):
+    """判断内容是否为 YAML 订阅源"""
+    # 快速判断：如果内容包含 proxies: 或 Proxy: 关键字且含有 server 字段
+    c_lower = content[:2000].lower()
+    return ("proxies:" in c_lower or "proxy:" in c_lower) and ("server:" in c_lower)
 
 
 # ⭐ 辅助工具（保持不变）
@@ -808,8 +941,8 @@ def main():
     proxy_ok = False
     
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v22.1 - 性能优化版")
-    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.1")
+    print("🚀 聚合订阅爬虫 v22.2 - 全协议增强版")
+    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.2")
     print("=" * 50)
     
     all_urls = []
@@ -846,12 +979,26 @@ def main():
         # 5. 抓取节点（并行优化）
         print("📥 抓取节点...\n")
         nodes = {}
+        yaml_count = 0  # 统计 YAML 源解析数
+        txt_count = 0
         
         def fetch_and_parse(url):
-            """并行获取并解析节点"""
+            """并行获取并解析节点（支持 txt + yaml 两种格式）"""
             local_nodes = {}
             c = fetch(url)
-            if not c: return local_nodes
+            if not c: return local_nodes, False
+            
+            # 判断是否为 YAML 订阅源
+            if is_yaml_content(c):
+                yaml_nodes = parse_yaml_proxies(c)
+                for p in yaml_nodes:
+                    k = f"{p['server']}:{p.get('port',0)}:{p.get('uuid', p.get('password', ''))}"
+                    h = hashlib.md5(k.encode()).hexdigest()
+                    if h not in local_nodes:
+                        local_nodes[h] = p
+                return local_nodes, True
+            
+            # 普通文本订阅（协议链接）
             if is_base64(c): c = decode_b64(c)
             for l in c.splitlines():
                 l = l.strip()
@@ -862,23 +1009,25 @@ def main():
                     h = hashlib.md5(k.encode()).hexdigest()
                     if h not in local_nodes:
                         local_nodes[h] = p
-            return local_nodes
+            return local_nodes, False
         
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
             futures = {ex.submit(fetch_and_parse, u): u for u in all_urls}
             completed = 0
             for future in as_completed(futures):
                 completed += 1
-                local_nodes = future.result()
+                local_nodes, is_yaml = future.result()
                 for h, p in local_nodes.items():
                     if h not in nodes:
                         nodes[h] = p
+                if is_yaml: yaml_count += 1
+                else: txt_count += 1
                 if completed % 20 == 0:
-                    print(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
+                    print(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)} (YAML源: {yaml_count}, TXT源: {txt_count})")
                 if len(nodes) >= MAX_FETCH_NODES:
                     break
         
-        print(f"✅ 唯一节点：{len(nodes)} 个\n")
+        print(f"✅ 唯一节点：{len(nodes)} 个 (YAML源: {yaml_count}, TXT源: {txt_count})\n")
         
         if not nodes:
             print("❌ 无有效节点!")
@@ -1059,7 +1208,7 @@ TXT: <a href="{txt_html_url}">{txt_html_url}</a>
 
 ━━━━━━━━━━━━━━━━━━━━━━━
 
-🌐 <b>支持协议:</b> VMess | Trojan | SS | SSR | Hysteria2 | VLESS
+🌐 <b>支持协议:</b> VMess | VLESS | Trojan | SS | Hysteria2 | Hysteria | TUIC | WireGuard
 👨‍💻 <b>作者:</b> 𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
 
 <b>更新时间:</b> {update_time}"""

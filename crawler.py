@@ -89,13 +89,22 @@ USER_AGENT_POOL = [
 
 # ⭐ 新增：GitHub Fork 基础仓库（核心）
 GITHUB_BASE_REPOS = [
-    "wzdnzd/aggregator",
-    "mahdibland/V2RayAggregator",
-    "PuddinCat/BestClash",
-    "MrMohebi/xray-proxy-grabber-telegram",
-    "roosterkid/openproxylist",
-    "freefq/free",
-    "anaer/Sub",
+    # 核心稳定（原列表）
+    "wzdnzd/aggregator",                    # 🥇 聚合工具鼻祖
+    "mahdibland/V2RayAggregator",            # 🥈 V2RayAggregator 主力
+    "PuddinCat/BestClash",                   # BestClash 高质量
+    "MrMohebi/xray-proxy-grabber-telegram", # xray+Telegram 双驱动
+    "roosterkid/openproxylist",              # 公开代理列表
+    "freefq/free",                           # freefq 大神集合
+    "anaer/Sub",                             # anaer 订阅汇总
+    
+    # 新增高质量（推荐添加）
+    "llywhn/v2ray-subscribe",                # ✅ 国内更新快
+    "jasonliu747/v2rayssr",                  # ✅ SSR+V2Ray混合
+    "fslzhang/clash_config",                 # ✅ Clash 配置整理
+    "xream/awesome-vpn",                     # ✅ VPN 资源汇总
+    "FreeFlyingMan/v2rayfree",               # ✅ 中文社区热门
+    "NastyaFan/mihomo-clash",                # ✅ Mihomo 专用
 ]
 
 
@@ -174,6 +183,8 @@ def discover_github_forks():
                     "all.txt",
                     "merged_proxies.yaml",
                     "subscription.txt"
+                    "clash.yaml",
+                    "config.yaml",
                 ]
                 
                 for fork in forks:

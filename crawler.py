@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v22.0 - GitHub Fork 增强版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.0
-新增：GitHub Fork 自动发现功能 | 保持稳定其他功能不变
+聚合订阅爬虫 v22.1 - 性能优化版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.1
+优化：并行化处理 + 缩短超时 + 提高并发
 核心原则：三層严格检测 + 全量优质源 + 零语法错误 + 最佳稳定性
 """
 
@@ -50,7 +50,7 @@ TELEGRAM_CHANNELS = [
 ]
 
 HEADERS = {"User-Agent": "Mozilla/5.0; Clash.Meta; Mihomo; Shadowrocket"}
-TIMEOUT = 30
+TIMEOUT = 15  # 缩短超时时间
 
 MAX_FETCH_NODES = 2000
 MAX_TCP_TEST_NODES = 300
@@ -66,9 +66,9 @@ CLASH_API_PORT = 19090
 CLASH_VERSION = "v1.19.0"
 NODE_NAME_PREFIX = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
 
-MAX_WORKERS = 5
-REQUESTS_PER_SECOND = 0.5
-MAX_RETRIES = 5
+MAX_WORKERS = 15  # 提高并发数
+REQUESTS_PER_SECOND = 1.5  # 提高请求频率
+MAX_RETRIES = 3  # 减少重试次数（快速失败）
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
@@ -159,58 +159,84 @@ def generate_unique_id(proxy):
 
 # ⭐ 新增：GitHub Fork 发现功能（从 v21.0 复制完整实现）
 def discover_github_forks():
-    """全面发掘 GitHub Fork 的高质量订阅源"""
+    """全面发掘 GitHub Fork 的高质量订阅源 - 并行优化版"""
     print("🔍 动态发现 GitHub Fork...")
     subs = []
     
-    for base in GITHUB_BASE_REPOS:
-        url = f"https://api.github.com/repos/{base}/forks?per_page=100&sort=newest"
-        
-        try:
-            resp = session.get(url, timeout=15, headers={"Accept": "application/vnd.github.v3+json"})
-            if resp.status_code == 200:
-                forks = resp.json()
-                
-                # 每个 fork 的潜在路径
-                potential_paths = [
-                    "data/proxies.yaml",
-                    "proxies.yaml", 
-                    "data/subscribes.txt",
-                    "sub/splitted/vless.txt",
-                    "sub/splitted/vmess.txt",
-                    "sub/splitted/trojan.txt",
-                    "sub/splitted/ss.txt",
-                    "all.txt",
-                    "merged_proxies.yaml",
-                    "subscription.txt"
-                    "clash.yaml",
-                    "config.yaml",
-                ]
-                
-                for fork in forks:
-                    if fork.get("full_name") and fork.get("fork"):
-                        fullname = fork["full_name"]
-                        branch = fork.get("default_branch", "main")
-                        
-                        for path in potential_paths:
-                            raw_url = f"https://raw.githubusercontent.com/{fullname}/{branch}/{path}"
-                            
-                            # 验证 URL 是否有效
-                            if check_url(raw_url):
-                                subs.append(raw_url)
-                                
-                                # 日志输出（限制频率）
-                                if len(subs) % 20 == 0:
-                                    print(f"   ➕ 新增来源：{len(subs)} ✓ {fullname}")
-                                    
-                time.sleep(random.uniform(1, 2))  # 防限流
-                
-        except Exception as e:
-            print(f"   ⚠️ {base} Fork 发现异常：{str(e)[:50]}")
-            continue
+    # 每个 fork 的潜在路径
+    potential_paths = [
+        "data/proxies.yaml",
+        "proxies.yaml", 
+        "data/subscribes.txt",
+        "sub/splitted/vless.txt",
+        "sub/splitted/vmess.txt",
+        "sub/splitted/trojan.txt",
+        "sub/splitted/ss.txt",
+        "all.txt",
+        "merged_proxies.yaml",
+        "subscription.txt",
+        "clash.yaml",
+        "config.yaml",
+    ]
     
+    # 并行获取所有 base repo 的 fork 列表
+    def fetch_forks(base):
+        url = f"https://api.github.com/repos/{base}/forks?per_page=100&sort=newest"
+        try:
+            resp = session.get(url, timeout=10, headers={"Accept": "application/vnd.github.v3+json"})
+            if resp.status_code == 200:
+                return resp.json()
+        except:
+            pass
+        return []
+    
+    # 并行获取 fork 列表
+    all_forks = []
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
+        futures = {ex.submit(fetch_forks, base): base for base in GITHUB_BASE_REPOS}
+        for future in as_completed(futures):
+            forks = future.result()
+            all_forks.extend(forks)
+            if forks:
+                print(f"   📦 {futures[future]}: {len(forks)} forks")
+    
+    print(f"   📊 共获取 {len(all_forks)} 个 fork...")
+    
+    # 批量构建所有潜在 URL
+    all_urls_to_check = []
+    for fork in all_forks:
+        if fork.get("full_name") and fork.get("fork"):
+            fullname = fork["full_name"]
+            branch = fork.get("default_branch", "main")
+            for path in potential_paths:
+                raw_url = f"https://raw.githubusercontent.com/{fullname}/{branch}/{path}"
+                all_urls_to_check.append(raw_url)
+    
+    print(f"   🔗 待验证 URL: {len(all_urls_to_check)} 个...")
+    
+    # 并行验证 URL（快速 HEAD 检查）
+    valid_urls = []
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
+        futures = {ex.submit(check_url_fast, u): u for u in all_urls_to_check}
+        completed = 0
+        for future in as_completed(futures):
+            completed += 1
+            if future.result():
+                valid_urls.append(futures[future])
+            if completed % 100 == 0:
+                print(f"   ⏳ 验证进度: {completed}/{len(all_urls_to_check)} | 有效: {len(valid_urls)}")
+    
+    subs = list(set(valid_urls))
     print(f"✅ GitHub Fork 共发现 {len(subs)} 个高质量来源\n")
     return subs
+
+
+def check_url_fast(u):
+    """快速URL验证（缩短超时）"""
+    try:
+        return session.head(u, timeout=5, allow_redirects=True).status_code == 200
+    except:
+        return False
 
 
 def check_url(u):
@@ -402,7 +428,7 @@ def fetch(url):
         return ""
 
 
-def tcp_ping(host, port, to=2.0):
+def tcp_ping(host, port, to=1.0):  # 缩短超时到1秒
     if not host:
         return 9999.0
     try:
@@ -586,15 +612,16 @@ def crawl_telegram_page(url, limits=25):
 
 
 def crawl_telegram_channels(channels, pages=2, limits=20):
-    """🔧 修复：批量爬取优化（保持原有流程）"""
+    """🔧 修复：批量爬取优化 - 并行版本"""
     all_subscribes = {}
     
-    for channel in channels:
+    def crawl_single_channel(channel):
+        """单个频道爬取"""
+        channel_subs = {}
         try:
             count = get_telegram_pages(channel)
             if count == 0:
-                print(f"❌ {channel} 无法获取总页数")
-                continue
+                return channel_subs, channel, "no_pages"
             
             page_arrays = range(count, -1, -100)
             page_num = min(pages, len(page_arrays))
@@ -603,26 +630,30 @@ def crawl_telegram_channels(channels, pages=2, limits=20):
                 url = f"https://t.me/s/{channel}?before={before}"
                 result = crawl_telegram_page(url, limits=limits)
                 
-                # ⭐ 增量更新并去重（确保唯一性）
                 for link, meta in result.items():
-                    if link not in all_subscribes:
-                        all_subscribes[link] = meta
+                    if link not in channel_subs:
+                        channel_subs[link] = meta
                 
-                total_sub = len(all_subscribes)
-                page_count = i + 1
-                channel_count = len([c for c in all_subscribes.values() if c["origin"] == "TELEGRAM"])
+                time.sleep(random.uniform(0.1, 0.3))  # 缩短延时
                 
-                print(f"📄 [{channel}/{page_count}] 进度：{total_sub} 总 | {channel_count} 电报 | {len(result)} 新")
-                
-                # ⭐ wzdnzd 防封延时（智能调整）
-                time.sleep(random.uniform(0.5, 2))
-                
-        except KeyboardInterrupt:
-            print("⚠️ 用户中断爬取")
-            break
+            return channel_subs, channel, "ok"
         except Exception as e:
-            print(f"❌ {channel} 整体爬取失败：{str(e)[:50]}")
-            continue
+            return channel_subs, channel, str(e)[:50]
+    
+    # 并行爬取所有频道
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
+        futures = {ex.submit(crawl_single_channel, ch): ch for ch in channels}
+        completed = 0
+        for future in as_completed(futures):
+            completed += 1
+            channel_subs, channel, status = future.result()
+            
+            for link, meta in channel_subs.items():
+                if link not in all_subscribes:
+                    all_subscribes[link] = meta
+            
+            tg_count = len([c for c in all_subscribes.values() if c["origin"] == "TELEGRAM"])
+            print(f"📄 [{completed}/{len(channels)}] {channel}: {len(channel_subs)} 个 | 总计: {tg_count}")
     
     return all_subscribes
 
@@ -709,17 +740,17 @@ class ClashManager:
     def test_proxy(self, name):
         result = {"success": False, "latency": 9999.0, "speed": 0.0, "error": ""}
         try:
-            requests.put(f"http://127.0.0.1:{CLASH_API_PORT}/proxies/TEST", json={"name": name}, timeout=5)
-            time.sleep(0.3)
+            requests.put(f"http://127.0.0.1:{CLASH_API_PORT}/proxies/TEST", json={"name": name}, timeout=3)
+            time.sleep(0.1)  # 缩短等待时间
             px = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
             start = time.time()
-            resp = requests.get(TEST_URL, proxies=px, timeout=10, allow_redirects=False)
+            resp = requests.get(TEST_URL, proxies=px, timeout=5, allow_redirects=False)  # 缩短超时
             lat = (time.time() - start) * 1000
             if resp.status_code in [200, 204, 301, 302]:
                 sp_start = time.time()
                 try:
-                    sp_resp = requests.get("https://speed.cloudflare.com/__down?bytes=524288", proxies=px, timeout=15)
-                    sp = len(sp_resp.content) / max(0.5, time.time() - sp_start) / (1024 * 1024)
+                    sp_resp = requests.get("https://speed.cloudflare.com/__down?bytes=262144", proxies=px, timeout=8)  # 缩小测试文件
+                    sp = len(sp_resp.content) / max(0.3, time.time() - sp_start) / (1024 * 1024)
                     result = {"success": True, "latency": round(lat, 1), "speed": round(sp, 2), "error": ""}
                 except: result["speed"] = 0.0
             else: result["error"] = f"Status:{resp.status_code}"
@@ -777,8 +808,8 @@ def main():
     proxy_ok = False
     
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v22.0 - GitHub Fork 增强版")
-    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.0")
+    print("🚀 聚合订阅爬虫 v22.1 - 性能优化版")
+    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.1")
     print("=" * 50)
     
     all_urls = []
@@ -797,9 +828,14 @@ def main():
         all_urls.extend(tg_urls)
         print(f"✅ Telegram 订阅：{len(tg_urls)} 个\n")
         
-        # 3. 固定订阅源（保留）
+        # 3. 固定订阅源（并行验证）
         print("🔍 验证固定订阅源...\n")
-        fixed_urls = [strip_url(u) for u in CANDIDATE_URLS if check_url(strip_url(u))]
+        fixed_urls = []
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
+            futures = {ex.submit(check_url_fast, strip_url(u)): u for u in CANDIDATE_URLS}
+            for future in as_completed(futures):
+                if future.result():
+                    fixed_urls.append(strip_url(futures[future]))
         all_urls.extend(fixed_urls)
         print(f"✅ 固定订阅源：{len(fixed_urls)} 个\n")
         
@@ -807,12 +843,15 @@ def main():
         all_urls = list(set(all_urls))
         print(f"📊 总订阅源：{len(all_urls)} 个\n")
         
-        # 5. 抓取节点（保留）
+        # 5. 抓取节点（并行优化）
         print("📥 抓取节点...\n")
         nodes = {}
-        for u in all_urls:
-            c = fetch(u)
-            if not c: continue
+        
+        def fetch_and_parse(url):
+            """并行获取并解析节点"""
+            local_nodes = {}
+            c = fetch(url)
+            if not c: return local_nodes
             if is_base64(c): c = decode_b64(c)
             for l in c.splitlines():
                 l = l.strip()
@@ -821,17 +860,31 @@ def main():
                 if p:
                     k = f"{p['server']}:{p['port']}:{p.get('uuid', p.get('password', ''))}"
                     h = hashlib.md5(k.encode()).hexdigest()
+                    if h not in local_nodes:
+                        local_nodes[h] = p
+            return local_nodes
+        
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
+            futures = {ex.submit(fetch_and_parse, u): u for u in all_urls}
+            completed = 0
+            for future in as_completed(futures):
+                completed += 1
+                local_nodes = future.result()
+                for h, p in local_nodes.items():
                     if h not in nodes:
                         nodes[h] = p
-                if len(nodes) >= MAX_FETCH_NODES: break
-            if len(nodes) >= MAX_FETCH_NODES: break
+                if completed % 20 == 0:
+                    print(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
+                if len(nodes) >= MAX_FETCH_NODES:
+                    break
+        
         print(f"✅ 唯一节点：{len(nodes)} 个\n")
         
         if not nodes:
             print("❌ 无有效节点!")
             return
         
-        # 6. TCP 测试（保留）
+        # 6. TCP 测试（提高并发）
         print("⚡ 第一层：TCP 延迟测试...\n")
         nlist = list(nodes.values())[:MAX_TCP_TEST_NODES]
         nres = []
@@ -843,16 +896,18 @@ def main():
             except Exception:
                 return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
         
-        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
+        # 提高并发数用于 TCP 测试
+        tcp_workers = min(50, MAX_WORKERS * 3)
+        with ThreadPoolExecutor(max_workers=tcp_workers) as ex:
             futures = {ex.submit(test_tcp_node, p): p for p in nlist}
             completed = 0
             for future in as_completed(futures):
                 try:
-                    result = future.result(timeout=TIMEOUT + 10)
+                    result = future.result(timeout=3)
                     if result["latency"] < MAX_LATENCY:
                         nres.append(result)
                     completed += 1
-                    if completed % 50 == 0:
+                    if completed % 100 == 0:
                         print(f"   进度：{completed}/{len(nlist)} | 合格：{len(nres)}")
                 except: pass
         nres.sort(key=lambda x: (-x["is_asia"], x["latency"]))

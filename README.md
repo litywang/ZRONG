@@ -1,8 +1,8 @@
-# 🚀 Anftlity-Crawler —— 智能订阅聚合工具 v22.2
+# 🚀 Anftlity-Crawler —— 智能订阅聚合工具 v22.3
 
 > 🌟 **极致 · 稳定 · 精准 · 高效** | GitHub Actions 全自动化节点筛选平台  
 > 基于 wzdnzd/aggregator + mahdibland/V2RayAggregator 核心逻辑深度重构的下一代方案  
-> **v22.2 全协议增强版：YAML 源解析 + 7 种协议支持 + 零验证直拉**
+> **v22.3 内地优化版：内地优质源优先 + 节点质量过滤 + 更多可用节点**
 
 ---
 
@@ -11,9 +11,11 @@
 | 维度 | 功能亮点 | 技术实现 |
 |------|----------|---------|
 | 🔥 **多源采集** | Telegram+GitHub Fork+固定源 | 正则增强版爬虫 |
+| 🇨🇳 **内地优先** | 国内维护源优先加载 | ermaozi/peasoft/aiboboxx 等 |
 | 📄 **双格式解析** | TXT 链接 + YAML 配置 | 自动识别并行处理 |
 | 🔗 **全协议支持** | 7种协议链接 + YAML节点 | VMess/VLESS/Trojan/SS/Hysteria2/Hysteria/TUIC |
 | 🧹 **智能去重** | MD5(协议特征) | 重复率降至 <1% |
+| 🔍 **质量过滤** | 排除过期/测试/高倍率 | 借鉴 wzdnzd/aggregator |
 | ⚡ **三层检测** | TCP → Speedtest → 输出 | 分层验证架构 |
 | 🌏 **区域感知** | HK/TW/JP/SG/KR/US/OT | 地域加权排序 |
 | 🛡️ **安全防护** | 域名级限流+重试机制 | SmartRateLimiter |
@@ -240,6 +242,12 @@ A:
 ---
 
 ## 📜 更新日志
+
+### v22.3 (2026-04-01) - 🇨🇳 内地优化版
+- ✅ **内地优质源优先**：ermaozi/peasoft/aiboboxx/mfuu/kxswa 等国内维护源优先加载
+- ✅ **节点质量过滤**：排除过期/测试/高倍率/内地直连节点（借鉴 wzdnzd/aggregator）
+- ✅ **更多 Telegram 频道**：新增 v2ray_free/freev2rayng 等 16 个内地频道
+- ✅ **GitHub Fork 扩展**：新增 6 个国内优质仓库作为 Fork 发现源
 
 ### v22.2 (2026-03-31) - 🔧 全协议增强版
 - ✅ **YAML 订阅源解析**：自动识别 proxies.yaml / clash.yaml，用 yaml.safe_load 提取

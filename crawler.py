@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v22.2 - 全协议增强版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.2
-优化：YAML订阅源解析 + hysteria2/tuic/hysteria 协议支持
+聚合订阅爬虫 v22.3 - 内地优化版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.3
+优化：内地优质源优先 + 节点质量过滤 + 借鉴 wzdnzd/aggregator
 核心原则：三層严格检测 + 全量优质源 + 零语法错误 + 最佳稳定性
 """
 
@@ -19,6 +19,15 @@ from datetime import datetime
 
 # ==================== 配置区 ====================
 CANDIDATE_URLS = [
+    # ============ 内地优质源（优先） ============
+    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",  # 国内维护
+    "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt",  # 国内热门
+    "https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/v2",  # 国内免费节点
+    "https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray",  # 国内聚合
+    "https://raw.githubusercontent.com/kxswa/v2rayfree/main/v2ray",  # 国内源
+    "https://raw.githubusercontent.com/freefq/free/master/v2",  # freefq 大神
+    
+    # ============ 国际稳定源 ============
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vmess.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/trojan.txt",
@@ -34,19 +43,21 @@ CANDIDATE_URLS = [
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vless.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vmess.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/trojan.txt",
-    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
-    "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.yml",
     "https://shz.al/~WangCai",
 ]
 
 TELEGRAM_CHANNELS = [
+    # ============ 内地优质频道（优先） ============
+    "v2ray_free", "freev2rayng", "v2rayng_free", "sub_free",
+    "vmessfree", "vlessfree", "trojanfree", "ssfree",
+    "proxiesdaily", "subdaily", "v2raydaily", "clashnode",
+    "freeclash", "v2rayconfig", "clashconfig", "freeproxy",
+    
+    # ============ 国际频道 ============
     "v2ray_sub", "free_v2ray", "clash_meta", "proxies_free", "mr_v2ray",
     "vmess_vless_v2rayng", "freeVPNjd", "dns68", "jiedianbodnn", "wxdy666",
     "AlphaV2ray", "V2rayN", "proxies_share", "freev2ray", "ClashMeta",
-    "v2rayng_free", "sub_free", "v2ray_share", "hysteria2_free", "tuic_free",
-    "v2rayngvpn", "freev2rayng", "clashvpn", "vmessfree", "vlessfree",
-    "trojanfree", "ssfree", "proxiesdaily", "subdaily", "v2raydaily",
-    "clashnode", "freeclash", "v2rayconfig", "clashconfig", "freeproxy"
+    "hysteria2_free", "tuic_free", "v2rayngvpn", "clashvpn",
 ]
 
 HEADERS = {"User-Agent": "Mozilla/5.0; Clash.Meta; Mihomo; Shadowrocket"}
@@ -89,22 +100,27 @@ USER_AGENT_POOL = [
 
 # ⭐ 新增：GitHub Fork 基础仓库（核心）
 GITHUB_BASE_REPOS = [
-    # 核心稳定（原列表）
-    "wzdnzd/aggregator",                    # 🥇 聚合工具鼻祖
-    "mahdibland/V2RayAggregator",            # 🥈 V2RayAggregator 主力
+    # ============ 国内优质源（优先） ============
+    "ermaozi/get_subscribe",                 # 🥇 国内维护，更新快
+    "peasoft/NoMoreWalls",                   # 🥈 国内热门，节点多
+    "aiboboxx/v2rayfree",                    # 国内免费节点
+    "mfuu/v2ray",                            # 国内聚合
+    "kxswa/v2rayfree",                       # 国内源
+    "freefq/free",                           # freefq 大神
+    
+    # ============ 国际核心源 ============
+    "wzdnzd/aggregator",                     # 聚合工具鼻祖
+    "mahdibland/V2RayAggregator",            # V2RayAggregator 主力
     "PuddinCat/BestClash",                   # BestClash 高质量
     "MrMohebi/xray-proxy-grabber-telegram", # xray+Telegram 双驱动
     "roosterkid/openproxylist",              # 公开代理列表
-    "freefq/free",                           # freefq 大神集合
     "anaer/Sub",                             # anaer 订阅汇总
-    
-    # 新增高质量（推荐添加）
-    "llywhn/v2ray-subscribe",                # ✅ 国内更新快
-    "jasonliu747/v2rayssr",                  # ✅ SSR+V2Ray混合
-    "fslzhang/clash_config",                 # ✅ Clash 配置整理
-    "xream/awesome-vpn",                     # ✅ VPN 资源汇总
-    "FreeFlyingMan/v2rayfree",               # ✅ 中文社区热门
-    "NastyaFan/mihomo-clash",                # ✅ Mihomo 专用
+    "llywhn/v2ray-subscribe",                # 国内更新快
+    "jasonliu747/v2rayssr",                  # SSR+V2Ray混合
+    "fslzhang/clash_config",                 # Clash 配置整理
+    "xream/awesome-vpn",                     # VPN 资源汇总
+    "FreeFlyingMan/v2rayfree",               # 中文社区热门
+    "NastyaFan/mihomo-clash",                # Mihomo 专用
 ]
 
 
@@ -520,6 +536,36 @@ def is_asia(p):
     ])
 
 
+def is_china_mainland(p):
+    """判断是否为内地直连节点（一般不可用，用于过滤）"""
+    t = f"{p.get('name', '')} {p.get('server', '')}".lower()
+    return any(k in t for k in [
+        "cn", "china", "中国", "国内", "直连", "direct",
+        "北京", "上海", "广州", "深圳", "成都", "杭州"
+    ])
+
+
+def filter_quality(p):
+    """节点质量过滤（借鉴 wzdnzd/aggregator）"""
+    name = p.get("name", "").lower()
+    
+    # 排除关键词
+    exclude_keywords = [
+        "过期", "到期", "失效", "测试", "test", "expire", "expired",
+        "广告", "推广", "vip", "付费", "premium", "paid",
+        "限速", "slow", "慢", "2x", "3x", "5x",  # 高倍率节点
+    ]
+    for kw in exclude_keywords:
+        if kw in name:
+            return False
+    
+    # 排除内地直连节点（一般不可用）
+    if is_china_mainland(p):
+        return False
+    
+    return True
+
+
 def is_base64(s):
     try:
         s = s.strip()
@@ -930,8 +976,8 @@ def main():
     proxy_ok = False
     
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v22.2 - 全协议增强版")
-    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.2")
+    print("🚀 聚合订阅爬虫 v22.3 - 内地优化版")
+    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.3")
     print("=" * 50)
     
     all_urls = []
@@ -1015,6 +1061,17 @@ def main():
         
         if not nodes:
             print("❌ 无有效节点!")
+            return
+        
+        # 5.5 节点质量过滤（借鉴 wzdnzd/aggregator）
+        print("🔍 节点质量过滤...\n")
+        before_filter = len(nodes)
+        nodes = {h: p for h, p in nodes.items() if filter_quality(p)}
+        after_filter = len(nodes)
+        print(f"✅ 质量过滤：{before_filter} → {after_filter} 个（排除 {before_filter - after_filter} 个低质量节点）\n")
+        
+        if not nodes:
+            print("❌ 过滤后无有效节点!")
             return
         
         # 6. TCP 测试（提高并发）

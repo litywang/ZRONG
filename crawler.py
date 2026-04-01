@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v22.3 - 内地优化版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.3
-优化：内地优质源优先 + 节点质量过滤 + 借鉴 wzdnzd/aggregator
+聚合订阅爬虫 v22.4 - 性能极速版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.4
+优化：大幅精简源 + 高并发 + 严格阈值 → 目标耗时 < 30分钟
 核心原则：三層严格检测 + 全量优质源 + 零语法错误 + 最佳稳定性
 """
 
@@ -19,57 +19,36 @@ from datetime import datetime
 
 # ==================== 配置区 ====================
 CANDIDATE_URLS = [
-    # ============ 内地优质源（优先） ============
-    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",  # 国内维护
-    "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt",  # 国内热门
-    "https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/v2",  # 国内免费节点
-    "https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray",  # 国内聚合
-    "https://raw.githubusercontent.com/kxswa/v2rayfree/main/v2ray",  # 国内源
-    "https://raw.githubusercontent.com/freefq/free/master/v2",  # freefq 大神
-    
-    # ============ 国际稳定源 ============
-    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
-    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vmess.txt",
-    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/trojan.txt",
-    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/ss.txt",
-    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/hysteria2.txt",
+    # ============ 核心订阅源（精简到10个高质量） ============
+    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
+    "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt",
+    "https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/v2",
+    "https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray",
+    "https://raw.githubusercontent.com/freefq/free/master/v2",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/Eternity.txt",
     "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
-    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vless.txt",
-    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vmess.txt",
-    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/trojan.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vless.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vmess.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/trojan.txt",
     "https://shz.al/~WangCai",
 ]
 
 TELEGRAM_CHANNELS = [
-    # ============ 内地优质频道（优先） ============
+    # ============ 核心频道（精简到12个高质量） ============
     "v2ray_free", "freev2rayng", "v2rayng_free", "sub_free",
     "vmessfree", "vlessfree", "trojanfree", "ssfree",
-    "proxiesdaily", "subdaily", "v2raydaily", "clashnode",
-    "freeclash", "v2rayconfig", "clashconfig", "freeproxy",
-    
-    # ============ 国际频道 ============
-    "v2ray_sub", "free_v2ray", "clash_meta", "proxies_free", "mr_v2ray",
-    "vmess_vless_v2rayng", "freeVPNjd", "dns68", "jiedianbodnn", "wxdy666",
-    "AlphaV2ray", "V2rayN", "proxies_share", "freev2ray", "ClashMeta",
-    "hysteria2_free", "tuic_free", "v2rayngvpn", "clashvpn",
+    "proxiesdaily", "clashnode", "freeclash", "freeproxy",
 ]
 
 HEADERS = {"User-Agent": "Mozilla/5.0; Clash.Meta; Mihomo; Shadowrocket"}
 TIMEOUT = 15  # 缩短超时时间
 
-MAX_FETCH_NODES = 2000
-MAX_TCP_TEST_NODES = 300
-MAX_PROXY_TEST_NODES = 100
-MAX_FINAL_NODES = 80
-MAX_LATENCY = 2000
-MIN_PROXY_SPEED = 0.01
-MAX_PROXY_LATENCY = 3000
+MAX_FETCH_NODES = 1500  # 减少抓取上限
+MAX_TCP_TEST_NODES = 200   # 减少TCP测试
+MAX_PROXY_TEST_NODES = 80  # 减少代理测试
+MAX_FINAL_NODES = 60       # 减少最终输出
+MAX_LATENCY = 1500         # 更严格的延迟阈值
+MIN_PROXY_SPEED = 0.05     # 更高的速度要求
+MAX_PROXY_LATENCY = 2500
 TEST_URL = "http://www.gstatic.com/generate_204"
 
 CLASH_PORT = 17890
@@ -77,9 +56,12 @@ CLASH_API_PORT = 19090
 CLASH_VERSION = "v1.19.0"
 NODE_NAME_PREFIX = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
 
-MAX_WORKERS = 15  # 提高并发数
-REQUESTS_PER_SECOND = 1.5  # 提高请求频率
-MAX_RETRIES = 3  # 减少重试次数（快速失败）
+MAX_WORKERS = 30  # 大幅提高并发
+REQUESTS_PER_SECOND = 3.0  # 提高请求频率
+MAX_RETRIES = 2  # 减少重试
+
+# 订阅源抓取专用高并发
+FETCH_WORKERS = 50  # 抓取并发数
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
@@ -98,29 +80,20 @@ USER_AGENT_POOL = [
     "Mozilla/5.0 (Android 11; Mobile; rv:84.0) Gecko/84.0 Firefox/84.0",
 ]
 
-# ⭐ 新增：GitHub Fork 基础仓库（核心）
+# ⭐ 新增：GitHub Fork 基础仓库（核心，精简版）
 GITHUB_BASE_REPOS = [
-    # ============ 国内优质源（优先） ============
-    "ermaozi/get_subscribe",                 # 🥇 国内维护，更新快
-    "peasoft/NoMoreWalls",                   # 🥈 国内热门，节点多
+    # ============ 国内优质源（优先，只保留核心） ============
+    "ermaozi/get_subscribe",                 # 国内维护，更新快
+    "peasoft/NoMoreWalls",                   # 国内热门
     "aiboboxx/v2rayfree",                    # 国内免费节点
-    "mfuu/v2ray",                            # 国内聚合
-    "kxswa/v2rayfree",                       # 国内源
     "freefq/free",                           # freefq 大神
     
-    # ============ 国际核心源 ============
+    # ============ 国际核心源（精简到5个） ============
     "wzdnzd/aggregator",                     # 聚合工具鼻祖
     "mahdibland/V2RayAggregator",            # V2RayAggregator 主力
     "PuddinCat/BestClash",                   # BestClash 高质量
-    "MrMohebi/xray-proxy-grabber-telegram", # xray+Telegram 双驱动
     "roosterkid/openproxylist",              # 公开代理列表
     "anaer/Sub",                             # anaer 订阅汇总
-    "llywhn/v2ray-subscribe",                # 国内更新快
-    "jasonliu747/v2rayssr",                  # SSR+V2Ray混合
-    "fslzhang/clash_config",                 # Clash 配置整理
-    "xream/awesome-vpn",                     # VPN 资源汇总
-    "FreeFlyingMan/v2rayfree",               # 中文社区热门
-    "NastyaFan/mihomo-clash",                # Mihomo 专用
 ]
 
 
@@ -179,19 +152,13 @@ def discover_github_forks():
     print("🔍 动态发现 GitHub Fork...")
     subs = []
     
-    # 每个 fork 的潜在路径
+    # 每个 fork 的潜在路径（精简到6个高频路径）
     potential_paths = [
-        "data/proxies.yaml",
         "proxies.yaml", 
-        "data/subscribes.txt",
-        "sub/splitted/vless.txt",
-        "sub/splitted/vmess.txt",
-        "sub/splitted/trojan.txt",
-        "sub/splitted/ss.txt",
         "all.txt",
-        "merged_proxies.yaml",
         "subscription.txt",
-        "clash.yaml",
+        "v2ray.txt",
+        "vmess.txt",
         "config.yaml",
     ]
     
@@ -908,22 +875,23 @@ class ClashManager:
     def test_proxy(self, name):
         result = {"success": False, "latency": 9999.0, "speed": 0.0, "error": ""}
         try:
-            requests.put(f"http://127.0.0.1:{CLASH_API_PORT}/proxies/TEST", json={"name": name}, timeout=3)
-            time.sleep(0.1)  # 缩短等待时间
+            requests.put(f"http://127.0.0.1:{CLASH_API_PORT}/proxies/TEST", json={"name": name}, timeout=2)
+            time.sleep(0.05)  # 极短等待
             px = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
             start = time.time()
-            resp = requests.get(TEST_URL, proxies=px, timeout=5, allow_redirects=False)  # 缩短超时
+            resp = requests.get(TEST_URL, proxies=px, timeout=4, allow_redirects=False)
             lat = (time.time() - start) * 1000
             if resp.status_code in [200, 204, 301, 302]:
                 sp_start = time.time()
                 try:
-                    sp_resp = requests.get("https://speed.cloudflare.com/__down?bytes=262144", proxies=px, timeout=8)  # 缩小测试文件
-                    sp = len(sp_resp.content) / max(0.3, time.time() - sp_start) / (1024 * 1024)
+                    # 更小的测速文件，更短超时
+                    sp_resp = requests.get("https://speed.cloudflare.com/__down?bytes=131072", proxies=px, timeout=5)
+                    sp = len(sp_resp.content) / max(0.2, time.time() - sp_start) / (1024 * 1024)
                     result = {"success": True, "latency": round(lat, 1), "speed": round(sp, 2), "error": ""}
                 except: result["speed"] = 0.0
             else: result["error"] = f"Status:{resp.status_code}"
         except Exception as e:
-            result["error"] = str(e)[:80]
+            result["error"] = str(e)[:60]
         return result
 
 
@@ -976,8 +944,8 @@ def main():
     proxy_ok = False
     
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v22.3 - 内地优化版")
-    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.3")
+    print("🚀 聚合订阅爬虫 v22.4 - 性能极速版")
+    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.4")
     print("=" * 50)
     
     all_urls = []
@@ -1041,7 +1009,7 @@ def main():
                         local_nodes[h] = p
             return local_nodes, False
         
-        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
+        with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as ex:  # 使用高并发
             futures = {ex.submit(fetch_and_parse, u): u for u in all_urls}
             completed = 0
             for future in as_completed(futures):
@@ -1052,8 +1020,8 @@ def main():
                         nodes[h] = p
                 if is_yaml: yaml_count += 1
                 else: txt_count += 1
-                if completed % 20 == 0:
-                    print(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)} (YAML源: {yaml_count}, TXT源: {txt_count})")
+                if completed % 50 == 0:  # 减少打印频率
+                    print(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
                 if len(nodes) >= MAX_FETCH_NODES:
                     break
         
@@ -1086,18 +1054,18 @@ def main():
             except Exception:
                 return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
         
-        # 提高并发数用于 TCP 测试
-        tcp_workers = min(50, MAX_WORKERS * 3)
+        # 提高并发数用于 TCP 测试（大幅提高）
+        tcp_workers = 100  # 100并发
         with ThreadPoolExecutor(max_workers=tcp_workers) as ex:
             futures = {ex.submit(test_tcp_node, p): p for p in nlist}
             completed = 0
             for future in as_completed(futures):
                 try:
-                    result = future.result(timeout=3)
+                    result = future.result(timeout=2)  # 缩短超时
                     if result["latency"] < MAX_LATENCY:
                         nres.append(result)
                     completed += 1
-                    if completed % 100 == 0:
+                    if completed % 50 == 0:
                         print(f"   进度：{completed}/{len(nlist)} | 合格：{len(nres)}")
                 except: pass
         nres.sort(key=lambda x: (-x["is_asia"], x["latency"]))

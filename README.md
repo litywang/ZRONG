@@ -255,7 +255,18 @@ A:
 - ✅ **零验证直拉**：固定订阅源 + Fork 发现均跳过 HEAD 验证，US 服务器不再丢源
 - ✅ **协议覆盖**：VMess / VLESS / Trojan / SS / Hysteria2 / Hysteria / TUIC + YAML 全类型
 
-### v22.1 (2026-03-31) - ⚡ 性能优化版
+### v22.5 (2026-04-02) - 🔧 多协议增强版
+- ✅ **新增协议支持**：SSR / Snell / HTTP / SOCKS5 / AnyTLS 解析
+- ✅ **简洁节点命名**：`HK1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶` 格式，无后缀
+- ✅ **增强区域检测**：40+ 国家/地区识别，减少 OT 匹配
+
+### v22.4 (2026-04-01) - ⚡ 性能极速版
+- ✅ **大幅精简源**：GitHub 仓库 18→9，固定订阅 23→10，Telegram 32→12
+- ✅ **高并发优化**：MAX_WORKERS 15→30，FETCH_WORKERS 50，TCP 并发 100
+- ✅ **严格阈值**：MIN_PROXY_SPEED 0.01→0.05，MAX_LATENCY 2000→1500ms
+- ✅ **目标耗时**：从 2h+ 优化至 < 30 分钟
+
+### v22.3 (2026-04-01) - 🇨🇳 内地优化版
 - ✅ **全流程并行化**：GitHub Fork、Telegram、订阅抓取均改为并行处理
 - ✅ **并发提升**：MAX_WORKERS 5→15，TCP测试并发 50线程
 - ✅ **超时优化**：TIMEOUT 30s→15s，tcp_ping 2s→1s

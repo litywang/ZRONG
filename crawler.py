@@ -235,9 +235,15 @@ def parse_vmess(node):
         d = base64.b64decode(payload).decode("utf-8", errors="ignore")
         if not d.startswith("{"): return None
         c = json.loads(d)
-        uid = generate_unique_id({'server': c.get('add') or c.get('host'), 'port': int(c.get('port', 443)), 'uuid': c.get('id')})
+        
+        # 从 ps 字段提取原始名称
+        original_name = c.get("ps", "")
+        if not original_name:
+            uid = generate_unique_id({'server': c.get('add') or c.get('host'), 'port': int(c.get('port', 443)), 'uuid': c.get('id')})
+            original_name = f"VM-{uid}"
+        
         p = {
-            "name": f"VM-{uid}", "type": "vmess", "server": c.get("add") or c.get("host", ""),
+            "name": original_name, "type": "vmess", "server": c.get("add") or c.get("host", ""),
             "port": int(c.get("port", 443)), "uuid": c.get("id", ""), "alterId": int(c.get("aid", 0)),
             "cipher": "auto", "udp": True, "skip-cert-verify": True
         }
@@ -265,9 +271,12 @@ def parse_vless(node):
         params = parse_qs(p_url.query)
         gp = lambda k: params.get(k, [""])[0]
         sec = gp("security")
-        uid = generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443), 'uuid': uuid})
+        
+        # 从 URL fragment 提取原始名称
+        original_name = p_url.fragment if p_url.fragment else f"VL-{generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443), 'uuid': uuid})}"
+        
         proxy = {
-            "name": f"VL-{uid}", "type": "vless", "server": p_url.hostname, "port": int(p_url.port or 443),
+            "name": original_name, "type": "vless", "server": p_url.hostname, "port": int(p_url.port or 443),
             "uuid": uuid, "udp": True, "skip-cert-verify": True
         }
         if sec in ["tls", "reality"]:
@@ -301,9 +310,12 @@ def parse_trojan(node):
         if not pwd: return None
         params = parse_qs(p_url.query)
         gp = lambda k: params.get(k, [""])[0]
-        uid = generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443), 'password': pwd})
+        
+        # 从 URL fragment 提取原始名称
+        original_name = p_url.fragment if p_url.fragment else f"TJ-{generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443), 'password': pwd})}"
+        
         proxy = {
-            "name": f"TJ-{uid}", "type": "trojan", "server": p_url.hostname, "port": int(p_url.port or 443),
+            "name": original_name, "type": "trojan", "server": p_url.hostname, "port": int(p_url.port or 443),
             "password": pwd, "udp": True, "skip-cert-verify": True, "sni": gp("sni") or p_url.hostname
         }
         alpn = gp("alpn")
@@ -319,6 +331,8 @@ def parse_ss(node):
         if not node.startswith("ss://"): return None
         parts = node[5:].split("#")
         info = parts[0]
+        # 从 URL fragment 提取原始名称
+        original_name = parts[1] if len(parts) > 1 else None
         try:
             decoded = base64.b64decode(info + "=" * (4 - len(info) % 4)).decode("utf-8", errors="ignore")
             method_pwd, server_info = decoded.split("@", 1)
@@ -327,8 +341,12 @@ def parse_ss(node):
             method_pwd, server_info = info.split("@", 1)
             method, pwd = method_pwd.split(":", 1)
         server, port = server_info.split(":", 1)
-        uid = generate_unique_id({'server': server, 'port': int(port), 'password': pwd})
-        return {"name": f"SS-{uid}", "type": "ss", "server": server, "port": int(port), "cipher": method, "password": pwd, "udp": True}
+        
+        # 如果没有原始名称，生成默认名称
+        if not original_name:
+            original_name = f"SS-{generate_unique_id({'server': server, 'port': int(port), 'password': pwd})}"
+        
+        return {"name": original_name, "type": "ss", "server": server, "port": int(port), "cipher": method, "password": pwd, "udp": True}
     except: return None
 
 
@@ -456,12 +474,15 @@ def parse_yaml_proxies(content):
                     continue
             except (ValueError, TypeError):
                 continue
-            # 生成唯一 ID 去重
-            key = f"{p['server']}:{port}:{p.get('uuid', p.get('password', ''))}"
-            h = hashlib.md5(key.encode()).hexdigest()[:8].upper()
-            ptype_tag = {"vmess":"VM","vless":"VL","trojan":"TJ","ss":"SS","ssr":"SR",
-                         "hysteria":"HY","hysteria2":"H2","tuic":"TU","wireguard":"WG","shadowtls":"ST"}
-            p["name"] = f"{ptype_tag.get(ptype,'XX')}-{h}"
+            # 保留原始名称，如果没有则生成唯一 ID
+            original_name = p.get("name", "")
+            if not original_name:
+                key = f"{p['server']}:{port}:{p.get('uuid', p.get('password', ''))}"
+                h = hashlib.md5(key.encode()).hexdigest()[:8].upper()
+                ptype_tag = {"vmess":"VM","vless":"VL","trojan":"TJ","ss":"SS","ssr":"SR",
+                             "hysteria":"HY","hysteria2":"H2","tuic":"TU","wireguard":"WG","shadowtls":"ST"}
+                original_name = f"{ptype_tag.get(ptype,'XX')}-{h}"
+            p["name"] = original_name
             results.append(p)
         return results
     except Exception:
@@ -477,13 +498,154 @@ def is_yaml_content(content):
 
 # ⭐ 辅助工具（保持不变）
 def get_region(name):
+    """根据节点名称检测区域 - 增强版，支持英文名、旗帜emoji、城市名"""
     nl = name.lower()
-    if any(k in nl for k in ["hk", "hongkong", "港"]): return "🇭🇰", "HK"
-    elif any(k in nl for k in ["tw", "taiwan", "台"]): return "🇹🇼", "TW"
-    elif any(k in nl for k in ["jp", "japan", "日"]): return "🇯🇵", "JP"
-    elif any(k in nl for k in ["sg", "singapore", "新"]): return "🇸🇬", "SG"
-    elif any(k in nl for k in ["kr", "korea", "韩"]): return "🇰🇷", "KR"
-    elif any(k in nl for k in ["us", "usa", "美"]): return "🇺🇸", "US"
+    
+    # 香港检测
+    if any(k in nl for k in ["hk", "hongkong", "港", "hong kong", "🇭🇰", "香港", "深港", "沪港", "京港"]):
+        return "🇭🇰", "HK"
+    # 台湾检测
+    elif any(k in nl for k in ["tw", "taiwan", "台", "🇹🇼", "台湾", "臺灣", "台北", "台中", "新北", "taipei"]):
+        return "🇹🇼", "TW"
+    # 日本检测
+    elif any(k in nl for k in ["jp", "japan", "日", "🇯🇵", "日本", "东京", "大阪", "tokyo", "osaka", "川日", "泉日", "埼玉"]):
+        return "🇯🇵", "JP"
+    # 新加坡检测
+    elif any(k in nl for k in ["sg", "singapore", "新", "🇸🇬", "新加坡", "狮城", "沪新", "京新", "深新"]):
+        return "🇸🇬", "SG"
+    # 韩国检测
+    elif any(k in nl for k in ["kr", "korea", "韩", "🇰🇷", "韩国", "韓", "首尔", "春川", "seoul"]):
+        return "🇰🇷", "KR"
+    # 美国检测
+    elif any(k in nl for k in ["us", "usa", "美", "🇺🇸", "美国", "美利坚", "洛杉矶", "硅谷", "纽约", "united states", "america", "los angeles", "new york"]):
+        return "🇺🇸", "US"
+    # 英国检测
+    elif any(k in nl for k in ["uk", "britain", "英", "🇬🇧", "英国", "伦敦", "united kingdom", "london", "england"]):
+        return "🇬🇧", "UK"
+    # 德国检测
+    elif any(k in nl for k in ["de", "germany", "德", "🇩🇪", "德国", "法兰克福", "frankfurt", "berlin"]):
+        return "🇩🇪", "DE"
+    # 法国检测
+    elif any(k in nl for k in ["fr", "france", "法", "🇫🇷", "法国", "巴黎", "paris"]):
+        return "🇫🇷", "FR"
+    # 加拿大检测
+    elif any(k in nl for k in ["ca", "canada", "加", "🇨🇦", "加拿大", "渥太华", "多伦多", "toronto", "vancouver"]):
+        return "🇨🇦", "CA"
+    # 澳大利亚检测
+    elif any(k in nl for k in ["au", "australia", "澳", "🇦🇺", "澳大利亚", "澳洲", "悉尼", "sydney", "melbourne"]):
+        return "🇦🇺", "AU"
+    # 荷兰检测
+    elif any(k in nl for k in ["nl", "netherlands", "荷", "🇳🇱", "荷兰", "阿姆斯特丹", "amsterdam"]):
+        return "🇳🇱", "NL"
+    # 俄罗斯检测
+    elif any(k in nl for k in ["ru", "russia", "俄", "🇷🇺", "俄罗斯", "莫斯科", "moscow"]):
+        return "🇷🇺", "RU"
+    # 印度检测
+    elif any(k in nl for k in ["in", "india", "印", "🇮🇳", "印度", "孟买", "mumbai", "delhi"]):
+        return "🇮🇳", "IN"
+    # 巴西检测
+    elif any(k in nl for k in ["br", "brazil", "巴", "🇧🇷", "巴西", "圣保罗", "sao paulo"]):
+        return "🇧🇷", "BR"
+    # 阿根廷检测
+    elif any(k in nl for k in ["ar", "argentina", "阿", "🇦🇷", "阿根廷", "buenos aires"]):
+        return "🇦🇷", "AR"
+    # 泰国检测
+    elif any(k in nl for k in ["th", "thailand", "泰", "🇹🇭", "泰国", "曼谷", "bangkok"]):
+        return "🇹🇭", "TH"
+    # 越南检测
+    elif any(k in nl for k in ["vn", "vietnam", "越", "🇻🇳", "越南", "胡志明", "hanoi"]):
+        return "🇻🇳", "VN"
+    # 马来西亚检测
+    elif any(k in nl for k in ["my", "malaysia", "马", "🇲🇾", "马来西亚", "吉隆坡", "kuala lumpur"]):
+        return "🇲🇾", "MY"
+    # 菲律宾检测
+    elif any(k in nl for k in ["ph", "philippines", "菲", "🇵🇭", "菲律宾", "马尼拉", "manila"]):
+        return "🇵🇭", "PH"
+    # 印尼检测
+    elif any(k in nl for k in ["id", "indonesia", "印尼", "🇮🇩", "雅加达", "jakarta"]):
+        return "🇮🇩", "ID"
+    # 墨西哥检测
+    elif any(k in nl for k in ["mx", "mexico", "墨", "🇲🇽", "墨西哥"]):
+        return "🇲🇽", "MX"
+    # 意大利检测
+    elif any(k in nl for k in ["it", "italy", "意", "🇮🇹", "意大利", "米兰", "罗马", "milan", "rome"]):
+        return "🇮🇹", "IT"
+    # 西班牙检测
+    elif any(k in nl for k in ["es", "spain", "西", "🇪🇸", "西班牙", "马德里", "madrid"]):
+        return "🇪🇸", "ES"
+    # 瑞士检测
+    elif any(k in nl for k in ["ch", "switzerland", "瑞", "🇨🇭", "瑞士", "苏黎世", "zurich"]):
+        return "🇨🇭", "CH"
+    # 奥地利检测
+    elif any(k in nl for k in ["at", "austria", "奥", "🇦🇹", "奥地利", "维也纳", "vienna"]):
+        return "🇦🇹", "AT"
+    # 瑞典检测
+    elif any(k in nl for k in ["se", "sweden", "瑞典", "🇸🇪", "斯德哥尔摩", "stockholm"]):
+        return "🇸🇪", "SE"
+    # 波兰检测
+    elif any(k in nl for k in ["pl", "poland", "波", "🇵🇱", "波兰", "华沙", "warsaw"]):
+        return "🇵🇱", "PL"
+    # 土耳其检测
+    elif any(k in nl for k in ["tr", "turkey", "土", "🇹🇷", "土耳其", "伊斯坦布尔", "istanbul"]):
+        return "🇹🇷", "TR"
+    # 南非检测
+    elif any(k in nl for k in ["za", "south africa", "南非", "🇿🇦", "约翰内斯堡", "johannesburg"]):
+        return "🇿🇦", "ZA"
+    # 阿联酋检测
+    elif any(k in nl for k in ["ae", "uae", "迪", "🇦🇪", "阿联酋", "迪拜", "dubai", "abu dhabi"]):
+        return "🇦🇪", "AE"
+    # 以色列检测
+    elif any(k in nl for k in ["il", "israel", "以", "🇮🇱", "以色列", "特拉维夫", "tel aviv"]):
+        return "🇮🇱", "IL"
+    # 爱尔兰检测
+    elif any(k in nl for k in ["ie", "ireland", "爱尔兰", "🇮🇪", "都柏林", "dublin"]):
+        return "🇮🇪", "IE"
+    # 葡萄牙检测
+    elif any(k in nl for k in ["pt", "portugal", "葡", "🇵🇹", "葡萄牙", "里斯本", "lisbon"]):
+        return "🇵🇹", "PT"
+    # 捷克检测
+    elif any(k in nl for k in ["cz", "czech", "捷", "🇨🇿", "捷克", "布拉格", "prague"]):
+        return "🇨🇿", "CZ"
+    # 罗马尼亚检测
+    elif any(k in nl for k in ["ro", "romania", "罗", "🇷🇴", "罗马尼亚", "布加勒斯特", "bucharest"]):
+        return "🇷🇴", "RO"
+    # 匈牙利检测
+    elif any(k in nl for k in ["hu", "hungary", "匈", "🇭🇺", "匈牙利", "布达佩斯", "budapest"]):
+        return "🇭🇺", "HU"
+    # 希腊检测
+    elif any(k in nl for k in ["gr", "greece", "希", "🇬🇷", "希腊", "雅典", "athens"]):
+        return "🇬🇷", "GR"
+    # 芬兰检测
+    elif any(k in nl for k in ["fi", "finland", "芬", "🇫🇮", "芬兰", "赫尔辛基", "helsinki"]):
+        return "🇫🇮", "FI"
+    # 丹麦检测
+    elif any(k in nl for k in ["dk", "denmark", "丹", "🇩🇰", "丹麦", "哥本哈根", "copenhagen"]):
+        return "🇩🇰", "DK"
+    # 挪威检测
+    elif any(k in nl for k in ["no", "norway", "挪", "🇳🇴", "挪威", "奥斯陆", "oslo"]):
+        return "🇳🇴", "NO"
+    # 比利时检测
+    elif any(k in nl for k in ["be", "belgium", "比", "🇧🇪", "比利时", "布鲁塞尔", "brussels"]):
+        return "🇧🇪", "BE"
+    # 新西兰检测
+    elif any(k in nl for k in ["nz", "new zealand", "新西兰", "🇳🇿", "奥克兰", "auckland"]):
+        return "🇳🇿", "NZ"
+    # 智利检测
+    elif any(k in nl for k in ["cl", "chile", "智", "🇨🇱", "智利", "圣地亚哥", "santiago"]):
+        return "🇨🇱", "CL"
+    # 哥伦比亚检测
+    elif any(k in nl for k in ["co", "colombia", "哥", "🇨🇴", "哥伦比亚", "波哥大", "bogota"]):
+        return "🇨🇴", "CO"
+    # 秘鲁检测
+    elif any(k in nl for k in ["pe", "peru", "秘", "🇵🇪", "秘鲁", "利马", "lima"]):
+        return "🇵🇪", "PE"
+    # 乌克兰检测
+    elif any(k in nl for k in ["ua", "ukraine", "乌", "🇺🇦", "乌克兰", "基辅", "kiev", "kyiv"]):
+        return "🇺🇦", "UA"
+    # 哈萨克斯坦检测
+    elif any(k in nl for k in ["kz", "kazakhstan", "哈", "🇰🇿", "哈萨克斯坦", "阿拉木图", "almaty"]):
+        return "🇰🇿", "KZ"
+    
     return "🌍", "OT"
 
 

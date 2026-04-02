@@ -1,26 +1,15 @@
 proxies:
-- cipher: aes-256-cfb
-  name: 🇰🇷1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  password: f8f7aCzcPKbsF8p3
-  port: 989
-  server: 154.90.62.168
-  type: ss
-- cipher: aes-256-cfb
-  name: 🇰🇷2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  password: qwerREWQ@@
-  port: 13979
-  server: 221.139.79.57
-  type: ss
-- name: 🇨🇦1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇺🇸1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   password: exaxgqkKkd0TAMrCxeonWg==
   port: 1443
   server: twmoon1-cdn-route.couldflare-cdn.com
+  skip-cert-verify: false
+  sni: twmoon1-cdn-route.couldflare-cdn.com
   tls: true
   type: http
-  udp: true
   username: mrwdfNTD8M79LCukCieldrqZWqs=
 - client-fingerprint: chrome
-  name: 🇺🇸1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  name: 🇺🇸2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 8443
   server: 45.131.209.130
@@ -36,22 +25,34 @@ proxies:
         Gecko) Chrome/48.0.2564.116 Safari/537.36
     path: /57ba2ab1
   xudp: true
-- name: 🇭🇰1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 80
-  server: 172.64.155.187
+- client-fingerprint: safari
+  flow: xtls-rprx-vision
+  name: 🇺🇸3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: tcp
+  port: 28190
+  reality-opts:
+    public-key: ZJRnFU-1s1JOnO8E9uZ7b00l1fPEh63fGRbdBANFRno
+  server: 159.89.87.21
+  servername: aws.amazon.com
+  tls: true
   type: vless
   udp: true
-  uuid: 131387aa-4b2a-43aa-bf7c-d94306ba55fb
+  uuid: 14c80e0e-f7ce-4991-94fc-99a1db4a9b1e
+- name: 🇮🇳1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 2082
+  server: 172.67.128.244
+  type: vless
+  udp: true
+  uuid: 5181717e-892b-45a9-a8b7-e6d5fac1c77b
   ws-opts:
     headers:
-      Host: 13tg.jpl8xmqb.workers.dev
-      User-Agent: Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML,
-        like Gecko) Chrome/57.0.2987.133 Safari/537.36
-    path: /?ed=2560
+      Host: m543.hosseinpool10.workers.dev
+      User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-US) AppleWebKit/533.2 (KHTML,
+        like Gecko) Chrome/5.0.342.1 Safari/533.2
+    path: /?ed=2048
   xudp: true
-- client-fingerprint: chrome
-  name: 🇭🇰2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇭🇰1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   password: tg-fq521free
   port: 443
@@ -65,24 +66,7 @@ proxies:
       Host: torjan.xn--xhq44j.eu.org
     path: /
 - client-fingerprint: chrome
-  name: 🇰🇷3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 104.19.173.68
-  servername: rayan-olala.parvaneh.dpdns.org
-  tls: true
-  type: vless
-  udp: true
-  uuid: 60882caa-4e74-42a2-be70-220755fc1551
-  ws-opts:
-    headers:
-      Host: rayan-olala.parvaneh.dpdns.org
-      User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like
-        Gecko) Chrome/49.0.2623.112 Safari/537.36
-    path: /?ed=2560
-  xudp: true
-- client-fingerprint: chrome
-  name: 🇮🇳1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  name: 🇮🇳2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
   server: cdnjs.com
@@ -100,51 +84,6 @@ proxies:
     path: /
   xudp: true
 - client-fingerprint: chrome
-  name: 🇺🇸2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 2083
-  server: www.whatismyip.com
-  servername: e.exedu.ip-ddns.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 8f320d6a-9953-4065-b61c-d62f89a6767f
-  ws-opts:
-    headers:
-      Host: e.exedu.ip-ddns.com
-      User-Agent: Mozilla/5.0 (Linux; Android 6.0.1; SM-G532M Build/MMB29T) AppleWebKit/537.36
-        (KHTML, like Gecko) Chrome/55.0.2883.91 Mobile Safari/537.36
-    path: /?ed=2048
-  xudp: true
-- name: 🇮🇳2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 2082
-  server: 172.67.128.244
-  type: vless
-  udp: true
-  uuid: 5181717e-892b-45a9-a8b7-e6d5fac1c77b
-  ws-opts:
-    headers:
-      Host: m543.hosseinpool10.workers.dev
-      User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-US) AppleWebKit/533.2 (KHTML,
-        like Gecko) Chrome/5.0.342.1 Safari/533.2
-    path: /?ed=2048
-  xudp: true
-- name: 🇺🇸3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: whatismyipaddress.com
-  servername: x02.ylka.dpdns.org
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: 06e4425e-a8cb-4b63-929f-2105604ab0a9
-  ws-opts:
-    headers:
-      host: x02.ylka.dpdns.org
-    path: /?ed=2560&prot_type=vless
-- client-fingerprint: chrome
   name: 🇺🇸4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   password: 0F22D008-24D4-4DFE-947B-8D2FD64CD24C
@@ -156,238 +95,185 @@ proxies:
   udp: true
   ws-opts:
     headers:
-      User-Agent: Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko)
-        Chrome/49.0.2623.112 Safari/537.36
+      User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like
+        Gecko) Chrome/45.0.2454.85 Safari/537.36
     path: /?ed=2560
 - client-fingerprint: chrome
-  encryption: none
-  name: 🇰🇷4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  name: 🇺🇸5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 50000
-  server: 14.33.140.80
-  servername: gaosir.unfeeling.sbs
+  port: 443
+  server: www.visasoutheasteurope.com
+  servername: rAyAn-12.LeIlA.DpDnS.OrG
   tls: true
   type: vless
   udp: true
-  uuid: f61a4285-7264-4d07-9408-7b9ba1922c26
+  uuid: 7a80a8d9-92f9-4f0a-8352-9005a8215ab8
   ws-opts:
     headers:
-      Host: gaosir.unfeeling.sbs
-      User-Agent: Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like
-        Gecko) Chrome/43.0.2357.65 Safari/537.36
-    path: Telegram🇨🇳@WangCai2/?ed=2560
+      Host: rayan-12.leila.dpdns.org
+      User-Agent: Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML,
+        like Gecko) Chrome/63.0.3239.132 Safari/537.36
+    path: /@Rayan_Config
   xudp: true
-- name: 🇰🇷5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 12312
-  server: 211.48.77.114
-  servername: gaosir.unfeeling.sbs
-  skip-cert-verify: false
+- name: 🇮🇳3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  port: 1080
+  server: 139.59.24.173
+  skip-cert-verify: true
+  type: socks5
+- name: 🇭🇰2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: <password>
+  port: 443
+  server: 48b68b06-sxe4g0-t1bnjq-1krtb.hkt2.cdnhuawei.com
   tls: true
-  type: vless
-  udp: true
-  uuid: f61a4285-7264-4d07-9408-7b9ba1922c26
-  ws-opts:
-    headers:
-      Host: gaosir.unfeeling.sbs
-    path: /telegram @freecodes
-- client-fingerprint: chrome
-  encryption: none
-  name: 🇹🇼1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 43
-  server: 220.128.110.108
-  servername: mf.xmma.xyz
-  tls: true
-  type: vless
-  udp: true
-  uuid: e258977b-e413-4718-a3af-02d75492c349
-  ws-opts:
-    headers:
-      Host: mf.xmma.xyz
-      User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like
-        Gecko) Chrome/44.0.2403.157 Safari/537.36
-    path: /?ed=2048
-  xudp: true
-- client-fingerprint: chrome
-  encryption: none
-  name: 🇰🇷6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 50001
-  server: 106.252.245.199
-  servername: gaosir.unfeeling.sbs
-  tls: true
-  type: vless
-  udp: true
-  uuid: f61a4285-7264-4d07-9408-7b9ba1922c26
-  ws-opts:
-    headers:
-      Host: gaosir.unfeeling.sbs
-      User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like
-        Gecko) Chrome/46.0.2490.80 Safari/537.36
-    path: X@节点狂魔/?ed=2560
-  xudp: true
+  type: socks5
+  username: 60f6b4c4-9d70-11ed-a4d2-f23c9164ca5d
 - name: 🇸🇬1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  password: 557340ab-4ae8-4593-989f-a8053bec73b6
-  port: 443
-  server: 139.162.39.206
+  port: 1011
+  server: 47.237.70.144
   skip-cert-verify: true
-  type: trojan
-  udp: true
-- name: 🇸🇬2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  password: I4bO2YDEgs
-  port: 443
-  server: 188.166.252.91
-  skip-cert-verify: true
-  sni: aka.ms
-  type: trojan
-  udp: true
+  type: socks5
 - name: 🇭🇰3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: <password>
+  port: 8443
+  server: 5d847e9d-sxaf40-t1bnjq-1krtb.hkt.cdnhuawei.com
+  tls: true
+  type: http
+  username: 60f6b4c4-9d70-11ed-a4d2-f23c9164ca5d
+- alterId: 0
+  name: 🇭🇰4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: BxceQaOe
+  port: 443
+  server: 58.152.25.253
+  skip-cert-verify: true
+  tls: true
+  type: trojan
+  udp: true
+- name: 🇭🇰5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   password: <password>
   port: 8443
   server: 0a5eba5f-sx15s0-t1bnjq-1krtb.hkt.cdnhuawei.com
   tls: true
   type: http
   username: 60f6b4c4-9d70-11ed-a4d2-f23c9164ca5d
-- cipher: chacha20-ietf
-  name: 🇭🇰4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  password: asd123456
-  port: 8388
-  server: 103.36.91.32
+- cipher: aes-256-cfb
+  name: 🇻🇳1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV
+  port: 38388
+  server: 103.186.154.250
   type: ss
   udp: true
-- client-fingerprint: chrome
-  name: 🇭🇰5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  password: 8r%3C%5B9%27l6hAO%238ZQi
-  port: 2096
-  server: blog.811520.xyz
-  skip-cert-verify: true
-  sni: Koma-YT.PAGeS.Dev
-  type: trojan
+- cipher: aes-256-cfb
+  name: 🇻🇳2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV
+  port: 38388
+  server: 103.186.155.121
+  type: ss
   udp: true
-- name: 🇨🇦2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  password: d0774966-fb63-4aca-9478-16c3f32be220
+- cipher: aes-256-cfb
+  name: 🇻🇳3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV
+  port: 38388
+  server: 103.186.155.230
+  type: ss
+  udp: true
+- cipher: aes-256-cfb
+  name: 🇻🇳4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV
+  port: 38388
+  server: 103.186.154.178
+  type: ss
+  udp: true
+- cipher: aes-256-cfb
+  name: 🇻🇳5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV
+  port: 38388
+  server: 103.186.155.76
+  type: ss
+  udp: true
+- cipher: aes-256-cfb
+  name: 🇻🇳6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV
+  port: 38388
+  server: 103.186.155.82
+  type: ss
+  udp: true
+- cipher: aes-256-cfb
+  name: 🇻🇳7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV
+  port: 38388
+  server: 103.186.155.31
+  type: ss
+- cipher: aes-256-cfb
+  name: 🇻🇳8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV
+  port: 38388
+  server: 103.186.155.71
+  type: ss
+  udp: true
+- cipher: aes-256-cfb
+  name: 🇺🇸6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: Xn8jKdmDM00IeO%#$#fJAMtsEAEUOpH/YWYtYqDFnT0SV
+  port: 38388
+  server: 103.186.155.34
+  type: ss
+- name: 🇭🇰6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: <password>
+  port: 8443
+  server: 85e272b6-sxe4g0-t1bnjq-1krtb.hkt.cdnhuawei.com
+  tls: true
+  type: http
+  username: 60f6b4c4-9d70-11ed-a4d2-f23c9164ca5d
+- name: 🇭🇰7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: <password>
+  port: 8443
+  server: 999598f4-sx8kg0-t1bnjq-1krtb.hkt.cdnhuawei.com
+  tls: true
+  type: http
+  username: 60f6b4c4-9d70-11ed-a4d2-f23c9164ca5d
+- name: 🇭🇰8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: <password>
   port: 443
-  server: kr.mjt000.com
-  skip-cert-verify: true
-  sni: kr.mjt000.com
-  type: trojan
-  udp: true
-- client-fingerprint: random
+  server: 38f6538e-sx8kg0-t1bnjq-1krtb.hkt2.cdnhuawei.com
+  tls: true
+  type: socks5
+  username: 60f6b4c4-9d70-11ed-a4d2-f23c9164ca5d
+- name: 🇭🇰9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: <password>
+  port: 443
+  server: 46977950-sxc9s0-t1bnjq-1krtb.hkt2.cdnhuawei.com
+  tls: true
+  type: socks5
+  username: 60f6b4c4-9d70-11ed-a4d2-f23c9164ca5d
+- name: 🇹🇼1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: nnctwclyx.codesofun.pp.ua
+  servername: nnctw.codesofun.pp.ua
+  tls: true
+  type: vless
+  uuid: 8b9c63ff-6789-449d-e5fd-5b83fef2b440
+  ws-opts:
+    headers:
+      Host: nnctw.codesofun.pp.ua
+    path: /2261acb5
+- client-fingerprint: chrome
   name: 🇩🇪1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 104.26.6.18
-  servername: albedoalbedochan.violetchaan.ip-ddns.com
+  server: 198.62.62.229
+  servername: mirror.fullmargintraders.com
   tls: true
   type: vless
-  udp: false
-  uuid: 004ba5d4-d448-4960-a762-e5190ab415f2
-  ws-opts:
-    headers:
-      host: albedoalbedochan.violetchaan.ip-ddns.com
-    path: /?Join---MARAMBASHI---Join---MARAMBASHI---Join---MARAMBASHI---Join---MARAMBASHI?ed=2560
-- name: 🇵🇭1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 80
-  server: 104.21.48.1
-  type: vless
   udp: true
-  uuid: e0c579e5-d86f-426b-bbee-f815821a34c3
+  uuid: 6c11247b-6078-461a-93d5-22e4df284e6d
   ws-opts:
     headers:
-      Host: azadnet-2.azadnet-team.workers.dev
-      User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML,
-        like Gecko) Chrome/60.0.3112.90 Safari/537.36
-    path: /DoaoovdDWjHii1lH?ed=2560
-  xudp: true
-- name: 🇺🇸5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8880
-  server: 130.250.137.177
-  servername: ip.langmanshanxi.top
-  type: vless
-  udp: true
-  uuid: 583ceab3-4022-4553-9158-9bedc625ad4e
-  ws-opts:
-    headers:
-      Host: ip.langmanshanxi.top
-      User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
-        like Gecko) Chrome/52.0.2743.116 Safari/537.36
-    path: /Telegram🇨🇳 @WangCai2 /?ed=2560
-  xudp: true
-- name: 🇺🇸6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8880
-  server: 185.148.104.141
-  servername: VngSuPpLY.IP-DdnS.com
-  type: vless
-  udp: true
-  uuid: e9979910-79d1-4621-a93c-b2a579c44ba7
-  ws-opts:
-    headers:
-      Host: VngSuPpLY.IP-DdnS.com
-      User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML,
-        like Gecko) Chrome/70.0.3538.102 Safari/537.36
-    path: /Etb1L6YUdZFZuTOr?ed=2560/?JOKERRVPNBIA_CHANEL@JOKERRVPN
+      Host: mirror.fullmargintraders.com
+      User-Agent: Mozilla/5.0 (Linux; Android 5.1.1; A37fw Build/LMY47V) AppleWebKit/537.36
+        (KHTML, like Gecko) Chrome/62.0.3202.84 Mobile Safari/537.36
+    path: /wsv/6c11247b-6078-461a-93d5-22e4df284e6d
   xudp: true
 - name: 🇺🇸7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  password: cb1f26aa437d4bfa9b841d28503ce8cc
-  port: 443
-  server: 104.19.171.5
-  skip-cert-verify: true
-  sni: jobscareerforlawyers.com
-  type: trojan
-  udp: true
-  ws-opts:
-    headers:
-      Host: jobscareerforlawyers.com
-    path: 6b777a91
-- name: 🇺🇸8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 80
-  server: 104.21.7.229
-  type: vless
-  udp: true
-  uuid: 2cf5523e-c4e2-4e97-be1f-b9b7d356c140
-  ws-opts:
-    headers:
-      Host: aio.loophole.Biz.iD
-      User-Agent: Mozilla/5.0 (Linux; Android 7.1.1; CPH1723 Build/N6F26Q) AppleWebKit/537.36
-        (KHTML, like Gecko) Chrome/61.0.3163.98 Mobile Safari/537.36
-    path: /aioproxybot/8.215.59.6-443
-  xudp: true
-- name: 🇺🇸9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8080
-  server: 108.162.196.227
-  type: vless
-  udp: true
-  uuid: b2c54a1d-ec9b-4ec0-8298-659a72d83c20
-  ws-opts:
-    headers:
-      Host: kalzareth-main-v1.pinise9839.workers.dev
-      User-Agent: Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko)
-        Chrome/46.0.2490.71 Safari/537.36
-    path: /?ed=2560
-  xudp: true
-- name: 🇺🇸10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 80
-  server: 104.16.228.91
-  servername: barayeiran.mahiozonboroon.qzz.io
-  type: vless
-  udp: true
-  uuid: f278037e-ce36-4634-9b4d-fca93e345a35
-  ws-opts:
-    headers:
-      Host: barayeiran.mahiozonboroon.qzz.io
-      User-Agent: Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko)
-        Chrome/41.0.2272.101 Safari/537.36
-    path: /vpn?ed=2560
-  xudp: true
-- name: 🇺🇸11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 80
   server: 104.21.12.113
@@ -401,76 +287,25 @@ proxies:
         Gecko) Chrome/48.0.2564.109 Safari/537.36
     path: /?ed=2048
   xudp: true
-- name: 🇺🇸12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  password: dba20dcb635e430fa4d3bfc303a149d2
-  port: 443
-  server: 104.19.171.4
-  skip-cert-verify: true
-  sni: jobscareertoday.com
-  type: trojan
-  udp: true
-- name: 🇩🇪2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 80
-  server: 104.21.72.109
-  servername: dfgopee-workers.dev
-  type: vless
-  udp: true
-  uuid: deadf791-6837-4354-8eca-25d695b3cb78
-  ws-opts:
-    headers:
-      Host: dfgopee-workers.dev.
-      User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML,
-        like Gecko) Chrome/70.0.3538.67 Safari/537.36
-    path: /Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2?ed=2560
-  xudp: true
-- name: 🇺🇸13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 80
-  server: 45.131.208.201
-  type: vless
-  udp: true
-  uuid: cdb15365-1ccb-4d5a-a5d9-6fb08d3c75ac
-  ws-opts:
-    headers:
-      Host: mahdihector.kewojod243.workers.dev
-      User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
-        like Gecko) Chrome/54.0.2840.99 Safari/537.36
-    path: /Telegram@WangCai2/?ed=2048
-  xudp: true
-- name: 🇬🇧1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 80
-  server: 104.21.81.174
-  type: vless
-  udp: true
-  uuid: 23b3cbba-e6ac-485a-9481-342a0415eab9
-  ws-opts:
-    headers:
-      Host: DaWn-lAKE-d5E3.WocoYA4320.wOrkERs.DeV
-      User-Agent: Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML,
-        like Gecko) Chrome/60.0.3112.113 Safari/537.36
-    path: /wP3dwCyRAVyMJFfW?ed=2560
-  xudp: true
 - client-fingerprint: chrome
-  name: 🇬🇧2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  name: 🇩🇪2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 8443
-  server: www.speedtest.net
-  servername: lease-20.access.name.ng
+  port: 2087
+  server: 172.66.47.31
+  servername: nEwMTPROxI.PAGes.DEv
   tls: true
   type: vless
   udp: true
-  uuid: ccbe6b7c-9264-40c4-8bc1-ef8f6205d7a4
+  uuid: 2cec2733-389a-46a7-9053-218594a6336d
   ws-opts:
     headers:
-      Host: lease-20.access.name.ng
-      User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
-        like Gecko) Chrome/60.0.3112.113 Safari/537.36
+      Host: nEwMTPROxI.PAGes.DEv
+      User-Agent: Mozilla/5.0 (Linux; Android 6.0; vivo 1606 Build/MMB29M) AppleWebKit/537.36
+        (KHTML, like Gecko) Chrome/53.0.2785.124 Mobile Safari/537.36
     path: /
   xudp: true
 - client-fingerprint: chrome
-  name: 🇺🇸14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  name: 🇺🇸8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 8880
   server: 114.129.43.251
@@ -484,70 +319,170 @@ proxies:
     headers:
       Host: cf.d3z.net
     path: /Telegram🇨🇳 @WangCai2 /?ed=2560
-- name: 🇵🇹1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8080
-  server: 104.17.147.22
-  type: vless
-  udp: true
-  uuid: Parsashonam-Bot-7
-  ws-opts:
-    headers:
-      Host: Fi.Parsashonam.CfD.
-      User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like
-        Gecko) Chrome/44.0.2403.157 Safari/537.36
-    path: /Parsashonam-Parsashonam-Parsashonam-Parsashonam-Parsashonam-Parsashonam-Parsashonam-Parsashonam-Parsashonam-Parsashonam-Parsashonam-Parsashonam-Parsashonam-Parsashonam-Parsashonam-Parsashonam?ed=2056
-  xudp: true
 - client-fingerprint: chrome
-  name: 🇺🇸15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  name: 🇺🇸9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 104.21.75.193
-  servername: bpb.64kb.cc
+  server: 104.18.26.90
+  servername: barayeiranmahsang.ghormehsabzi.dpdns.org
   tls: true
   type: vless
   udp: true
-  uuid: 89b3cbba-e6ac-485a-9481-976a0415eab9
+  uuid: e6236ebc-7334-4bed-977f-0c20bcdfcc00
   ws-opts:
     headers:
-      Host: bpb.64kb.cc
-      User-Agent: Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML,
-        like Gecko) Chrome/57.0.2987.133 Safari/537.36
-    path: ''
+      Host: barayeiranmahsang.ghormehsabzi.dpdns.org
+      User-Agent: Mozilla/5.0 (Linux; Android 7.0; SM-G610M Build/NRD90M) AppleWebKit/537.36
+        (KHTML, like Gecko) Chrome/69.0.3497.100 Mobile Safari/537.36
+    path: /Join---@MTMVPN---Join---@MTMVPN?ed=2560
   xudp: true
-- client-fingerprint: random
-  name: 🇺🇸16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- alterId: 0
+  cipher: auto
+  name: 🇺🇸10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 8443
-  server: 104.18.12.229
-  servername: azadnet-4nb.pages.dev
+  port: 2096
+  server: 104.21.3.189
+  servername: rak2d1.89060004.xyz
+  skip-cert-verify: true
   tls: true
-  type: vless
-  udp: true
-  uuid: 86c50e3a-5b87-49dd-bd20-03c7f2735e40
+  type: vmess
+  uuid: 350e2b01-d410-44a6-90ba-6483f1062972
   ws-opts:
     headers:
-      Host: azadnet-4nb.pages.dev
+      HOST: rak2d1.89060004.xyz
+    path: /
+- client-fingerprint: chrome
+  name: 🇺🇸11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  password: tg-fq521free
+  port: 443
+  server: 216.24.57.30
+  skip-cert-verify: false
+  sni: torjan.xn--xhq44j.eu.org
+  type: trojan
+  udp: true
+  ws-opts:
+    headers:
+      User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like
+        Gecko) Chrome/41.0.2272.101 Safari/537.36
+    path: /
+- name: 🇺🇸12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 80
+  server: 104.21.72.109
+  servername: dfgopee-workers.dev
+  type: vless
+  udp: true
+  uuid: a05367f5-a500-4514-ac99-e73f629229f2
+  ws-opts:
+    headers:
+      Host: dfgopee-workers.dev.
       User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML,
-        like Gecko) Chrome/54.0.2840.99 Safari/537.36
-    path: /?ed=2560
+        like Gecko) Chrome/58.0.3029.81 Safari/537.36
+    path: /Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2---Mosiv2--Mosiv2?ed=2560
   xudp: true
-- name: 🇸🇬3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- client-fingerprint: chrome
+  name: 🌍1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 2095
-  server: 172.67.111.53
-  type: vless
+  password: d6b8011a-c725-435a-9fec-bf6d3530392c
+  port: 2083
+  server: 194.53.53.249
+  skip-cert-verify: true
+  sni: vle.amclubdns.dpdns.org
+  type: trojan
   udp: true
-  uuid: 4e4fe94d-d9f2-4679-879a-b06fbb28ddf1
   ws-opts:
     headers:
-      Host: 831tg.na15iwpb.workers.dev
-      User-Agent: Mozilla/5.0 (Linux; Android 5.1; HUAWEI CUN-L22 Build/HUAWEICUN-L22;
-        wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/62.0.3202.84
-        Mobile Safari/537.36
-    path: /?ed=2560
+      Host: vle.amclubdns.dpdns.org
+    path: /?ed=2560&PROT_TYPE=trojan
+- name: 🇺🇸13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  password: d6b8011a-c725-435a-9fec-bf6d3530392c
+  port: 443
+  server: 154.83.2.200
+  skip-cert-verify: true
+  sni: vle.amclubdns.dpdns.org
+  type: trojan
+  udp: true
+  ws-opts:
+    headers:
+      Host: vle.amclubdns.dpdns.org
+    path: /?ed=2560&PROT_TYPE=trojan
+- name: 🌍2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 80
+  server: 104.21.112.1
+  type: vless
+  udp: true
+  uuid: 2036e2c3-18a5-4eed-9db4-f91a7f02c7d5
+  ws-opts:
+    headers:
+      Host: zoomgov.vipren.biz.id
+      User-Agent: Mozilla/5.0 (X11; Datanyze; Linux x86_64) AppleWebKit/537.36 (KHTML,
+        like Gecko) Chrome/65.0.3325.181 Safari/537.36
+    path: /193.123.81.105=443
   xudp: true
-- name: 🇺🇸17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- client-fingerprint: chrome
+  name: 🇸🇬2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 108.162.194.231
+  servername: rs-sg4.lzjnb.shop
+  tls: true
+  type: vless
+  udp: true
+  uuid: b7f8c66b-40f0-4160-8b88-76a482e2b593
+  ws-opts:
+    headers:
+      Host: rs-sg4.lzjnb.shop
+      User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML,
+        like Gecko) Chrome/68.0.3440.106 Safari/537.36
+    path: /lzj
+  xudp: true
+- name: 🇺🇸14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 80
+  server: 104.18.26.94
+  type: vless
+  udp: true
+  uuid: 097e2594-dbbb-4a36-a5c7-6b8c8893c611
+  ws-opts:
+    headers:
+      Host: esetsecuritylicense.wixel67553.workers.dev
+      User-Agent: Mozilla/5.0 (Linux; Android 6.0.1; SM-J500M Build/MMB29M) AppleWebKit/537.36
+        (KHTML, like Gecko) Chrome/69.0.3497.100 Mobile Safari/537.36
+    path: JOIN-FILTERK0SH/?ed=2048
+  xudp: true
+- name: 🇺🇸15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 80
+  server: 45.131.208.201
+  type: vless
+  udp: true
+  uuid: cdb15365-1ccb-4d5a-a5d9-6fb08d3c75ac
+  ws-opts:
+    headers:
+      Host: mahdihector.kewojod243.workers.dev
+      User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
+        like Gecko) Chrome/54.0.2840.99 Safari/537.36
+    path: /Telegram@WangCai2/?ed=2048
+  xudp: true
+- name: 🇺🇸16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 8880
+  server: 69.84.182.247
+  servername: ex.sue.x10.mx
+  type: vless
+  udp: true
+  uuid: d60fc3c5-9f07-4cdb-b81f-70af27936bdc
+  ws-opts:
+    headers:
+      Host: ex.sue.x10.mx
+      User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like
+        Gecko) Chrome/32.0.1700.107 Safari/537.36
+    path: /Telegram🇨🇳
+  xudp: true
+- name: 🇧🇪1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 80
   server: 104.18.26.90
@@ -558,241 +493,205 @@ proxies:
   udp: true
   uuid: 3ac2de34-47c5-4dd5-afc0-8fb4b05d4077
   ws-opts:
-    headers:
-      Host: blaze-can-118.blazecanada.site
-    path: /?ed=2560
-  xudp: true
-- name: 🇺🇸18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8880
-  server: 91.193.58.192
-  servername: us.laoyoutiao.link
-  skip-cert-verify: false
-  tls: false
-  type: vless
-  udp: true
-  uuid: fab7bf9c-ddb9-4563-8a04-fb01ce6c0fbf
-  ws-opts:
     early-data-header-name: Sec-WebSocket-Protocol
     headers:
-      Host: us.laoyoutiao.link
+      Host: blaze-can-118.blazecanada.site
     max-early-data: 2560
-    path: /Telegram🇨🇳 @MxlShare @WangCai2 /
-- name: 🇳🇱1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+    path: /
+  xudp: true
+- name: 🇺🇸17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 2082
-  server: 104.16.1.106
-  type: vless
+  password: tg-fq521free
+  port: 443
+  server: 198.62.62.67
+  skip-cert-verify: true
+  sni: torjan.xn--xhq44j.eu.org
+  type: trojan
   udp: true
-  uuid: 55445977-b31b-4142-83e0-e54b80c14059
   ws-opts:
     headers:
-      Host: mrdnzdtnbkwbdfsqoncu.yaSharTeam.com.
-      User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like
-        Gecko) Chrome/35.0.1916.153 Safari/537.36
-    path: /?ed=2052
-  xudp: true
-- client-fingerprint: chrome
-  name: 🇵🇭2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+      Host: torjan.xn--xhq44j.eu.org
+    path: /
+- client-fingerprint: randomized
+  name: 🇺🇸18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 104.18.32.151
-  servername: barayeiranmahsang.sabzipolobamahi.dpdns.org
+  server: 162.159.0.0
+  servername: azadnet-cnh.pages.dev
+  skip-cert-verify: false
   tls: true
   type: vless
   udp: true
-  uuid: b55ec078-3b17-4ed1-a697-71f464cdcaaa
+  uuid: d0298536-d670-4045-bbb1-ddd5ea68683e
   ws-opts:
     headers:
-      Host: barayeiranmahsang.sabzipolobamahi.dpdns.org
-      User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like
-        Gecko) Chrome/46.0.2490.80 Safari/537.36
-    path: /?ed=2560
-  xudp: true
-- name: 🇺🇸19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+      Host: azadnet-cnh.pages.dev
+    path: /azadnet-cnh.pages.dev/?ed=2560
+- client-fingerprint: random
+  name: 🇺🇸19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 8880
-  server: 135.84.75.3
-  servername: Telegram-channel-v2ray_configs_pools
+  port: 443
+  server: 172.64.68.58
+  servername: hai.gdz.buzz
   skip-cert-verify: false
-  tls: false
+  tls: true
   type: vless
   udp: true
-  uuid: b5441b0d-2147-4898-8a6a-9b2c87f58382
+  uuid: 8f7fe273-e06d-47d5-9deb-d7b3c95dc573
   ws-opts:
     headers:
-      Host: bitget1.asdasd.click
-    path: /Telegram🇨🇳
-  xudp: true
-- name: 🇦🇷1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 80
-  server: 104.21.112.1
-  type: vless
-  udp: true
-  uuid: 2036e2c3-18a5-4eed-9db4-f91a7f02c7d5
-  ws-opts:
-    headers:
-      Host: zoomgov.vipren.biz.id
-      User-Agent: Mozilla/5.0 (Linux; Android 6.0.1; SM-J700M Build/MMB29K) AppleWebKit/537.36
-        (KHTML, like Gecko) Chrome/69.0.3497.100 Mobile Safari/537.36
-    path: /193.123.81.105=443
-  xudp: true
+      Host: hai.gdz.buzz
+    path: /?ed=2560
 - name: 🇺🇸20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 8880
-  server: 104.26.1.212
-  type: vless
+  password: d6b8011a-c725-435a-9fec-bf6d3530392c
+  port: 2096
+  server: 103.160.204.49
+  skip-cert-verify: true
+  sni: vle.amclubsvip.dpdns.org
+  type: trojan
   udp: true
-  uuid: 6ec52bc7-fcd7-4841-ab69-70d6e03a6eda
   ws-opts:
     headers:
-      Host: www.speedtest.net.zula.ir.cfp1.a2hdhjdxjbxjsjdjd.ddns-ip.nEt.
-      User-Agent: Mozilla/5.0 (Linux; Android 7.1; Mi A1 Build/N2G47H) AppleWebKit/537.36
-        (KHTML, like Gecko) Chrome/58.0.3029.83 Mobile Safari/537.36
-    path: ''
-  xudp: true
-- client-fingerprint: chrome
-  name: 🇺🇸21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+      Host: vle.amclubsvip.dpdns.org
+    path: /?ed=2560&PROT_TYPE=trojan
+- name: 🇺🇸21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  password: d6b8011a-c725-435a-9fec-bf6d3530392c
+  port: 8443
+  server: 103.160.204.40
+  skip-cert-verify: true
+  sni: vle.amclubdns.dpdns.org
+  type: trojan
+  udp: true
+  ws-opts:
+    headers:
+      Host: vle.amclubdns.dpdns.org
+    path: /?ed=2560&PROT_TYPE=trojan
+- name: 🇺🇸22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 104.18.36.24
-  servername: carlotta.shoorekeeper.cloudns.org
+  server: 104.17.182.58
+  servername: frieren.albedo.ddns-ip.net
+  skip-cert-verify: true
   tls: true
   type: vless
   udp: true
-  uuid: 30f2d443-af46-4dd6-83c9-b5e17299ebd2
+  uuid: c1601a96-febd-4baa-8fe3-17ca8f4121bd
   ws-opts:
     headers:
-      Host: carlotta.shoorekeeper.cloudns.org
-      User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML,
-        like Gecko) Chrome/70.0.3538.102 Safari/537.36
-    path: /proxyip=zani.yaemiko.ggff.net/?v2ray_configs_pools_BIA_CHANEL@v2ray_configs_pools
-  xudp: true
-- name: 🇫🇷1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8080
-  server: www.speedtest.net
-  type: vless
-  udp: true
-  uuid: cb1aa6c3-c719-4579-b663-295003103fd0
-  ws-opts:
-    headers:
-      Host: WWW.dollardoon.com
-      User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
-        like Gecko) Chrome/66.0.3359.117 Safari/537.36
-    path: /@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7@V2RAYFAST_7?ed=2048
-  xudp: true
+      host: frieren.albedo.ddns-ip.net
+    path: /
 proxy-groups:
 - interval: 300
   name: 🚀 Auto
   proxies:
-  - 🇰🇷1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇨🇦1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇮🇳1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇮🇳2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇮🇳1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇮🇳2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇹🇼1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇺🇸5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇮🇳3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇸🇬1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇭🇰3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇭🇰4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇭🇰5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇨🇦2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇩🇪1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇵🇭1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇺🇸5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇻🇳1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇻🇳2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇻🇳3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇻🇳4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇻🇳5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇻🇳6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇻🇳7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇻🇳8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇹🇼1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇩🇪1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇩🇪2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇩🇪2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🌍1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇬🇧1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇬🇧2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🌍2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇵🇹1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇧🇪1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇳🇱1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇵🇭2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇦🇷1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇫🇷1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇺🇸22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   tolerance: 50
   type: url-test
   url: http://www.gstatic.com/generate_204
 - name: 🌍 Select
   proxies:
   - 🚀 Auto
-  - 🇰🇷1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇨🇦1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇮🇳1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇮🇳2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇮🇳1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇮🇳2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇹🇼1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇺🇸5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇮🇳3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇸🇬1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇭🇰3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇭🇰4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇭🇰5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇨🇦2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇩🇪1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇵🇭1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇺🇸5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇻🇳1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇻🇳2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇻🇳3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇻🇳4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇻🇳5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇻🇳6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇻🇳7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇻🇳8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇹🇼1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇩🇪1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇩🇪2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇩🇪2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🌍1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇬🇧1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇬🇧2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🌍2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇵🇹1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇧🇪1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇳🇱1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇵🇭2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇦🇷1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇫🇷1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇺🇸22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   type: select
 rules:
 - MATCH,🌍 Select

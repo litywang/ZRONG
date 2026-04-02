@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v22.4 - 性能极速版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.4
-优化：大幅精简源 + 高并发 + 严格阈值 → 目标耗时 < 30分钟
+聚合订阅爬虫 v22.5 - 多协议增强版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.5
+优化：SSR/Snell/HTTP/SOCKS5协议支持 + 简洁命名 + 增强区域检测
 核心原则：三層严格检测 + 全量优质源 + 零语法错误 + 最佳稳定性
 """
 
@@ -434,6 +434,140 @@ def parse_hysteria(node):
     except: return None
 
 
+def parse_ssr(node):
+    """解析 SSR:// 链接"""
+    try:
+        if not node.startswith("ssr://"): return None
+        raw = base64.b64decode(node[6:] + "=" * (4 - len(node[6:]) % 4)).decode("utf-8", errors="ignore")
+        # SSR 格式: server:port:protocol:method:obfs:base64pass/?obfsparam=xxx&remark=xxx
+        parts = raw.split("/?")
+        main = parts[0]
+        params_str = parts[1] if len(parts) > 1 else ""
+        
+        server_info, protocol, method, obfs, b64pass = main.split(":")
+        server, port = server_info.rsplit(":", 1)
+        password = base64.b64decode(b64pass + "=" * (4 - len(b64pass) % 4)).decode("utf-8", errors="ignore")
+        
+        # 从参数提取备注名称
+        name = ""
+        if params_str:
+            params = parse_qs(params_str)
+            remark_b64 = params.get("remarks", [""])[0]
+            if remark_b64:
+                name = base64.b64decode(remark_b64 + "=" * (4 - len(remark_b64) % 4)).decode("utf-8", errors="ignore")
+        
+        if not name:
+            uid = generate_unique_id({'server': server, 'port': int(port)})
+            name = f"SR-{uid}"
+        
+        # 提取 obfsparam 和 protoparam
+        obfs_param = ""
+        proto_param = ""
+        if params_str:
+            params = parse_qs(params_str)
+            obfs_param_b64 = params.get("obfsparam", [""])[0]
+            if obfs_param_b64:
+                obfs_param = base64.b64decode(obfs_param_b64 + "=" * (4 - len(obfs_param_b64) % 4)).decode("utf-8", errors="ignore")
+            proto_param_b64 = params.get("protoparam", [""])[0]
+            if proto_param_b64:
+                proto_param = base64.b64decode(proto_param_b64 + "=" * (4 - len(proto_param_b64) % 4)).decode("utf-8", errors="ignore")
+        
+        proxy = {
+            "name": name, "type": "ssr", "server": server, "port": int(port),
+            "protocol": protocol, "method": method, "obfs": obfs,
+            "password": password, "udp": True,
+        }
+        if obfs_param: proxy["obfs-param"] = obfs_param
+        if proto_param: proxy["protocol-param"] = proto_param
+        return proxy
+    except: return None
+
+
+def parse_http_proxy(node):
+    """解析 http:// / https:// 代理链接"""
+    try:
+        if not node.startswith("http://") and not node.startswith("https://"): return None
+        p_url = urlparse(node)
+        if not p_url.hostname: return None
+        # 格式: http://user:pass@server:port#name 或 http://server:port
+        username = unquote(p_url.username or "")
+        password = unquote(p_url.password or "")
+        name = p_url.fragment if p_url.fragment else f"HT-{generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 80)})}"
+        ptype = "https" if node.startswith("https://") else "http"
+        proxy = {
+            "name": name, "type": ptype, "server": p_url.hostname,
+            "port": int(p_url.port or 443 if ptype == "https" else 80),
+        }
+        if username: proxy["username"] = username
+        if password: proxy["password"] = password
+        return proxy
+    except: return None
+
+
+def parse_socks(node):
+    """解析 socks5:// 链接"""
+    try:
+        if not node.startswith("socks5://") and not node.startswith("socks4://"): return None
+        p_url = urlparse(node)
+        if not p_url.hostname: return None
+        username = unquote(p_url.username or "")
+        password = unquote(p_url.password or "")
+        name = p_url.fragment if p_url.fragment else f"SK-{generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 1080)})}"
+        ptype = "socks5" if node.startswith("socks5://") else "socks4"
+        proxy = {
+            "name": name, "type": ptype, "server": p_url.hostname,
+            "port": int(p_url.port or 1080),
+        }
+        if username: proxy["username"] = username
+        if password: proxy["password"] = password
+        return proxy
+    except: return None
+
+
+def parse_anytls(node):
+    """解析 anytls:// 链接 (AnyTLS协议)"""
+    try:
+        if not node.startswith("anytls://"): return None
+        p_url = urlparse(node)
+        if not p_url.hostname: return None
+        name = p_url.fragment if p_url.fragment else "AT-" + generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443)})
+        params = parse_qs(p_url.query)
+        gp = lambda k: params.get(k, [""])[0]
+        proxy = {
+            "name": name, "type": "anytls", "server": p_url.hostname,
+            "port": int(p_url.port or 443), "udp": True, "skip-cert-verify": True,
+        }
+        sni = gp("sni")
+        if sni: proxy["sni"] = sni
+        elif p_url.hostname: proxy["sni"] = p_url.hostname
+        fp = gp("fp")
+        if fp: proxy["client-fingerprint"] = fp
+        return proxy if proxy["server"] else None
+    except: return None
+
+
+def parse_snell(node):
+    """解析 snell:// 链接"""
+    try:
+        if not node.startswith("snell://"): return None
+        p_url = urlparse(node)
+        if not p_url.hostname: return None
+        pwd = unquote(p_url.username or "")
+        params = parse_qs(p_url.query)
+        gp = lambda k: params.get(k, [""])[0]
+        name = p_url.fragment if p_url.fragment else f"SN-{generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443)})}"
+        proxy = {
+            "name": name, "type": "snell", "server": p_url.hostname,
+            "port": int(p_url.port or 443), "psk": pwd, "udp": True
+        }
+        obfs = gp("obfs")
+        if obfs: proxy["obfs-opts"] = {"mode": obfs}
+        version = gp("version")
+        if version: proxy["version"] = int(version)
+        return proxy if proxy["server"] else None
+    except: return None
+
+
 def parse_node(node):
     node = node.strip()
     if not node or node.startswith("#"): return None
@@ -441,9 +575,14 @@ def parse_node(node):
     elif node.startswith("vless://"): return parse_vless(node)
     elif node.startswith("trojan://"): return parse_trojan(node)
     elif node.startswith("ss://"): return parse_ss(node)
+    elif node.startswith("ssr://"): return parse_ssr(node)
     elif node.startswith("hysteria2://") or node.startswith("hy2://"): return parse_hysteria2(node)
     elif node.startswith("hysteria://"): return parse_hysteria(node)
     elif node.startswith("tuic://"): return parse_tuic(node)
+    elif node.startswith("snell://"): return parse_snell(node)
+    elif node.startswith("socks5://") or node.startswith("socks4://"): return parse_socks(node)
+    elif node.startswith("http://") or node.startswith("https://"): return parse_http_proxy(node)
+    elif node.startswith("anytls://"): return parse_anytls(node)
     return None
 
 
@@ -463,9 +602,9 @@ def parse_yaml_proxies(content):
             if not isinstance(p, dict) or not p.get("server"):
                 continue
             ptype = (p.get("type") or "").lower()
-            # 只认 Mihomo/Clash 支持的协议
+            # 只认 Mihomo/Clash 支持的协议（扩展版）
             if ptype not in ("vmess", "vless", "trojan", "ss", "ssr", "hysteria", "hysteria2", "tuic",
-                             "wireguard", "shadowtls"):
+                             "wireguard", "shadowtls", "snell", "http", "socks5", "anytls"):
                 continue
             # 基本校验：必须有 server + port
             try:
@@ -1057,10 +1196,9 @@ class ClashManager:
         return result
 
 
-# ⭐ 节点命名（保持不变）
+# ⭐ 节点命名（优化版：无后缀）
 class NodeNamer:
     FANCY = {'A':'𝔄','B':'𝔅','C':'𝔆','D':'𝔇','E':'𝔈','F':'𝔉','G':'𝔊','H':'𝔋','I':'ℑ','J':'𝔍','K':'𝔎','L':'𝔏','M':'𝔐','N':'𝔑','O':'𝔒','P':'𝔓','Q':'𝔔','R':'𝔕','S':'𝔖','T':'𝔗','U':'𝔘','V':'𝔙','W':'𝔚','X':'𝔛','Y':'𝔜','Z':'𝔝'}
-    REGIONS = {"🇭🇰": "HK", "🇹🇼": "TW", "🇯🇵": "JP", "🇸🇬": "SG", "🇰🇷": "KR", "🇺🇸": "US", "🌍": "OT"}
 
     def __init__(self):
         self.counters = {}
@@ -1073,29 +1211,83 @@ class NodeNamer:
         self.counters[region] = self.counters.get(region, 0) + 1
         num = self.counters[region]
         pfx = self.to_fancy(NODE_NAME_PREFIX)
-        if speed:
-            return f"{code}{num}-{pfx}|⚡{lat}ms|📥{speed:.1f}MB"
-        return f"{code}{num}-{pfx}|⚡{lat}ms{'(TCP)' if tcp else ''}"
+        # 简洁命名：HK1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶，无后缀
+        return f"{code}{num}-{pfx}"
 
 
-# ⭐ 协议链接转换（保持不变）
+# ⭐ 协议链接转换（扩展版）
 def format_proxy_to_link(p):
+    """将代理对象转换为协议链接"""
     try:
-        if p["type"] == "vmess":
-            data = {"v": "2", "ps": p["name"], "add": p["server"], "port": p["port"], "id": p["uuid"], "aid": p.get("alterId", 0), "net": p.get("network", "tcp"), "type": "none", "host": p.get("sni", ""), "path": p.get("ws-opts", {}).get("path", ""), "tls": "tls" if p.get("tls") else ""}
+        ptype = p.get("type", "")
+        name_enc = urllib.parse.quote(p.get("name", "node"), safe="")
+        
+        if ptype == "vmess":
+            data = {"v": "2", "ps": p["name"], "add": p["server"], "port": p["port"], 
+                    "id": p["uuid"], "aid": p.get("alterId", 0), "net": p.get("network", "tcp"), 
+                    "type": "none", "host": p.get("sni", ""), "path": p.get("ws-opts", {}).get("path", ""), 
+                    "tls": "tls" if p.get("tls") else ""}
             return "vmess://" + base64.b64encode(json.dumps(data, separators=(',', ':')).encode()).decode()
-        elif p["type"] == "trojan":
+        
+        elif ptype == "trojan":
             pwd_enc = urllib.parse.quote(p.get('password', ''), safe='')
             sni = p.get('sni', p.get('server', ''))
-            return f"trojan://{pwd_enc}@{p['server']}:{p['port']}?sni={sni}#{urllib.parse.quote(p['name'], safe='')}"
-        elif p["type"] == "vless":
-            return f"vless://{p['uuid']}@{p['server']}:{p['port']}?type={p.get('network', 'tcp')}&security={'tls' if p.get('tls') else 'none'}#{urllib.parse.quote(p['name'], safe='')}"
-        elif p["type"] == "ss":
-            auth_enc = base64.b64encode(f"{p['cipher']}:{p['password']}".encode()).decode()
-            return f"ss://{auth_enc}@{p['server']}:{p['port']}#{urllib.parse.quote(p['name'], safe='')}"
+            return f"trojan://{pwd_enc}@{p['server']}:{p['port']}?sni={sni}#{name_enc}"
+        
+        elif ptype == "vless":
+            uuid = p.get('uuid', '')
+            security = "tls" if p.get('tls') or p.get('reality') else "none"
+            flow = p.get('flow', '')
+            params = f"type={p.get('network', 'tcp')}&security={security}"
+            if flow: params += f"&flow={flow}"
+            if p.get('sni'): params += f"&sni={p['sni']}"
+            return f"vless://{uuid}@{p['server']}:{p['port']}?{params}#{name_enc}"
+        
+        elif ptype == "ss":
+            auth = f"{p['cipher']}:{p['password']}"
+            auth_enc = base64.b64encode(auth.encode()).decode()
+            return f"ss://{auth_enc}@{p['server']}:{p['port']}#{name_enc}"
+        
+        elif ptype == "ssr":
+            # SSR 格式较复杂，输出为 YAML 格式注释
+            return f"# {p['name']} (SSR)"
+        
+        elif ptype == "hysteria2":
+            pwd = urllib.parse.quote(p.get('password', ''), safe='')
+            params = f"insecure=1"
+            if p.get('sni'): params += f"&sni={p['sni']}"
+            return f"hysteria2://{pwd}@{p['server']}:{p['port']}?{params}#{name_enc}"
+        
+        elif ptype == "hysteria":
+            pwd = urllib.parse.quote(p.get('password', ''), safe='')
+            return f"hysteria://{pwd}@{p['server']}:{p['port']}#{name_enc}"
+        
+        elif ptype == "tuic":
+            uuid = p.get('uuid', '')
+            params = "congestion_control=cubic"
+            if p.get('sni'): params += f"&sni={p['sni']}"
+            return f"tuic://{uuid}:{uuid}@{p['server']}:{p['port']}?{params}#{name_enc}"
+        
+        elif ptype == "snell":
+            pwd = urllib.parse.quote(p.get('psk', ''), safe='')
+            return f"snell://{pwd}@{p['server']}:{p['port']}#{name_enc}"
+        
+        elif ptype == "socks5":
+            auth = ""
+            if p.get('username') and p.get('password'):
+                auth = f"{urllib.parse.quote(p['username'])}:{urllib.parse.quote(p['password'])}@"
+            return f"socks5://{auth}{p['server']}:{p['port']}#{name_enc}"
+        
+        elif ptype == "http":
+            auth = ""
+            if p.get('username') and p.get('password'):
+                auth = f"{urllib.parse.quote(p['username'])}:{urllib.parse.quote(p['password'])}@"
+            scheme = "https" if p.get('tls') else "http"
+            return f"{scheme}://{auth}{p['server']}:{p['port']}#{name_enc}"
+        
         return f"# {p['name']}"
     except:
-        return f"# {p['name']}"
+        return f"# {p.get('name', 'unknown')}"
 
 
 # ⭐ 主程序（集成 Fork 发现）
@@ -1106,8 +1298,8 @@ def main():
     proxy_ok = False
     
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v22.4 - 性能极速版")
-    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.4")
+    print("🚀 聚合订阅爬虫 v22.5 - 多协议增强版")
+    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.5")
     print("=" * 50)
     
     all_urls = []

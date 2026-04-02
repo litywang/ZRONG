@@ -1,8 +1,8 @@
-# 🚀 Anftlity-Crawler —— 智能订阅聚合工具 v22.3
+# 🚀 Anftlity-Crawler —— 智能订阅聚合工具 v22.5
 
 > 🌟 **极致 · 稳定 · 精准 · 高效** | GitHub Actions 全自动化节点筛选平台  
 > 基于 wzdnzd/aggregator + mahdibland/V2RayAggregator 核心逻辑深度重构的下一代方案  
-> **v22.3 内地优化版：内地优质源优先 + 节点质量过滤 + 更多可用节点**
+> **v22.5 多协议增强版：12种协议支持 + 简洁命名 + 40+区域检测**
 
 ---
 
@@ -13,7 +13,7 @@
 | 🔥 **多源采集** | Telegram+GitHub Fork+固定源 | 正则增强版爬虫 |
 | 🇨🇳 **内地优先** | 国内维护源优先加载 | ermaozi/peasoft/aiboboxx 等 |
 | 📄 **双格式解析** | TXT 链接 + YAML 配置 | 自动识别并行处理 |
-| 🔗 **全协议支持** | 7种协议链接 + YAML节点 | VMess/VLESS/Trojan/SS/Hysteria2/Hysteria/TUIC |
+| 🔗 **全协议支持** | 12种协议链接 + YAML节点 | VMess/VLESS/Trojan/SS/SSR/Hysteria2/Hysteria/TUIC/Snell/HTTP/SOCKS5/AnyTLS |
 | 🧹 **智能去重** | MD5(协议特征) | 重复率降至 <1% |
 | 🔍 **质量过滤** | 排除过期/测试/高倍率 | 借鉴 wzdnzd/aggregator |
 | ⚡ **三层检测** | TCP → Speedtest → 输出 | 分层验证架构 |

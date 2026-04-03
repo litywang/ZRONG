@@ -92,15 +92,15 @@ TELEGRAM_CHANNELS = [
 ]
 
 HEADERS = {"User-Agent": "Mozilla/5.0; Clash.Meta; Mihomo; Shadowrocket"}
-TIMEOUT = 15  # 缩短超时时间
+TIMEOUT = 8   # ⚡ 大幅缩短超时，快速跳过无响应源
 
-MAX_FETCH_NODES = 5000        # 3000 → 5000
-MAX_TCP_TEST_NODES = 2000     # 800 → 2000
-MAX_PROXY_TEST_NODES = 500    # 200 → 500（关键！大幅增加测速节点数）
-MAX_FINAL_NODES = 300          # 150 → 300（增加最终输出）
-MAX_LATENCY = 10000           # 5000 → 10000（TCP延迟放宽到10秒）
-MIN_PROXY_SPEED = 0.0        # 0.005 → 0.0（取消速度限制，只看能否连通）
-MAX_PROXY_LATENCY = 20000     # 10000 → 20000（代理延迟放宽到20秒）
+MAX_FETCH_NODES = 3000        # 够用即可，不要太多
+MAX_TCP_TEST_NODES = 600      # TCP测试适量
+MAX_PROXY_TEST_NODES = 150    # ⚡ 代理测试是最慢的，严格控制数量
+MAX_FINAL_NODES = 120         # 最终输出
+MAX_LATENCY = 5000            # TCP延迟阈值
+MIN_PROXY_SPEED = 0.0         # 取消速度限制，只看能否连通
+MAX_PROXY_LATENCY = 15000     # 代理延迟阈值
 TEST_URL = "http://www.gstatic.com/generate_204"
 
 CLASH_PORT = 17890
@@ -108,12 +108,16 @@ CLASH_API_PORT = 19090
 CLASH_VERSION = "v1.19.0"
 NODE_NAME_PREFIX = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
 
-MAX_WORKERS = 60       # 40 → 60
-REQUESTS_PER_SECOND = 5.0  # 提高请求频率
-MAX_RETRIES = 3  # 适度重试
+MAX_WORKERS = 50
+REQUESTS_PER_SECOND = 3.0
+MAX_RETRIES = 1   # ⚡ 减少重试次数，失败就跳过
 
 # 订阅源抓取专用高并发
-FETCH_WORKERS = 100  # 80 → 100
+FETCH_WORKERS = 80
+
+# ⚡ GitHub Fork 发现限制（最大耗时来源）
+MAX_FORK_REPOS = 30   # 每个base repo最多取30个fork（原来100个）
+MAX_FORK_URLS = 1500  # Fork URL总数上限
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
@@ -230,19 +234,17 @@ def discover_github_forks():
     print("🔍 动态发现 GitHub Fork...")
     subs = []
     
-    # 每个 fork 的潜在路径（精简到6个高频路径）
+    # 每个 fork 的潜在路径（精简到3个最高频路径）
     potential_paths = [
         "proxies.yaml", 
-        "all.txt",
         "subscription.txt",
         "v2ray.txt",
-        "vmess.txt",
-        "config.yaml",
     ]
     
     # 并行获取所有 base repo 的 fork 列表
     def fetch_forks(base):
-        url = f"https://api.github.com/repos/{base}/forks?per_page=100&sort=newest"
+        # ⚡ 只取最新的 MAX_FORK_REPOS 个 fork
+        url = f"https://api.github.com/repos/{base}/forks?per_page={MAX_FORK_REPOS}&sort=newest"
         try:
             resp = session.get(url, timeout=10, headers={"Accept": "application/vnd.github.v3+json"})
             if resp.status_code == 200:
@@ -273,10 +275,15 @@ def discover_github_forks():
                 raw_url = f"https://raw.githubusercontent.com/{fullname}/{branch}/{path}"
                 all_urls_to_check.append(raw_url)
     
+    # ⚡ 限制总URL数量，避免爬取时间过长
+    all_urls_to_check = list(set(all_urls_to_check))
+    if len(all_urls_to_check) > MAX_FORK_URLS:
+        random.shuffle(all_urls_to_check)
+        all_urls_to_check = all_urls_to_check[:MAX_FORK_URLS]
+    
     print(f"   🔗 构建 {len(all_urls_to_check)} 个潜在 URL（跳过验证，直接拉取）...")
     
-    # 直接去重加入，不验证——让 fetch_and_parse 自然淘汰无效源
-    subs = list(set(all_urls_to_check))
+    subs = all_urls_to_check
     print(f"✅ GitHub Fork 共发现 {len(subs)} 个候选来源\n")
     return subs
 
@@ -963,7 +970,7 @@ def fetch(url):
         return ""
 
 
-def tcp_ping(host, port, to=2.0):  # 1.0 → 2.0，给更多节点机会
+def tcp_ping(host, port, to=1.5):  # ⚡ 1.5s超时，快速筛选
     if not host:
         return 9999.0
     try:
@@ -1279,17 +1286,13 @@ class ClashManager:
             time.sleep(0.05)  # 极短等待
             px = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
             start = time.time()
-            resp = requests.get(TEST_URL, proxies=px, timeout=8, allow_redirects=False)
+            resp = requests.get(TEST_URL, proxies=px, timeout=5, allow_redirects=False)  # ⚡ 5s超时
             lat = (time.time() - start) * 1000
             if resp.status_code in [200, 204, 301, 302]:
-                sp_start = time.time()
-                try:
-                    # 更小的测速文件，更短超时
-                    sp_resp = requests.get("https://speed.cloudflare.com/__down?bytes=65536", proxies=px, timeout=10)
-                    sp = len(sp_resp.content) / max(0.2, time.time() - sp_start) / (1024 * 1024)
-                    result = {"success": True, "latency": round(lat, 1), "speed": round(sp, 2), "error": ""}
-                except: result["speed"] = 0.0
-            else: result["error"] = f"Status:{resp.status_code}"
+                # ⚡ 跳过测速，只测连通性，大幅节省时间
+                result = {"success": True, "latency": round(lat, 1), "speed": 0.0, "error": ""}
+            else:
+                result["error"] = f"Status:{resp.status_code}"
         except Exception as e:
             result["error"] = str(e)[:60]
         return result
@@ -1535,20 +1538,33 @@ def main():
             if clash.create_config(tprox) and clash.start():
                 proxy_ok = True
                 print("📊 测速中...\n")
-                for i, item in enumerate(nres[:MAX_PROXY_TEST_NODES]):
+                tprox_list = nres[:MAX_PROXY_TEST_NODES]
+                
+                # ⚡ 并发测试代理（原来是串行，改为并发大幅提速）
+                def test_one(item):
                     p = item["proxy"]
                     r = clash.test_proxy(p["name"])
-                    k = f"{p['server']}:{p['port']}"
-                    if r["success"] and r["latency"] < MAX_PROXY_LATENCY:
-                        if True:  # 只要连通就保留
-                            fl, cd = get_region(p.get("name", ""))
-                            p["name"] = namer.generate(fl, int(r["latency"]), r["speed"], tcp=False)
-                            final.append(p)
-                            tested.add(k)
-                            print(f"   ✅ {p['name']}")
-                    if len(final) >= MAX_FINAL_NODES: break
-                    if (i + 1) % 10 == 0:
-                        print(f"   进度：{i + 1}/{min(len(nres), MAX_PROXY_TEST_NODES)} | 合格：{len(final)}")
+                    return item, p, r
+                
+                with ThreadPoolExecutor(max_workers=20) as tex:
+                    test_futures = {tex.submit(test_one, item): item for item in tprox_list}
+                    done_count = 0
+                    for future in as_completed(test_futures):
+                        try:
+                            item, p, r = future.result(timeout=8)
+                            done_count += 1
+                            k = f"{p['server']}:{p['port']}"
+                            if r["success"] and r["latency"] < MAX_PROXY_LATENCY:
+                                fl, cd = get_region(p.get("name", ""))
+                                p["name"] = namer.generate(fl, int(r["latency"]), r["speed"], tcp=False)
+                                final.append(p)
+                                tested.add(k)
+                                print(f"   ✅ {p['name']}")
+                            if len(final) >= MAX_FINAL_NODES:
+                                break
+                            if done_count % 10 == 0:
+                                print(f"   进度：{done_count}/{len(tprox_list)} | 合格：{len(final)}")
+                        except: pass
                 clash.stop()
                 
                 if len(final) < 50:

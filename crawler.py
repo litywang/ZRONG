@@ -19,36 +19,88 @@ from datetime import datetime
 
 # ==================== 配置区 ====================
 CANDIDATE_URLS = [
-    # ============ 核心订阅源（精简到10个高质量） ============
+    # ============ 国内优质源（优先） ============
     "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
     "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt",
     "https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/v2",
     "https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray",
     "https://raw.githubusercontent.com/freefq/free/master/v2",
+    "https://raw.githubusercontent.com/kxswa/v2rayfree/main/v2ray",
+    "https://raw.githubusercontent.com/llywhn/v2ray-subscribe/main/v2ray.txt",
+    
+    # ============ 国际稳定源 ============
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vmess.txt",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/trojan.txt",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/ss.txt",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/hysteria2.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/Eternity.txt",
     "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vless.txt",
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vmess.txt",
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/trojan.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vless.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vmess.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/trojan.txt",
+    "https://raw.githubusercontent.com/roosterkid/openproxylist/main/SS.json",
+    "https://raw.githubusercontent.com/roosterkid/openproxylist/main/VMESS.json",
+    "https://raw.githubusercontent.com/baaif/Subconverter/master/sub/sub.ini",
     "https://shz.al/~WangCai",
+    # ============ 额外高质量源 ============
+    "https://raw.githubusercontent.com/fishball-2048/Subconverter/main/Sub/subconverter_subscribe.ini",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/All_Configs_Sub.txt",
+    "https://raw.githubusercontent.com/SagerNet/sing-box/develop/Configs/proxies.json",
+    "https://raw.githubusercontent.com/XTLS/Xray-core/master/examples/config.json",
+    "https://api.mrx.one/v2ray?token=your-token-here",  # 假的token，示例
+    # ============ 国内额外优质源 ============
+    "https://raw.githubusercontent.com/adiwzx/freenode/main/v2ray.txt",
+    "https://raw.githubusercontent.com/xingsin/test/main/list",
+    "https://raw.githubusercontent.com/vxiaodong/zgq/main/sub",
+    "https://raw.githubusercontent.com/changfengoss/pro/main/sub",
+    "https://raw.githubusercontent.com/mymysub/V2raySubscribe/main/v2ray",
+    "https://raw.githubusercontent.com/wxloststar/v2ray_sub/master/v2ray.txt",
+    "https://raw.githubusercontent.com/aiboboxx/clashfree/main/clash",
+    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/clash.yaml",
+    "https://raw.githubusercontent.com/yonggekkk/yonggekkk.github.io/master/v2raylink.txt",
+    "https://raw.githubusercontent.com/ONGKB/V2RayAggregator/master/sub/sub_merge.txt",
+    "https://raw.githubusercontent.com/yeahwu/v2ray-wuzhi/main/v2ray",
+    "https://raw.githubusercontent.com/v2ray-free/v2ray-free/master/v2ray",
+    "https://raw.githubusercontent.com/ssrsub/ssr/master/v2ray",
+    # ============ 国际额外源 ============
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/ss.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/ss.txt",
+    "https://raw.githubusercontent.com/anaer/Sub/main/sub_merge.txt",
 ]
 
 TELEGRAM_CHANNELS = [
-    # ============ 核心频道（精简到12个高质量） ============
+    # ============ 国内优质频道（优先） ============
     "v2ray_free", "freev2rayng", "v2rayng_free", "sub_free",
     "vmessfree", "vlessfree", "trojanfree", "ssfree",
     "proxiesdaily", "clashnode", "freeclash", "freeproxy",
+    "v2ray_share", "v2raydaily", "clashmeta", "proxies_free",
+    "mr_v2ray", "wxdy666", "dns68", "jiedianbodnn",
+    "AlphaV2ray", "V2rayN", "proxies_share", "freev2ray",
+    "clashvpn", "v2rayngvpn", "freeVPNjd", "hysteria2_free",
+    "tuic_free", "ssr_free", "http_proxy", "socks5_free",
+    "V2rayNG_Latest", "v2ray_ssr", "proxylist", "share_proxy",
+    "FreeNodeVPN", "v2rayng_pro", "clash_config", "vpn_daily",
+    "SSR_V2Ray", "ProxyServer", "vpn_share", "node_update",
+    "v2ray_links", "vpn_proxy", "free_nodes", "proxy_node",
+    "clash_daily", "v2ray_test", "FastProxy", "SpeedNode",
 ]
 
 HEADERS = {"User-Agent": "Mozilla/5.0; Clash.Meta; Mihomo; Shadowrocket"}
 TIMEOUT = 15  # 缩短超时时间
 
-MAX_FETCH_NODES = 1500  # 减少抓取上限
-MAX_TCP_TEST_NODES = 200   # 减少TCP测试
-MAX_PROXY_TEST_NODES = 80  # 减少代理测试
-MAX_FINAL_NODES = 60       # 减少最终输出
-MAX_LATENCY = 1500         # 更严格的延迟阈值
-MIN_PROXY_SPEED = 0.05     # 更高的速度要求
-MAX_PROXY_LATENCY = 2500
+MAX_FETCH_NODES = 5000        # 3000 → 5000
+MAX_TCP_TEST_NODES = 2000     # 800 → 2000
+MAX_PROXY_TEST_NODES = 500    # 200 → 500（关键！大幅增加测速节点数）
+MAX_FINAL_NODES = 100          # 150 → 300（增加最终输出）
+MAX_LATENCY = 10000           # 5000 → 10000（TCP延迟放宽到10秒）
+MIN_PROXY_SPEED = 0.0        # 0.005 → 0.0（取消速度限制，只看能否连通）
+MAX_PROXY_LATENCY = 20000     # 10000 → 20000（代理延迟放宽到20秒）
 TEST_URL = "http://www.gstatic.com/generate_204"
 
 CLASH_PORT = 17890
@@ -56,12 +108,12 @@ CLASH_API_PORT = 19090
 CLASH_VERSION = "v1.19.0"
 NODE_NAME_PREFIX = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
 
-MAX_WORKERS = 30  # 大幅提高并发
-REQUESTS_PER_SECOND = 3.0  # 提高请求频率
-MAX_RETRIES = 2  # 减少重试
+MAX_WORKERS = 60       # 40 → 60
+REQUESTS_PER_SECOND = 5.0  # 提高请求频率
+MAX_RETRIES = 3  # 适度重试
 
 # 订阅源抓取专用高并发
-FETCH_WORKERS = 50  # 抓取并发数
+FETCH_WORKERS = 100  # 80 → 100
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
@@ -80,20 +132,46 @@ USER_AGENT_POOL = [
     "Mozilla/5.0 (Android 11; Mobile; rv:84.0) Gecko/84.0 Firefox/84.0",
 ]
 
-# ⭐ 新增：GitHub Fork 基础仓库（核心，精简版）
+# ⭐ 新增：GitHub Fork 基础仓库（扩展版 - 更多优质源）
 GITHUB_BASE_REPOS = [
-    # ============ 国内优质源（优先，只保留核心） ============
-    "ermaozi/get_subscribe",                 # 国内维护，更新快
-    "peasoft/NoMoreWalls",                   # 国内热门
+    # ============ 国内优质源（优先） ============
+    "ermaozi/get_subscribe",                 # 🥇 国内维护，更新快
+    "peasoft/NoMoreWalls",                   # 🥈 国内热门，节点多
     "aiboboxx/v2rayfree",                    # 国内免费节点
-    "freefq/free",                           # freefq 大神
+    "freefq/free",                           # freefq 大神集合
+    "mfuu/v2ray",                            # 国内聚合
+    "kxswa/v2rayfree",                       # 国内源
+    "llywhn/v2ray-subscribe",                # 国内更新快
+    "baaif/Subconverter",                    # 转换工具
     
-    # ============ 国际核心源（精简到5个） ============
+    # ============ 国际核心源 ============
     "wzdnzd/aggregator",                     # 聚合工具鼻祖
     "mahdibland/V2RayAggregator",            # V2RayAggregator 主力
     "PuddinCat/BestClash",                   # BestClash 高质量
     "roosterkid/openproxylist",              # 公开代理列表
     "anaer/Sub",                             # anaer 订阅汇总
+    "MrMohebi/xray-proxy-grabber-telegram", # xray+Telegram 双驱动
+    "jasonliu747/v2rayssr",                  # SSR+V2Ray混合
+    "fslzhang/clash_config",                 # Clash 配置整理
+    "xream/awesome-vpn",                     # VPN 资源汇总
+    "FreeFlyingMan/v2rayfree",               # 中文社区热门
+    "NastyaFan/mihomo-clash",                # Mihomo 专用
+    "chengaikun/V2RayNode",                  # V2Ray 节点汇总
+    "xiefei/V2RayConfig",                    # V2Ray 配置
+    # ============ 新增优质源 ============
+    "adiwzx/freenode",
+    "xingsin/test",
+    "vxiaodong/zgq",
+    "changfengoss/pro",
+    "mymysub/V2raySubscribe",
+    "wxloststar/v2ray_sub",
+    "yonggekkk/yonggekkk.github.io",
+    "ONGKB/V2RayAggregator",
+    "yeahwu/v2ray-wuzhi",
+    "v2ray-free/v2ray-free",
+    "ssrsub/ssr",
+    "anaer/Sub",
+    "PuddinCat/BestClash",
 ]
 
 
@@ -785,7 +863,17 @@ def get_region(name):
     elif any(k in nl for k in ["kz", "kazakhstan", "哈", "🇰🇿", "哈萨克斯坦", "阿拉木图", "almaty"]):
         return "🇰🇿", "KZ"
     
-    return "🌍", "OT"
+    # 默认处理：无法识别地区，尝试基于 server 推测，否则给个合理的默认
+    # 尝试匹配常见的通用模式
+    if any(k in nl for k in ["private", "vpn", "proxy", "network"]):
+        return "🌐", "NET"  # 网络通用
+    
+    # 如果包含数字，可能是随机生成的，标记为未知网络
+    if any(c.isdigit() for c in nl):
+        return "🌐", "NET"
+    
+    # 默认给亚洲地区（因为亚洲节点通常可用性较高）
+    return "🌐", "NET"
 
 
 def is_asia(p):
@@ -814,21 +902,29 @@ def is_china_mainland(p):
 
 
 def filter_quality(p):
-    """节点质量过滤（借鉴 wzdnzd/aggregator）"""
+    """节点质量过滤（宽松版）"""
     name = p.get("name", "").lower()
     
-    # 排除关键词
+    # 仅排除明显无效的
     exclude_keywords = [
-        "过期", "到期", "失效", "测试", "test", "expire", "expired",
-        "广告", "推广", "vip", "付费", "premium", "paid",
-        "限速", "slow", "慢", "2x", "3x", "5x",  # 高倍率节点
+        "过期", "到期", "失效", "expire", "expired",
     ]
     for kw in exclude_keywords:
         if kw in name:
             return False
     
-    # 排除内地直连节点（一般不可用）
+    # 排除内地直连
     if is_china_mainland(p):
+        return False
+    
+    # 端口检查
+    port = p.get("port", 0)
+    if port <= 0 or port > 65535:
+        return False
+    
+    # 服务器检查
+    server = p.get("server", "")
+    if not server or len(server) < 4:
         return False
     
     return True
@@ -864,7 +960,7 @@ def fetch(url):
         return ""
 
 
-def tcp_ping(host, port, to=1.0):  # 缩短超时到1秒
+def tcp_ping(host, port, to=2.0):  # 1.0 → 2.0，给更多节点机会
     if not host:
         return 9999.0
     try:
@@ -1180,13 +1276,13 @@ class ClashManager:
             time.sleep(0.05)  # 极短等待
             px = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
             start = time.time()
-            resp = requests.get(TEST_URL, proxies=px, timeout=4, allow_redirects=False)
+            resp = requests.get(TEST_URL, proxies=px, timeout=8, allow_redirects=False)
             lat = (time.time() - start) * 1000
             if resp.status_code in [200, 204, 301, 302]:
                 sp_start = time.time()
                 try:
                     # 更小的测速文件，更短超时
-                    sp_resp = requests.get("https://speed.cloudflare.com/__down?bytes=131072", proxies=px, timeout=5)
+                    sp_resp = requests.get("https://speed.cloudflare.com/__down?bytes=65536", proxies=px, timeout=10)
                     sp = len(sp_resp.content) / max(0.2, time.time() - sp_start) / (1024 * 1024)
                     result = {"success": True, "latency": round(lat, 1), "speed": round(sp, 2), "error": ""}
                 except: result["speed"] = 0.0
@@ -1409,7 +1505,7 @@ def main():
                 return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
         
         # 提高并发数用于 TCP 测试（大幅提高）
-        tcp_workers = 100  # 100并发
+        tcp_workers = 200  # 100 → 200
         with ThreadPoolExecutor(max_workers=tcp_workers) as ex:
             futures = {ex.submit(test_tcp_node, p): p for p in nlist}
             completed = 0
@@ -1441,7 +1537,7 @@ def main():
                     r = clash.test_proxy(p["name"])
                     k = f"{p['server']}:{p['port']}"
                     if r["success"] and r["latency"] < MAX_PROXY_LATENCY:
-                        if r["speed"] >= MIN_PROXY_SPEED or r["latency"] < 500:
+                        if True:  # 只要连通就保留
                             fl, cd = get_region(p.get("name", ""))
                             p["name"] = namer.generate(fl, int(r["latency"]), r["speed"], tcp=False)
                             final.append(p)

@@ -97,7 +97,7 @@ TIMEOUT = 15  # 缩短超时时间
 MAX_FETCH_NODES = 5000        # 3000 → 5000
 MAX_TCP_TEST_NODES = 2000     # 800 → 2000
 MAX_PROXY_TEST_NODES = 500    # 200 → 500（关键！大幅增加测速节点数）
-MAX_FINAL_NODES = 100          # 150 → 300（增加最终输出）
+MAX_FINAL_NODES = 300          # 150 → 300（增加最终输出）
 MAX_LATENCY = 10000           # 5000 → 10000（TCP延迟放宽到10秒）
 MIN_PROXY_SPEED = 0.0        # 0.005 → 0.0（取消速度限制，只看能否连通）
 MAX_PROXY_LATENCY = 20000     # 10000 → 20000（代理延迟放宽到20秒）
@@ -918,7 +918,10 @@ def filter_quality(p):
         return False
     
     # 端口检查
-    port = p.get("port", 0)
+    try:
+        port = int(p.get("port", 0))
+    except (ValueError, TypeError):
+        port = 0
     if port <= 0 or port > 65535:
         return False
     

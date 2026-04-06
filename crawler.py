@@ -97,7 +97,7 @@ TIMEOUT = 8   # ⚡ 大幅缩短超时，快速跳过无响应源
 MAX_FETCH_NODES = 3000        # 够用即可，不要太多
 MAX_TCP_TEST_NODES = 600      # TCP测试适量
 MAX_PROXY_TEST_NODES = 150    # ⚡ 代理测试是最慢的，严格控制数量
-MAX_FINAL_NODES = 120         # 最终输出
+MAX_FINAL_NODES = 180         # 最终输出
 MAX_LATENCY = 5000            # TCP延迟阈值
 MIN_PROXY_SPEED = 0.0         # 取消速度限制，只看能否连通
 MAX_PROXY_LATENCY = 15000     # 代理延迟阈值
@@ -1567,10 +1567,10 @@ def main():
                         except: pass
                 clash.stop()
                 
-                if len(final) < 50:
+                if len(final) < 180:
                     print(f"\n⚠️ 测速合格 {len(final)} 个，使用 TCP 补充...\n")
                     for item in nres:
-                        if len(final) >= 50: break
+                        if len(final) >= 180: break
                         p = item["proxy"]
                         k = f"{p['server']}:{p['port']}"
                         if k in tested: continue
@@ -1640,16 +1640,16 @@ def main():
         lats = [tcp_ping(p["server"], p["port"]) for p in unique_final[:20]] if unique_final else []
         min_lat = min(lats) if lats else 0
         
-        print("\n" + "=" * 50)
+        print("\n" + "=" * 180)
         print("📊 统计结果")
-        print("=" * 50)
+        print("=" * 180)
         print(f"• Fork 来源：{len(fork_subs)}")
         print(f"• Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总：{len(all_urls)}")
         print(f"• 原始：{len(nodes)} | TCP: {len(nres)} | 最终：{len(unique_final)}")
         print(f"• 亚洲：{asia_ct} 个 ({asia_ct * 100 // max(len(unique_final), 1)}%)")
         print(f"• 最低延迟：{min_lat:.1f} ms")
         print(f"• 耗时：{tt:.1f} 秒")
-        print("=" * 50 + "\n")
+        print("=" * 180 + "\n")
         
         # 9. Telegram 推送（保留）
         if BOT_TOKEN and CHAT_ID and REPO_NAME:

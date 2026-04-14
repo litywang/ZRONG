@@ -7,7 +7,8 @@
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性
 """
 
-import requests, base64, hashlib, time, json, socket, os, sys, re, yaml, subprocess, signal, gzip, shutil, ssl, urllib.request, urllib.error, urllib.parse
+import requests, base64, hashlib, time, json, socket
+requests.packages.urllib3.disable_warnings(), os, sys, re, yaml, subprocess, signal, gzip, shutil, ssl, urllib.request, urllib.error, urllib.parse
 import ipaddress
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -1218,21 +1219,7 @@ def fetch(url):
     headers = random.choice(HEADERS_POOL)
     is_github = "github" in url.lower() or "raw.githubusercontent" in url
 
-    if not is_github:
-        try:
-            resp = session.get(url, headers=headers, timeout=18, allow_redirects=True, verify=False)
-            if resp.status_code == 200:
-                raw = resp.content
-                enc = resp.headers.get("Content-Encoding", "").lower()
-                if enc == "gzip":
-                    try: raw = gzip.decompress(raw)
-                    except: pass
-                return raw.decode("utf-8", errors="ignore").strip()
-        except Exception as e:
-            pass
-        return ""
-
-    # GitHub: 遍历镜像池
+    # GitHub: 遍历镜像池 + 原始地址兜底
     all_urls = []
     for mirror in SUB_MIRRORS:
         if mirror:
@@ -1242,25 +1229,21 @@ def fetch(url):
 
     tried = 0
     for try_url in all_urls:
-        if tried >= 3: break  # 最多试3个（镜像不够时补原始）
+        if tried >= 3: break
         tried += 1
         for attempt in range(2):
             try:
                 resp = session.get(try_url, headers=headers, timeout=20,
                                    allow_redirects=True, verify=False)
                 if resp.status_code == 200:
-                    raw = resp.content
-                    enc = resp.headers.get("Content-Encoding", "").lower()
-                    if enc == "gzip":
-                        try: raw = gzip.decompress(raw)
-                        except: pass
-                    text = raw.decode("utf-8", errors="ignore").strip()
+                    # requests 自动处理 gzip，解码后直接返回
+                    text = resp.text.strip()
                     if len(text) > 50:
                         return text
                 elif resp.status_code in (403, 429, 503):
                     time.sleep(random.uniform(2.0, 5.0))
                     continue
-            except Exception as e:
+            except Exception:
                 time.sleep(random.uniform(0.5, 1.5))
     return ""
 

@@ -7,94 +7,56 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
-  crawl-and-test:
+  update:
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
       - name: Install Dependencies
-        run: |
-          pip install --upgrade -q requests pyyaml urllib3 aiohttp
+        run: pip install --upgrade -q requests pyyaml urllib3 aiohttp
 
       - name: Run Crawler v24
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GIST_ID: ${{ secrets.GIST_ID || 'dc87627768298a4f6af8281cad97dfa3' }}
-          ENABLE_UNLOCK: false
-        run: |
-          echo "ZRONG v24.0 starting..."
-          python crawler.py
-          echo "Done"
+        run: python crawler.py
 
-      - name: Verify Output Files
+      - name: Verify Output
         run: |
-          echo "=== Check output ==="
-          ls -lh JDK.yaml subscription.txt stats.json 2>/dev/null || echo "Some files missing"
+          echo "=== 检查输出文件 ==="
+          ls -lh proxies.yaml subscription.txt 2>/dev/null || echo "部分文件未生成"
           echo ""
-          echo "=== Node count ==="
-          grep -c "name:" JDK.yaml 2>/dev/null || echo "0"
+          echo "=== 节点统计 ==="
+          grep -c "name:" proxies.yaml 2>/dev/null || echo "0"
           echo ""
-          echo "=== Gist ==="
-          echo "https://gist.githubusercontent.com/litywang/dc87627768298a4f6af8281cad97dfa3/raw/JDK.yaml"
+          echo "=== Gist 链接 ==="
+          echo "海外: https://gist.githubusercontent.com/litywang/dc87627768298a4f6af8281cad97dfa3/raw/proxies.yaml"
+          echo "国内: https://gh-proxy.com/https://gist.githubusercontent.com/litywang/dc87627768298a4f6af8281cad97dfa3/raw/proxies.yaml"
 
       - name: Commit and Push
         run: |
-          echo "=== GitHub Direct Push ==="
-          python << 'PYEOF'
-import os, base64, aiohttp, asyncio
-
-token = os.environ["GITHUB_TOKEN"]
-repo = os.environ["GITHUB_REPOSITORY"]
-api = "https://api.github.com/repos/" + repo + "/contents"
-hdrs = {"Authorization": "token " + token, "Accept": "application/vnd.github.v3+json"}
-
-files = [("JDK.yaml", "JDK.yaml"), ("subscription.txt", "subscription.txt"), ("stats.json", "stats.json")]
-
-async def push_one(name, remote):
-    url = api + "/" + remote
-    sha = None
-    async with aiohttp.ClientSession() as s:
-        async with s.get(url, headers=hdrs, timeout=aiohttp.ClientTimeout(total=30)) as r:
-            if r.status == 200:
-                data = await r.json()
-                sha = data.get("sha")
-        with open(name, "r", encoding="utf-8") as f:
-            content = f.read()
-        enc = base64.b64encode(content.encode()).decode()
-        payload = {"message": "Auto update", "content": enc}
-        if sha:
-            payload["sha"] = sha
-        async with s.put(url, headers=hdrs, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as r:
-            txt = await r.text()
-            if r.status in (200, 201):
-                print("OK: " + remote)
-            else:
-                print("FAIL: " + remote + " " + str(r.status))
-
-async def main():
-    await asyncio.gather(*[push_one(n, r) for n, r in files])
-
-asyncio.run(main())
-PYEOF
-          echo "Push done"
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add proxies.yaml subscription.txt stats.json 2>/dev/null || true
+          if git diff --staged --quiet; then
+            echo "Nothing to commit"
+          else
+            git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M')"
+            git push --force-with-lease
+          fi
 
       - name: Upload Logs on Failure
         uses: actions/upload-artifact@v4

@@ -1928,7 +1928,7 @@ def main():
             ],
             "rules": ["MATCH,🌍 Select"]
         }
-        with open("JDK.yaml", "w", encoding="utf-8") as f:
+        with open("proxies.yaml", "w", encoding="utf-8") as f:
             yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
         
         b64_lines = [format_proxy_to_link(p) for p in unique_final]

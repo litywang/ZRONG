@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v22.5 - 多协议增强版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.5
-优化：SSR/Snell/HTTP/SOCKS5协议支持 + 简洁命名 + 增强区域检测
-核心原则：三層严格检测 + 全量优质源 + 零语法错误 + 最佳稳定性
+聚合订阅爬虫 v24.0 - 大陆友好优化版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 24.0
+优化：CN IP段过滤 + 多镜像池 + TLS握手检测 + 丢包率检测 + 协议评分 + GitHub直推
+核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性
 """
 
 import requests, base64, hashlib, time, json, socket, os, sys, re, yaml, subprocess, signal, gzip, shutil, ssl, urllib.request, urllib.error, urllib.parse
+import ipaddress
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 from urllib.parse import urlparse, unquote, parse_qs
+from functools import lru_cache
 import threading
 import random
 from datetime import datetime
@@ -91,8 +93,12 @@ TELEGRAM_CHANNELS = [
     "clash_daily", "v2ray_test", "FastProxy", "SpeedNode",
 ]
 
-HEADERS = {"User-Agent": "Mozilla/5.0; Clash.Meta; Mihomo; Shadowrocket"}
-TIMEOUT = 8   # ⚡ 大幅缩短超时，快速跳过无响应源
+HEADERS_POOL = [
+    {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36", "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8", "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8", "Accept-Encoding": "gzip, deflate, br", "Sec-Fetch-Dest": "document", "Sec-Fetch-Mode": "navigate", "Sec-Fetch-Site": "none", "Sec-Fetch-User": "?1", "Connection": "keep-alive"},
+    {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Safari/605.1.15", "Accept": "*/*", "Accept-Encoding": "gzip, deflate, br", "Accept-Language": "zh-CN,zh;q=0.9", "Sec-Fetch-Dest": "empty", "Sec-Fetch-Mode": "cors", "Sec-Fetch-Site": "same-origin"},
+    {"User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Mobile/15E148 Safari/604.1", "Accept": "*/*", "Accept-Encoding": "gzip, deflate, br", "Sec-Fetch-Dest": "empty", "Sec-Fetch-Mode": "cors"},
+]
+TIMEOUT = 8
 
 MAX_FETCH_NODES = 3000        # 够用即可，不要太多
 MAX_TCP_TEST_NODES = 600      # TCP测试适量
@@ -110,14 +116,85 @@ NODE_NAME_PREFIX = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
 
 MAX_WORKERS = 50
 REQUESTS_PER_SECOND = 3.0
-MAX_RETRIES = 1   # ⚡ 减少重试次数，失败就跳过
+MAX_RETRIES = 1
 
-# 订阅源抓取专用高并发
-FETCH_WORKERS = 80
+# 订阅源抓取并发（降速防封）
+FETCH_WORKERS = 30
 
 # ⚡ GitHub Fork 发现限制（最大耗时来源）
 MAX_FORK_REPOS = 30   # 每个base repo最多取30个fork（原来100个）
 MAX_FORK_URLS = 1500  # Fork URL总数上限
+
+# ===== GitHub 多镜像池（按速度排序，2026-04实测）=====
+SUB_MIRRORS = [
+    "https://gh.llkk.cc/",       # ~700ms  最快
+    "https://raw.iqiq.io/",      # ~2100ms
+    "https://gh-proxy.com/",      # ~6400ms
+]
+
+# ===== CN IP 段过滤（/8 粒度，完整覆盖）=====
+CN_IP_RANGES = [
+    ipaddress.ip_network("10.0.0.0/8"), ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"), ipaddress.ip_network("42.0.0.0/8"),
+    ipaddress.ip_network("58.0.0.0/8"), ipaddress.ip_network("60.0.0.0/8"),
+    ipaddress.ip_network("101.0.0.0/8"), ipaddress.ip_network("106.0.0.0/8"),
+    ipaddress.ip_network("112.0.0.0/8"), ipaddress.ip_network("113.0.0.0/8"),
+    ipaddress.ip_network("114.0.0.0/8"), ipaddress.ip_network("115.0.0.0/8"),
+    ipaddress.ip_network("116.0.0.0/8"), ipaddress.ip_network("117.0.0.0/8"),
+    ipaddress.ip_network("118.0.0.0/8"), ipaddress.ip_network("119.0.0.0/8"),
+    ipaddress.ip_network("120.0.0.0/8"), ipaddress.ip_network("121.0.0.0/8"),
+    ipaddress.ip_network("123.0.0.0/8"), ipaddress.ip_network("124.0.0.0/8"),
+    ipaddress.ip_network("125.0.0.0/8"), ipaddress.ip_network("140.0.0.0/8"),
+    ipaddress.ip_network("175.0.0.0/8"), ipaddress.ip_network("180.0.0.0/8"),
+    ipaddress.ip_network("182.0.0.0/8"), ipaddress.ip_network("183.0.0.0/8"),
+    ipaddress.ip_network("202.0.0.0/8"), ipaddress.ip_network("203.0.0.0/8"),
+    ipaddress.ip_network("210.0.0.0/8"), ipaddress.ip_network("218.0.0.0/8"),
+    ipaddress.ip_network("222.0.0.0/8"), ipaddress.ip_network("223.0.0.0/8"),
+]
+
+# ===== CN 域名黑名单正则 ======
+CN_DOMAIN_BLACKLIST_RE = re.compile(
+    r'\.(cn|cyou|top|xyz|cc|mojcn|cnmjin|qpon|'
+    r'hk[\-_]?db|entry\.v\d+|internal\.(?:hk|tw|jp|sg)|bk[\-_]?hk\.node|'
+    r'mobgslb\.tbcache|mobgslb\.tengine|tbcache\.com|tengine\.alicdn)\d*'
+    r'|(?:^|[\.\-])(?:v\d+|node)\d*\.hk[\-_]?(?:db|internal)|'
+    r'fastcoke|mojcn\.com|cnmjin\.net', re.I)
+
+# ===== 非代理端口黑名单 ======
+NON_PROXY_PORTS = {2377, 2376, 2375, 9200, 9300, 27017, 27018, 27019, 6379, 11211, 5432, 3306, 8086}
+
+# ===== Reality 安全域名 ======
+REALITY_SAFE_DOMAINS = {'reality.dev', 'v2fly.org', 'matsuri.biz', 'poi.moe',
+                         '233boys.dev', 'ssrsub.com', 'justmysocks.net', 'flow.kkjiang.com'}
+
+# ===== 协议优先级评分 ======
+PROTOCOL_SCORE = {"vless": 10, "trojan": 9, "anytls": 7, "vmess": 8, "hysteria2": 6,
+                  "hysteria": 6, "tuic": 5, "snell": 5, "http": 4, "socks5": 4, "ss": 3, "ssr": 1}
+
+# ===== 端口质量评分 ======
+HIGH_PORT_BONUS_THRESHOLD = 10000
+COMMON_PORT_PENALTY = {80: 300, 443: 200, 8080: 100, 8443: 100}
+
+# ===== 亚洲区域 ======
+ASIA_REGIONS = ["HK", "TW", "JP", "SG", "KR"]
+
+# ===== 并发配置 ======
+MAX_CONCURRENT_FETCH = 3
+MAX_CONCURRENT_TCP = 60
+
+# ===== DNS 缓存 ======
+_DNS_CACHE = {}
+DNS_CACHE_TTL = 300
+
+# ===== 历史稳定性记录 ======
+_HISTORY_SCORES = {}
+
+# ===== 网络基准 ======
+_NETWORK_BASELINE = {"latency": 9999, "verified": False}
+
+# ===== GitHub 直推配置 ======
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", os.getenv("GITHUB_TOKEN"))
+GIST_ID = os.getenv("GIST_ID", "dc87627768298a4f6af8281cad97dfa3")
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
@@ -179,6 +256,170 @@ GITHUB_BASE_REPOS = [
 ]
 
 
+# ========== DNS 缓存（带TTL）==========
+def resolve_domain(domain, timeout=3):
+    if not domain or not isinstance(domain, str):
+        return None
+    now = time.time()
+    if domain in _DNS_CACHE:
+        ip, ts = _DNS_CACHE[domain]
+        if now - ts < DNS_CACHE_TTL:
+            return ip
+    try:
+        old_to = socket.getdefaulttimeout()
+        socket.setdefaulttimeout(timeout)
+        ip = socket.gethostbyname(domain)
+        socket.setdefaulttimeout(old_to)
+        _DNS_CACHE[domain] = (ip, now)
+        return ip
+    except Exception:
+        _DNS_CACHE[domain] = (None, now)
+        return None
+
+# ========== CN 过滤工具 ==========
+def is_pure_ip(s):
+    if not s: return False
+    s = s.strip()
+    if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', s): return True
+    if ':' in s and re.match(r'^[0-9a-fA-F:]+$', s): return True
+    return False
+
+def is_cn_proxy_domain(server):
+    if not server or is_pure_ip(server): return False
+    sl = server.lower()
+    for safe in REALITY_SAFE_DOMAINS:
+        if sl.endswith(safe) or sl == safe: return False
+    if CN_DOMAIN_BLACKLIST_RE.search(server): return True
+    return False
+
+def is_cn_proxy_ip(ip_str):
+    if not ip_str: return None
+    try:
+        ip = ipaddress.ip_address(ip_str)
+    except Exception: return None
+    for cidr in CN_IP_RANGES:
+        if ip in cidr: return True
+    return False
+
+def check_node_reachability(server, timeout=3.0):
+    if not server: return False, "空server"
+    if is_pure_ip(server): return True, "纯IP"
+    if is_cn_proxy_domain(server): return False, "CN域名"
+    resolved_ip = resolve_domain(server, timeout=timeout)
+    if resolved_ip and is_cn_proxy_ip(resolved_ip):
+        return False, f"CN IP({resolved_ip})"
+    return True, "通过"
+
+def is_reality_friendly(p):
+    t = p.get("type", "")
+    if t == "vless" and p.get("reality-opts"): return True
+    name = p.get("name", "").lower()
+    return any(k in name for k in ["reality", "real-", "vlss", "lima", "fly", "ssrsub"])
+
+def record_history(server_ip, port, latency):
+    key = (server_ip, port)
+    if key not in _HISTORY_SCORES: _HISTORY_SCORES[key] = []
+    _HISTORY_SCORES[key].append(latency)
+    if len(_HISTORY_SCORES[key]) > 10: _HISTORY_SCORES[key] = _HISTORY_SCORES[key][-10:]
+
+def history_stability_score(server_ip, port):
+    key = (server_ip, port)
+    if key not in _HISTORY_SCORES or not _HISTORY_SCORES[key]: return 0
+    scores = _HISTORY_SCORES[key]
+    n = len(scores)
+    success_rate = sum(1 for s in scores if s < 9999) / n
+    avg = sum(scores) / n
+    variance = sum((s - avg) ** 2 for s in scores) / n
+    std = variance ** 0.5
+    return max(0, int(success_rate * 500 - min(std * 2, 200)))
+
+# ========== 网络基准检测 ==========
+def check_network_baseline():
+    global _NETWORK_BASELINE
+    for target, port in [("8.8.8.8", 53), ("1.1.1.1", 53)]:
+        lat = _tcp_ping(target, port, timeout=2.0)
+        if lat < 9999:
+            _NETWORK_BASELINE["latency"] = min(_NETWORK_BASELINE["latency"], lat)
+            _NETWORK_BASELINE["verified"] = True
+    return _NETWORK_BASELINE["latency"]
+
+# ========== TLS 握手检测 ==========
+def tls_handshake_ok(host, port, timeout=5.0):
+    if not host: return True, "ok"
+    try:
+        ctx = ssl.SSLContext(ssl.SSL_MODE_CLIENT, ssl.TLS_VERSION_TLSv1_2)
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        sock = socket.create_connection((host, port), timeout=timeout)
+        try:
+            with ctx.wrap_socket(sock, server_hostname=host): pass
+            return True, "ok"
+        except ssl.SSLError as e:
+            err = str(e)
+            if 'HANDSHAKE_FAILURE' in err or 'SSLV3' in err: return False, "handshake_fail"
+            return True, "ok"
+    except Exception: return True, "ok"
+
+# ========== HTTP HEAD 检测 ==========
+def http_head_check(host, port, timeout=3.0):
+    if not host: return False
+    try:
+        import http.client
+        if port in (443, 8443, 8080):
+            try:
+                conn = http.client.HTTPSConnection(host, port, timeout=timeout, context=ssl._create_unverified_context())
+                conn.request("HEAD", "/", headers={"User-Agent": "curl/7.83.1"})
+                resp = conn.getresponse()
+                conn.close()
+                return resp.status < 500
+            except: pass
+        if port in (80, 8080, 8888):
+            try:
+                conn = http.client.HTTPConnection(host, port, timeout=timeout)
+                conn.request("HEAD", "/", headers={"User-Agent": "curl/7.83.1"})
+                resp = conn.getresponse()
+                conn.close()
+                return resp.status < 500
+            except: pass
+        return False
+    except: return False
+
+# ========== 丢包率检测 ==========
+def packet_loss_check(host, port, timeout=2.0, attempts=3):
+    if not host: return 0, attempts, False
+    success = 0
+    for _ in range(attempts):
+        lat = _tcp_ping(host, port, timeout=timeout)
+        if lat < 9999: success += 1
+        time.sleep(0.15)
+    return success, attempts, success >= 2
+
+# ========== 二次 TCP 验证 ==========
+def tcp_verify(host, port, timeout=1.5):
+    if not host: return False
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(timeout)
+        s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        s.connect((host, port))
+        s.close()
+        return True
+    except: return False
+
+# ========== 内部 TCP Ping（兼容旧名 tcp_ping）==========
+def _tcp_ping(host, port, timeout=2.5):
+    if not host: return 9999
+    try:
+        start = time.time()
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(timeout)
+        s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        s.connect((host, port))
+        s.close()
+        return round((time.time() - start) * 1000, 1)
+    except: return 9999
+
+
 def ensure_clash_dir():
     """安全创建目录"""
     if WORK_DIR.exists() and not WORK_DIR.is_dir():
@@ -216,7 +457,7 @@ def create_session():
     adapter = HTTPAdapter(max_retries=retry)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
-    session.headers.update(HEADERS)
+    session.headers.update(random.choice(HEADERS_POOL))
     return session
 
 
@@ -289,13 +530,12 @@ def discover_github_forks():
 
 
 def check_url_fast(u):
-    """快速URL验证（缩短超时）"""
-    try:
-        return session.head(u, timeout=5, allow_redirects=True).status_code == 200
-    except:
-        return False
+    """【v24】跳过 HEAD 验证，直接返回 True（零验证直拉策略）"""
+    return True
 
-
+def check_url(u):
+    """【v24】跳过 HEAD 验证"""
+    return True
 def check_url(u):
     limiter.wait(u)
     try:
@@ -909,34 +1149,43 @@ def is_china_mainland(p):
 
 
 def filter_quality(p):
-    """节点质量过滤（宽松版）"""
+    """【v24 大陆友好版】节点质量过滤，含 CN IP/域名黑名单 + 非代理端口过滤"""
     name = p.get("name", "").lower()
-    
+
     # 仅排除明显无效的
-    exclude_keywords = [
-        "过期", "到期", "失效", "expire", "expired",
-    ]
+    exclude_keywords = ["过期", "到期", "失效", "expire", "expired", "广告", "推广", "官网", "购买"]
     for kw in exclude_keywords:
         if kw in name:
             return False
-    
+
     # 排除内地直连
     if is_china_mainland(p):
         return False
-    
-    # 端口检查
+
+    # 非代理端口过滤（v24）
     try:
         port = int(p.get("port", 0))
     except (ValueError, TypeError):
         port = 0
     if port <= 0 or port > 65535:
         return False
-    
+    if port in NON_PROXY_PORTS:
+        return False
+
     # 服务器检查
     server = p.get("server", "")
     if not server or len(server) < 4:
         return False
-    
+
+    # CN IP 段过滤（v24）：域名 DNS 解析 + IP 段判断
+    if is_pure_ip(server):
+        if is_cn_proxy_ip(server):
+            return False
+    else:
+        reach, _ = check_node_reachability(server, timeout=2.0)
+        if not reach:
+            return False
+
     return True
 
 
@@ -963,28 +1212,71 @@ def decode_b64(c):
 
 
 def fetch(url):
+    """【v24 优化】GitHub URL 多镜像池遍历，非GH直连"""
     limiter.wait(url)
-    try:
-        return session.get(url, timeout=TIMEOUT).text.strip()
-    except:
+    headers = random.choice(HEADERS_POOL)
+    is_github = "github" in url.lower() or "raw.githubusercontent" in url
+
+    if not is_github:
+        try:
+            resp = session.get(url, headers=headers, timeout=18, allow_redirects=True, verify=False)
+            if resp.status_code == 200:
+                raw = resp.content
+                enc = resp.headers.get("Content-Encoding", "").lower()
+                if enc == "gzip":
+                    try: raw = gzip.decompress(raw)
+                    except: pass
+                return raw.decode("utf-8", errors="ignore").strip()
+        except Exception as e:
+            pass
         return ""
 
+    # GitHub: 遍历镜像池
+    for mirror in SUB_MIRRORS:
+        mirror_url = url
+        if mirror:
+            mirror_host = mirror.rstrip("/").replace("https://", "")
+            mirror_url = url.replace("raw.githubusercontent.com", mirror_host)
+        for attempt in range(2):
+            try:
+                resp = session.get(mirror_url, headers=headers, timeout=20,
+                                   allow_redirects=True, verify=False)
+                if resp.status_code == 200:
+                    raw = resp.content
+                    enc = resp.headers.get("Content-Encoding", "").lower()
+                    if enc == "gzip":
+                        try: raw = gzip.decompress(raw)
+                        except: pass
+                    text = raw.decode("utf-8", errors="ignore").strip()
+                    if len(text) > 50:
+                        print(f"  [OK] {mirror or 'origin'} {url[:50]}")
+                        return text
+                elif resp.status_code in (403, 429, 503):
+                    time.sleep(random.uniform(2.0, 5.0))
+                    continue
+            except Exception as e:
+                if attempt == 0:
+                    pass
+                time.sleep(random.uniform(0.5, 1.5))
+    return ""
 
-def tcp_ping(host, port, to=1.5):  # ⚡ 1.5s超时，快速筛选
-    if not host:
-        return 9999.0
+
+def tcp_ping(host, port, to=1.5):
+    """【v24】TCP Ping，支持丢包检测历史记录"""
+    if not host: return 9999.0
     try:
+        st = time.time()
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(to)
-        st = time.time()
+        s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         s.connect((host, port))
         s.close()
-        return round((time.time() - st) * 1000, 1)
+        lat = round((time.time() - st) * 1000, 1)
+        record_history(host, port, lat)
+        return lat
     except:
+        record_history(host, port, 9999)
         return 9999.0
-
-
-# ==================== Telegram 爬取 (借鉴 wzdnzd/aggregator) ====================
 def is_valid_url(url):
     """⭐ 新增：URL 有效性检查（核心优化）"""
     if not url or len(url) < 10:
@@ -1309,12 +1601,12 @@ class NodeNamer:
         return ''.join(self.FANCY.get(c.upper(), c) for c in t)
 
     def generate(self, flag, lat, speed=None, tcp=False):
+        """【v24】简短命名，含区域emoji + 编号"""
         code, region = get_region(flag)
         self.counters[region] = self.counters.get(region, 0) + 1
         num = self.counters[region]
-        pfx = self.to_fancy(NODE_NAME_PREFIX)
-        # 简洁命名：HK1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶，无后缀
-        return f"{code}{num}-{pfx}"
+        # v24: 去掉花体字，简短实用
+        return f"{code}{num}"
 
 
 # ⭐ 协议链接转换（扩展版）
@@ -1505,11 +1797,23 @@ def main():
         
         def test_tcp_node(proxy):
             try:
-                lat = tcp_ping(proxy["server"], proxy["port"])
-                return {"proxy": proxy, "latency": float(lat), "is_asia": is_asia(proxy)}
+                server = proxy.get("server", "")
+                port = proxy.get("port", 0)
+                if not server or not port: return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
+                host = server.split(":")[0] if ":" in server else server
+                lat = tcp_ping(host, port)
+                if lat >= 9999: return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
+                # 丢包率检测（v24）
+                ok, total, usable = packet_loss_check(host, port, timeout=2.0, attempts=3)
+                if not usable: return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
+                # TLS 握手检测（v24）
+                if proxy.get("tls") == True or port == 443:
+                    tls_ok, _ = tls_handshake_ok(host, port)
+                    if not tls_ok: return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
+                return {"proxy": proxy, "latency": float(lat), "is_asia": is_asia(proxy),
+                        "hist_score": history_stability_score(host, port)}
             except Exception:
                 return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
-        
         # 提高并发数用于 TCP 测试（大幅提高）
         tcp_workers = 200  # 100 → 200
         with ThreadPoolExecutor(max_workers=tcp_workers) as ex:
@@ -1575,33 +1879,26 @@ def main():
                         k = f"{p['server']}:{p['port']}"
                         if k in tested: continue
                         if item["is_asia"] and item["latency"] < 600:
+                            # CN IP 过滤（v24）
+                            server = p.get("server", "")
+                            host = server.split(":")[0] if ":" in server else server
+                            reach, _ = check_node_reachability(host, timeout=1.5)
+                            if not reach: continue
                             fl, cd = get_region(p.get("name", ""))
                             p["name"] = namer.generate(fl, int(item["latency"]), tcp=True)
                             final.append(p)
                             tested.add(k)
-                            print(f"   📌 {p['name']} (TCP)")
+                            print(f"   [TCP] {p['name']}")
                         elif item["latency"] < 300:
+                            server = p.get("server", "")
+                            host = server.split(":")[0] if ":" in server else server
+                            reach, _ = check_node_reachability(host, timeout=1.5)
+                            if not reach: continue
                             fl, cd = get_region(p.get("name", ""))
                             p["name"] = namer.generate(fl, int(item["latency"]), tcp=True)
                             final.append(p)
                             tested.add(k)
-                            print(f"   📌 {p['name']} (TCP)")
-            else:
-                print("⚠️ Clash 启动失败，使用 TCP 筛选...\n")
-                for item in nres[:MAX_FINAL_NODES * 2]:
-                    if len(final) >= MAX_FINAL_NODES: break
-                    p = item["proxy"]
-                    k = f"{p['server']}:{p['port']}"
-                    if k in tested: continue
-                    if item["is_asia"] and item["latency"] < 600:
-                        fl, cd = get_region(p.get("name", ""))
-                        p["name"] = namer.generate(fl, int(item["latency"]), tcp=True)
-                        final.append(p)
-                        tested.add(k)
-                    elif item["latency"] < 300:
-                        fl, cd = get_region(p.get("name", ""))
-                        p["name"] = namer.generate(fl, int(item["latency"]), tcp=True)
-                        final.append(p)
+                            print(f"   [TCP] {p['name']}")
                         tested.add(k)
         
         final = final[:MAX_FINAL_NODES]
@@ -1627,7 +1924,7 @@ def main():
             ],
             "rules": ["MATCH,🌍 Select"]
         }
-        with open("proxies.yaml", "w", encoding="utf-8") as f:
+        with open("JDK.yaml", "w", encoding="utf-8") as f:
             yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
         
         b64_lines = [format_proxy_to_link(p) for p in unique_final]

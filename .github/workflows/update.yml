@@ -2,77 +2,108 @@ name: Update Subscription Nodes
 
 on:
   schedule:
-    - cron: '0 */8 * * *'  # 每 6 小时更新一次
+    - cron: '0 */8 * * *'  # 每 8 小时更新一次
   workflow_dispatch:
 
 permissions:
   contents: write
   pull-requests: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   crawl-and-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
-    
+    timeout-minutes: 60
+
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-          
+
       - name: Install Dependencies
         run: |
-          pip install requests pyyaml urllib3
-          sudo apt-get update && sudo apt-get install -y golang-go || true
-          
-      - name: Run Crawler
+          pip install --upgrade -q requests pyyaml urllib3 aiohttp
+
+      - name: Run Crawler v24
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
-          #ENABLE_UNLOCK: ${{ vars.ENABLE_UNLOCK || 'true' }}#
-          #UNLOCK_PLATFORMS: ${{ vars.UNLOCK_PLATFORMS || '["Netflix","Disney+","ChatGPT","YouTube","Spotify"]' }}#
-          ENABLE_UNLOCK: false 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID || 'dc87627768298a4f6af8281cad97dfa3' }}
+          ENABLE_UNLOCK: false
         run: |
-          echo "🚀 开始运行爬虫 v19.0..."
+          echo "ZRONG v24.0 启动..."
           python crawler.py
-          echo "✅ 爬虫运行结束"
-          
+          echo "运行结束"
+
       - name: Verify Output Files
         run: |
           echo "=== 检查输出文件 ==="
-          ls -lh proxies.yaml subscription.txt 2>/dev/null || echo "❌ 文件未生成"
-          wc -l proxies.yaml subscription.txt 2>/dev/null || true
-          
-      - name: Commit and Push
+          ls -lh JDK.yaml subscription.txt stats.json 2>/dev/null || echo "部分文件未生成"
+          echo ""
+          echo "=== 节点统计 ==="
+          grep -c "name:" JDK.yaml 2>/dev/null || echo "无法统计"
+          echo ""
+          echo "=== 区域分布 ==="
+          grep -oE '(HK|TW|JP|SG|KR)-[0-9]+' JDK.yaml 2>/dev/null | sort | uniq -c | sort -rn || echo "无法统计"
+          echo ""
+          echo "=== Gist 链接 ==="
+          echo "海外: https://gist.githubusercontent.com/litywang/dc87627768298a4f6af8281cad97dfa3/raw/JDK.yaml"
+          echo "国内: https://gh-proxy.com/https://gist.githubusercontent.com/litywang/dc87627768298a4f6af8281cad97dfa3/raw/JDK.yaml"
+
+      - name: Commit and Push (GitHub Direct API)
         run: |
-          echo "=== 提交文件 ==="
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git status
-          git add proxies.yaml subscription.txt
-          git diff-index --quiet HEAD || git commit -m "🔄 Auto update v19.0 $(date '+%Y-%m-%d %H:%M')"
-          git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main || echo "Nothing to push"
-          echo "✅ 提交完成"
-          
-      - name: Verify Remote Files
-        run: |
-          echo "=== 验证远程文件 ==="
-          curl -I "https://raw.githubusercontent.com/${{ github.repository }}/main/proxies.yaml" || echo "❌ YAML 不可访问"
-          curl -I "https://raw.githubusercontent.com/${{ github.repository }}/main/subscription.txt" || echo "❌ TXT 不可访问"
-          
+          echo "=== GitHub 直推 ==="
+          python -c "
+          import os, base64, json, aiohttp, asyncio
+          token = os.environ['GITHUB_TOKEN']
+          repo = os.environ['GITHUB_REPOSITORY']
+          api_base = f'https://api.github.com/repos/{repo}/contents'
+          headers = {'Authorization': f'token {token}', 'Accept': 'application/vnd.github.v3+json'}
+
+          files = [
+              ('JDK.yaml', 'JDK.yaml'),
+              ('subscription.txt', 'subscription.txt'),
+              ('stats.json', 'stats.json'),
+          ]
+
+          async def push_one(name, remote):
+              url = f'{api_base}/{remote}'
+              sha = None
+              async with aiohttp.ClientSession() as s:
+                  async with s.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as r:
+                      if r.status == 200: sha = (await r.json()).get('sha')
+                  with open(name, 'r', encoding='utf-8') as f: content = f.read()
+                  enc = base64.b64encode(content.encode()).decode()
+                  payload = {'message': f'Auto update ({os.environ.get(\"RUN_DATE\", \"\"})', 'content': enc}
+                  if sha: payload['sha'] = sha
+                  async with s.put(url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as r:
+                      txt = await r.text()
+                      if r.status in (200, 201): print(f'OK: {remote}')
+                      else: print(f'FAIL: {remote} {r.status} {txt[:100]}')
+
+          async def main():
+              await asyncio.gather(*[push_one(n, r) for n, r in files])
+          asyncio.run(main())
+          "
+          echo "推送完成"
+
       - name: Upload Logs on Failure
         uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: crash-logs-${{ github.run_id }}
           path: |
-            clash_temp/
             *.log
             *.yaml
             *.txt
+            *.json
           retention-days: 7

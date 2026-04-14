@@ -7,8 +7,8 @@
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性
 """
 
-import requests, base64, hashlib, time, json, socket
-requests.packages.urllib3.disable_warnings(), os, sys, re, yaml, subprocess, signal, gzip, shutil, ssl, urllib.request, urllib.error, urllib.parse
+import requests, base64, hashlib, time, json, socket, os, sys, re, yaml, subprocess, signal, gzip, shutil, ssl, urllib.request, urllib.error, urllib.parse
+requests.packages.urllib3.disable_warnings()
 import ipaddress
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -257,7 +257,8 @@ GITHUB_BASE_REPOS = [
 ]
 
 
-# ========== DNS 缓存（带TTL）==========
+# ========== DNS 缓存（带TTL）==========requests.packages.urllib3.disable_warnings()
+
 def resolve_domain(domain, timeout=3):
     if not domain or not isinstance(domain, str):
         return None

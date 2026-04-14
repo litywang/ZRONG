@@ -347,9 +347,10 @@ def check_network_baseline():
 def tls_handshake_ok(host, port, timeout=5.0):
     if not host: return True, "ok"
     try:
-        ctx = ssl.SSLContext(ssl.SSL_MODE_CLIENT, ssl.TLS_VERSION_TLSv1_2)
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
+        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
         sock = socket.create_connection((host, port), timeout=timeout)
         try:
             with ctx.wrap_socket(sock, server_hostname=host): pass
@@ -1232,14 +1233,20 @@ def fetch(url):
         return ""
 
     # GitHub: 遍历镜像池
+    all_urls = []
     for mirror in SUB_MIRRORS:
-        mirror_url = url
         if mirror:
             mirror_host = mirror.rstrip("/").replace("https://", "")
-            mirror_url = url.replace("raw.githubusercontent.com", mirror_host)
+            all_urls.append(url.replace("raw.githubusercontent.com", mirror_host))
+    all_urls.append(url)  # 最后回退到原始地址
+
+    tried = 0
+    for try_url in all_urls:
+        if tried >= 3: break  # 最多试3个（镜像不够时补原始）
+        tried += 1
         for attempt in range(2):
             try:
-                resp = session.get(mirror_url, headers=headers, timeout=20,
+                resp = session.get(try_url, headers=headers, timeout=20,
                                    allow_redirects=True, verify=False)
                 if resp.status_code == 200:
                     raw = resp.content
@@ -1249,14 +1256,11 @@ def fetch(url):
                         except: pass
                     text = raw.decode("utf-8", errors="ignore").strip()
                     if len(text) > 50:
-                        print(f"  [OK] {mirror or 'origin'} {url[:50]}")
                         return text
                 elif resp.status_code in (403, 429, 503):
                     time.sleep(random.uniform(2.0, 5.0))
                     continue
             except Exception as e:
-                if attempt == 0:
-                    pass
                 time.sleep(random.uniform(0.5, 1.5))
     return ""
 

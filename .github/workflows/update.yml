@@ -2,7 +2,7 @@ name: Update Subscription Nodes
 
 on:
   schedule:
-    - cron: '0 */8 * * *'  # 每 8 小时更新一次
+    - cron: '0 */8 * * *'
   workflow_dispatch:
 
 permissions:
@@ -40,61 +40,61 @@ jobs:
           GIST_ID: ${{ secrets.GIST_ID || 'dc87627768298a4f6af8281cad97dfa3' }}
           ENABLE_UNLOCK: false
         run: |
-          echo "ZRONG v24.0 启动..."
+          echo "ZRONG v24.0 starting..."
           python crawler.py
-          echo "运行结束"
+          echo "Done"
 
       - name: Verify Output Files
         run: |
-          echo "=== 检查输出文件 ==="
-          ls -lh JDK.yaml subscription.txt stats.json 2>/dev/null || echo "部分文件未生成"
+          echo "=== Check output ==="
+          ls -lh JDK.yaml subscription.txt stats.json 2>/dev/null || echo "Some files missing"
           echo ""
-          echo "=== 节点统计 ==="
-          grep -c "name:" JDK.yaml 2>/dev/null || echo "无法统计"
+          echo "=== Node count ==="
+          grep -c "name:" JDK.yaml 2>/dev/null || echo "0"
           echo ""
-          echo "=== 区域分布 ==="
-          grep -oE '(HK|TW|JP|SG|KR)-[0-9]+' JDK.yaml 2>/dev/null | sort | uniq -c | sort -rn || echo "无法统计"
-          echo ""
-          echo "=== Gist 链接 ==="
-          echo "海外: https://gist.githubusercontent.com/litywang/dc87627768298a4f6af8281cad97dfa3/raw/JDK.yaml"
-          echo "国内: https://gh-proxy.com/https://gist.githubusercontent.com/litywang/dc87627768298a4f6af8281cad97dfa3/raw/JDK.yaml"
+          echo "=== Gist ==="
+          echo "https://gist.githubusercontent.com/litywang/dc87627768298a4f6af8281cad97dfa3/raw/JDK.yaml"
 
-      - name: Commit and Push (GitHub Direct API)
+      - name: Commit and Push
         run: |
-          echo "=== GitHub 直推 ==="
-          python -c "
-          import os, base64, json, aiohttp, asyncio
-          token = os.environ['GITHUB_TOKEN']
-          repo = os.environ['GITHUB_REPOSITORY']
-          api_base = f'https://api.github.com/repos/{repo}/contents'
-          headers = {'Authorization': f'token {token}', 'Accept': 'application/vnd.github.v3+json'}
+          echo "=== GitHub Direct Push ==="
+          python << 'PYEOF'
+import os, base64, aiohttp, asyncio
 
-          files = [
-              ('JDK.yaml', 'JDK.yaml'),
-              ('subscription.txt', 'subscription.txt'),
-              ('stats.json', 'stats.json'),
-          ]
+token = os.environ["GITHUB_TOKEN"]
+repo = os.environ["GITHUB_REPOSITORY"]
+api = "https://api.github.com/repos/" + repo + "/contents"
+hdrs = {"Authorization": "token " + token, "Accept": "application/vnd.github.v3+json"}
 
-          async def push_one(name, remote):
-              url = f'{api_base}/{remote}'
-              sha = None
-              async with aiohttp.ClientSession() as s:
-                  async with s.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as r:
-                      if r.status == 200: sha = (await r.json()).get('sha')
-                  with open(name, 'r', encoding='utf-8') as f: content = f.read()
-                  enc = base64.b64encode(content.encode()).decode()
-                  payload = {'message': f'Auto update ({os.environ.get(\"RUN_DATE\", \"\"})', 'content': enc}
-                  if sha: payload['sha'] = sha
-                  async with s.put(url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as r:
-                      txt = await r.text()
-                      if r.status in (200, 201): print(f'OK: {remote}')
-                      else: print(f'FAIL: {remote} {r.status} {txt[:100]}')
+files = [("JDK.yaml", "JDK.yaml"), ("subscription.txt", "subscription.txt"), ("stats.json", "stats.json")]
 
-          async def main():
-              await asyncio.gather(*[push_one(n, r) for n, r in files])
-          asyncio.run(main())
-          "
-          echo "推送完成"
+async def push_one(name, remote):
+    url = api + "/" + remote
+    sha = None
+    async with aiohttp.ClientSession() as s:
+        async with s.get(url, headers=hdrs, timeout=aiohttp.ClientTimeout(total=30)) as r:
+            if r.status == 200:
+                data = await r.json()
+                sha = data.get("sha")
+        with open(name, "r", encoding="utf-8") as f:
+            content = f.read()
+        enc = base64.b64encode(content.encode()).decode()
+        payload = {"message": "Auto update", "content": enc}
+        if sha:
+            payload["sha"] = sha
+        async with s.put(url, headers=hdrs, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as r:
+            txt = await r.text()
+            if r.status in (200, 201):
+                print("OK: " + remote)
+            else:
+                print("FAIL: " + remote + " " + str(r.status))
+
+async def main():
+    await asyncio.gather(*[push_one(n, r) for n, r in files])
+
+asyncio.run(main())
+PYEOF
+          echo "Push done"
 
       - name: Upload Logs on Failure
         uses: actions/upload-artifact@v4

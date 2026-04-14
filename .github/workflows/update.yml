@@ -25,38 +25,32 @@ jobs:
           python-version: '3.12'
 
       - name: Install Dependencies
-        run: pip install --upgrade -q requests pyyaml urllib3 aiohttp
+        run: pip install --upgrade -q requests pyyaml urllib3
 
       - name: Run Crawler v24
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python crawler.py
 
-      - name: Verify Output
+      - name: Check Output
         run: |
-          echo "=== 检查输出文件 ==="
-          ls -lh proxies.yaml subscription.txt 2>/dev/null || echo "部分文件未生成"
-          echo ""
           echo "=== 节点统计 ==="
-          grep -c "name:" proxies.yaml 2>/dev/null || echo "0"
-          echo ""
-          echo "=== Gist 链接 ==="
-          echo "海外: https://gist.githubusercontent.com/litywang/dc87627768298a4f6af8281cad97dfa3/raw/proxies.yaml"
-          echo "国内: https://gh-proxy.com/https://gist.githubusercontent.com/litywang/dc87627768298a4f6af8281cad97dfa3/raw/proxies.yaml"
+          echo "proxies.yaml: $(wc -l < proxies.yaml) 行"
+          echo "节点数: $(grep -c 'name:' proxies.yaml) 个"
+          echo "区域: $(grep -oE '(HK|TW|JP|SG|KR|MY|US)-[0-9]+' proxies.yaml | cut -d- -f1 | sort | uniq -c | sort -rn)"
 
       - name: Commit and Push
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add proxies.yaml subscription.txt stats.json 2>/dev/null || true
-          if git diff --staged --quiet; then
-            echo "Nothing to commit"
-          else
-            git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M')"
-            git push --force-with-lease
-          fi
+          git add proxies.yaml subscription.txt
+          git status
+          git diff --staged --stat
+          git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M')" || echo "Nothing to commit"
+          git push https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}.git HEAD:main
 
       - name: Upload Logs on Failure
         uses: actions/upload-artifact@v4
@@ -67,5 +61,4 @@ jobs:
             *.log
             *.yaml
             *.txt
-            *.json
           retention-days: 7

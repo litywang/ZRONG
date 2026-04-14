@@ -1220,7 +1220,22 @@ def fetch(url):
     headers = random.choice(HEADERS_POOL)
     is_github = "github" in url.lower() or "raw.githubusercontent" in url
 
-    # GitHub: 遍历镜像池 + 原始地址兜底
+    # 非GitHub URL：直连 + 重试
+    if not is_github:
+        for attempt in range(2):
+            try:
+                resp = session.get(url, headers=headers, timeout=18,
+                                   allow_redirects=True, verify=False)
+                if resp.status_code == 200:
+                    return resp.text.strip()
+                elif resp.status_code in (403, 429):
+                    time.sleep(3)
+                    continue
+            except Exception:
+                time.sleep(1)
+        return ""
+
+    # GitHub: 镜像池 + 原始URL兜底
     all_urls = []
     for mirror in SUB_MIRRORS:
         if mirror:

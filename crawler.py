@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v25.0 - 大陆友好全面优化版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 25.0
-优化：精确CN CIDR过滤 + 修复SSR解析 + 区域检测修正 + 镜像池扩展 + 协议评分调整
+聚合订阅爬虫 v27.0 - 区域识别修复版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 27.0
+优化：修复get_region域名后缀匹配逻辑 + 移除数字检查限制
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性
 """
 
@@ -1175,8 +1175,8 @@ def get_region(name, server=None):
     if match(["private", "vpn", "proxy", "network"]):
         return "🌐", "NET"  # 网络通用
     
-    # 如果包含数字，可能是随机生成的，尝试从域名后缀反推
-    if any(c.isdigit() for c in nl) and server:
+    # v27 FIX: 移除数字检查限制，对所有节点都尝试从域名后缀反推
+    if server:
         srv = server.lower()
         # 从右向左取最后两个部分做模糊匹配
         parts = srv.split(".")

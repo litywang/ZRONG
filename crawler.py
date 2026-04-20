@@ -1303,7 +1303,6 @@ def fetch(url):
 
     tried = 0
     for try_url in all_urls:
-        if tried >= 3: break
         tried += 1
         for attempt in range(2):
             try:
@@ -1312,6 +1311,9 @@ def fetch(url):
                 if resp.status_code == 200:
                     # requests 自动处理 gzip，解码后直接返回
                     text = resp.text.strip()
+                    # 跳过HTML错误页面
+                    if text.startswith("<!") or text.startswith("<html"):
+                        continue
                     if len(text) > 50:
                         return text
                 elif resp.status_code in (403, 429, 503):

@@ -122,7 +122,7 @@ TIMEOUT = 8
 
 MAX_FETCH_NODES = int(os.getenv("MAX_FETCH_NODES", 5000))     # v25: 扩大候选池（原3000）
 MAX_TCP_TEST_NODES = int(os.getenv("MAX_TCP_TEST_NODES", 1200)) # v25: TCP翻倍（原600，匹配README 10s阈值）
-MAX_PROXY_TEST_NODES = int(os.getenv("MAX_PROXY_TEST_NODES", 300)) # v25: 代理测速翻倍（原150）
+MAX_PROXY_TEST_NODES = int(os.getenv("MAX_PROXY_TEST_NODES", 900)) # v26: 代理测速三倍（原300），提高可用率
 MAX_FINAL_NODES = int(os.getenv("MAX_FINAL_NODES", 350))       # v25: 目标300+大陆友好节点（原180）
 MAX_LATENCY = int(os.getenv("MAX_LATENCY", 10000))             # v25: TCP延迟放宽至10s（原5000，匹配README）
 MIN_PROXY_SPEED = 0.0         # 取消速度限制，只看能否连通
@@ -1764,15 +1764,15 @@ class NodeNamer:
         return ''.join(self.FANCY.get(c.upper(), c) for c in t)
 
     def generate(self, flag, lat, speed=None, tcp=False, server=None):
-        """【v25】简短命名，含区域emoji + 编号
+        """【v26】简短命名，含区域emoji + 编号 + 哥特体后缀
         flag: 原始节点名称（或emoji字符串）
         server: 节点server字段，用于域名fallback
         """
         code, region = get_region(flag, server=server)
         self.counters[region] = self.counters.get(region, 0) + 1
         num = self.counters[region]
-        # v24: 去掉花体字，简短实用
-        return f"{code}{num}"
+        # v26: 添加哥特体后缀 -𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+        return f"{code}{num}-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
 
 
 # ⭐ 协议链接转换（扩展版）
@@ -2043,33 +2043,37 @@ def main():
                         except: pass
                 clash.stop()
                 
+                # v26: 提高TCP补充阈值（亚洲<400ms，非亚洲<200ms），提升可用率
                 if len(final) < 180:
-                    print(f"\n⚠️ 测速合格 {len(final)} 个，使用 TCP 补充...\n")
+                    print(f"\n⚠️ 测速合格 {len(final)} 个，使用 TCP 补充（仅高延迟节点）...\n")
                     for item in nres:
                         if len(final) >= 180: break
                         p = item["proxy"]
                         k = f"{p['server']}:{p['port']}"
                         if k in tested: continue
-                        if item["is_asia"] and item["latency"] < 800:
-                            # CN IP 过滤（v25: 亚洲阈值从600放宽到800，减少漏杀）
+                        # v26: 严格限制TCP补充条件
+                        if item["is_asia"] and item["latency"] < 400:  # v26: 800→400
+                            # CN IP 过滤
                             server = p.get("server", "")
                             host = server.split(":")[0] if ":" in server else server
                             reach, _ = check_node_reachability(host, timeout=1.5)
                             if not reach: continue
                             srv = p.get("server", "")
                             fl, cd = get_region(p.get("name", ""), server=srv)
-                            p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv)
+                            # v26: TCP补充节点添加标记
+                            p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv) + "[TCP]"
                             final.append(p)
                             tested.add(k)
                             print(f"   [TCP] {p['name']}")
-                        elif item["latency"] < 400:
+                        elif item["latency"] < 200:  # v26: 400→200
                             server = p.get("server", "")
                             host = server.split(":")[0] if ":" in server else server
                             reach, _ = check_node_reachability(host, timeout=1.5)
                             if not reach: continue
                             srv = p.get("server", "")
                             fl, cd = get_region(p.get("name", ""), server=srv)
-                            p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv)
+                            # v26: TCP补充节点添加标记
+                            p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv) + "[TCP]"
                             final.append(p)
                             tested.add(k)
                             print(f"   [TCP] {p['name']}")

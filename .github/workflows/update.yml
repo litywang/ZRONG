@@ -1,6 +1,12 @@
 name: Update Subscription Nodes
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'crawler.py'
+      - 'cn_cidr_data.py'
+      - '.github/workflows/update.yml'
   schedule:
     - cron: '0 */8 * * *'
   workflow_dispatch:

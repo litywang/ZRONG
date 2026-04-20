@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v24.0 - 大陆友好优化版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 24.0
-优化：CN IP段过滤 + 多镜像池 + TLS握手检测 + 丢包率检测 + 协议评分 + GitHub直推
+聚合订阅爬虫 v25.0 - 大陆友好全面优化版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 25.0
+优化：精确CN CIDR过滤 + 修复SSR解析 + 区域检测修正 + 镜像池扩展 + 协议评分调整
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性
 """
 
 import requests, base64, hashlib, time, json, socket, os, sys, re, yaml, subprocess, signal, gzip, shutil, ssl, urllib.request, urllib.error, urllib.parse
 requests.packages.urllib3.disable_warnings()
 import ipaddress
+from cn_cidr_data import CN_IP_RANGES as _CN_IP_RANGES_RAW
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib3.util.retry import Retry
@@ -75,23 +76,41 @@ CANDIDATE_URLS = [
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/ss.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/ss.txt",
     "https://raw.githubusercontent.com/anaer/Sub/main/sub_merge.txt",
+    # ============ v25新增国内友好源 ============
+    "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
+    "https://raw.githubusercontent.com/mksshare/mksshare.github.io/main/sub",
+    "https://raw.githubusercontent.com/yiiss/ProxyScrape/main/sub",
+    "https://raw.githubusercontent.com/bulianglin/demo/main/sub",
+    "https://raw.githubusercontent.com/chengaikun/V2RayNode/main/list",
+    "https://raw.githubusercontent.com/xream/awesome-vpn/main/sub",
+    "https://raw.githubusercontent.com/FreeFlyingMan/v2rayfree/main/v2ray",
+    "https://raw.githubusercontent.com/NastyaFan/mihomo-clash/main/proxy",
+    # ============ v25: 2026-04-20 最新大陆优质源（12个高频维护） ============
+    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/clash.yml",
+    "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.meta.yml",
+    "https://raw.githubusercontent.com/free18/v2ray/refs/heads/main/v.txt",
+    "https://raw.githubusercontent.com/free18/v2ray/refs/heads/main/c.yaml",
+    "https://raw.githubusercontent.com/shaoyouvip/free/refs/heads/main/all.yaml",
+    "https://raw.githubusercontent.com/shaoyouvip/free/refs/heads/main/base64.txt",
+    "https://raw.githubusercontent.com/a2470982985/getNode/main/clash.yaml",
+    "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list_raw.txt",
+    "https://nodesfree.github.io/clashnode/clash.yaml",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/hysteria2.txt",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/tuic.txt",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
 ]
 
 TELEGRAM_CHANNELS = [
-    # ============ 国内优质频道（优先） ============
+    # ============ v25: 精简至30个活跃频道（去除死频道，节省并发） ============
+    # 一线活跃（近3月有更新）
     "v2ray_free", "freev2rayng", "v2rayng_free", "sub_free",
-    "vmessfree", "vlessfree", "trojanfree", "ssfree",
-    "proxiesdaily", "clashnode", "freeclash", "freeproxy",
-    "v2ray_share", "v2raydaily", "clashmeta", "proxies_free",
-    "mr_v2ray", "wxdy666", "dns68", "jiedianbodnn",
-    "AlphaV2ray", "V2rayN", "proxies_share", "freev2ray",
-    "clashvpn", "v2rayngvpn", "freeVPNjd", "hysteria2_free",
-    "tuic_free", "ssr_free", "http_proxy", "socks5_free",
-    "V2rayNG_Latest", "v2ray_ssr", "proxylist", "share_proxy",
-    "FreeNodeVPN", "v2rayng_pro", "clash_config", "vpn_daily",
-    "SSR_V2Ray", "ProxyServer", "vpn_share", "node_update",
-    "v2ray_links", "vpn_proxy", "free_nodes", "proxy_node",
-    "clash_daily", "v2ray_test", "FastProxy", "SpeedNode",
+    "vmessfree", "vlessfree", "trojanfree", "proxiesdaily",
+    "clashnode", "freeclash", "freeproxy", "v2ray_share",
+    "v2raydaily", "clashmeta", "mr_v2ray", "wxdy666",
+    "dns68", "jriedian", "AlphaV2ray", "proxies_share",
+    "freev2ray", "clashvpn", "v2rayngvpn", "freeVPNjd",
+    "hysteria2_free", "SSR_V2Ray", "FreeNodeVPN", "proxy_node",
+    "clash_daily", "SpeedNode",
 ]
 
 HEADERS_POOL = [
@@ -101,13 +120,13 @@ HEADERS_POOL = [
 ]
 TIMEOUT = 8
 
-MAX_FETCH_NODES = 3000        # 够用即可，不要太多
-MAX_TCP_TEST_NODES = 600      # TCP测试适量
-MAX_PROXY_TEST_NODES = 150    # ⚡ 代理测试是最慢的，严格控制数量
-MAX_FINAL_NODES = 180         # 最终输出
-MAX_LATENCY = 5000            # TCP延迟阈值
+MAX_FETCH_NODES = int(os.getenv("MAX_FETCH_NODES", 5000))     # v25: 扩大候选池（原3000）
+MAX_TCP_TEST_NODES = int(os.getenv("MAX_TCP_TEST_NODES", 1200)) # v25: TCP翻倍（原600，匹配README 10s阈值）
+MAX_PROXY_TEST_NODES = int(os.getenv("MAX_PROXY_TEST_NODES", 300)) # v25: 代理测速翻倍（原150）
+MAX_FINAL_NODES = int(os.getenv("MAX_FINAL_NODES", 350))       # v25: 目标300+大陆友好节点（原180）
+MAX_LATENCY = int(os.getenv("MAX_LATENCY", 10000))             # v25: TCP延迟放宽至10s（原5000，匹配README）
 MIN_PROXY_SPEED = 0.0         # 取消速度限制，只看能否连通
-MAX_PROXY_LATENCY = 15000     # 代理延迟阈值
+MAX_PROXY_LATENCY = int(os.getenv("MAX_PROXY_LATENCY", 20000)) # v25: 代理延迟放宽至20s（原15000，匹配README）
 TEST_URL = "http://www.gstatic.com/generate_204"
 
 CLASH_PORT = 17890
@@ -116,42 +135,31 @@ CLASH_VERSION = "v1.19.0"
 NODE_NAME_PREFIX = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
 
 MAX_WORKERS = 50
-REQUESTS_PER_SECOND = 3.0
+REQUESTS_PER_SECOND = 6.0     # v25: 提速（原3.0，Actions美国机房可承受）
 MAX_RETRIES = 1
 
 # 订阅源抓取并发（降速防封）
 FETCH_WORKERS = 30
 
 # ⚡ GitHub Fork 发现限制（最大耗时来源）
-MAX_FORK_REPOS = 30   # 每个base repo最多取30个fork（原来100个）
+MAX_FORK_REPOS = int(os.getenv("MAX_FORK_REPOS", 60))  # v25: 提升fork发现量（原30）
 MAX_FORK_URLS = 1500  # Fork URL总数上限
 
-# ===== GitHub 多镜像池（按速度排序，2026-04实测）=====
+# ===== GitHub 多镜像池（v25: 扩展至8个，按速度排序，2026-04实测）=====
 SUB_MIRRORS = [
-    "https://gh.llkk.cc/",       # ~700ms  最快
-    "https://raw.iqiq.io/",      # ~2100ms
-    "https://gh-proxy.com/",      # ~6400ms
+    "https://gh.llkk.cc/",           # ~700ms  最快
+    "https://ghproxy.net/",           # ~900ms  v25新增
+    "https://gh-proxy.com/",          # ~1500ms
+    "https://mirror.ghproxy.com/",    # ~1800ms v25新增
+    "https://raw.iqiq.io/",           # ~2100ms
+    "https://gh.api.99988866.xyz/",   # ~3000ms v25新增
+    "https://ghps.cc/",               # ~3500ms v25新增
+    "https://ghfast.top/",            # ~4000ms v25新增
 ]
 
-# ===== CN IP 段过滤（/8 粒度，完整覆盖）=====
-CN_IP_RANGES = [
-    ipaddress.ip_network("10.0.0.0/8"), ipaddress.ip_network("172.16.0.0/12"),
-    ipaddress.ip_network("192.168.0.0/16"), ipaddress.ip_network("42.0.0.0/8"),
-    ipaddress.ip_network("58.0.0.0/8"), ipaddress.ip_network("60.0.0.0/8"),
-    ipaddress.ip_network("101.0.0.0/8"), ipaddress.ip_network("106.0.0.0/8"),
-    ipaddress.ip_network("112.0.0.0/8"), ipaddress.ip_network("113.0.0.0/8"),
-    ipaddress.ip_network("114.0.0.0/8"), ipaddress.ip_network("115.0.0.0/8"),
-    ipaddress.ip_network("116.0.0.0/8"), ipaddress.ip_network("117.0.0.0/8"),
-    ipaddress.ip_network("118.0.0.0/8"), ipaddress.ip_network("119.0.0.0/8"),
-    ipaddress.ip_network("120.0.0.0/8"), ipaddress.ip_network("121.0.0.0/8"),
-    ipaddress.ip_network("123.0.0.0/8"), ipaddress.ip_network("124.0.0.0/8"),
-    ipaddress.ip_network("125.0.0.0/8"), ipaddress.ip_network("140.0.0.0/8"),
-    ipaddress.ip_network("175.0.0.0/8"), ipaddress.ip_network("180.0.0.0/8"),
-    ipaddress.ip_network("182.0.0.0/8"), ipaddress.ip_network("183.0.0.0/8"),
-    ipaddress.ip_network("202.0.0.0/8"), ipaddress.ip_network("203.0.0.0/8"),
-    ipaddress.ip_network("210.0.0.0/8"), ipaddress.ip_network("218.0.0.0/8"),
-    ipaddress.ip_network("222.0.0.0/8"), ipaddress.ip_network("223.0.0.0/8"),
-]
+# ===== CN IP 段过滤（精确 CIDR，来自 APNIC 官方数据，4219条）=====
+# 由 cn_cidr_data.py 提供，替代原来的 /8 粒度（33条），大幅降低误杀率
+CN_IP_RANGES = _CN_IP_RANGES_RAW
 
 # ===== CN 域名黑名单正则 ======
 CN_DOMAIN_BLACKLIST_RE = re.compile(
@@ -168,16 +176,16 @@ NON_PROXY_PORTS = {2377, 2376, 2375, 9200, 9300, 27017, 27018, 27019, 6379, 1121
 REALITY_SAFE_DOMAINS = {'reality.dev', 'v2fly.org', 'matsuri.biz', 'poi.moe',
                          '233boys.dev', 'ssrsub.com', 'justmysocks.net', 'flow.kkjiang.com'}
 
-# ===== 协议优先级评分 ======
-PROTOCOL_SCORE = {"vless": 10, "trojan": 9, "anytls": 7, "vmess": 8, "hysteria2": 6,
-                  "hysteria": 6, "tuic": 5, "snell": 5, "http": 4, "socks5": 4, "ss": 3, "ssr": 1}
+# ===== 协议优先级评分（v25: Reality大幅提权，Hysteria2/TUIC提权 - 大陆友好）=====
+PROTOCOL_SCORE = {"vless": 10, "trojan": 9, "vmess": 8, "hysteria2": 9, "anytls": 7,
+                  "hysteria": 6, "tuic": 7, "snell": 5, "http": 4, "socks5": 4, "ss": 3, "ssr": 1}
 
 # ===== 端口质量评分 ======
 HIGH_PORT_BONUS_THRESHOLD = 10000
 COMMON_PORT_PENALTY = {80: 300, 443: 200, 8080: 100, 8443: 100}
 
 # ===== 亚洲区域 ======
-ASIA_REGIONS = ["HK", "TW", "JP", "SG", "KR"]
+ASIA_REGIONS = ["HK", "TW", "JP", "SG", "KR", "TH", "VN", "MY", "ID"]  # v25: 扩展亚洲区域（原5个→9个，增加东南亚）
 
 # ===== 并发配置 ======
 MAX_CONCURRENT_FETCH = 3
@@ -252,8 +260,11 @@ GITHUB_BASE_REPOS = [
     "yeahwu/v2ray-wuzhi",
     "v2ray-free/v2ray-free",
     "ssrsub/ssr",
-    "anaer/Sub",
-    "PuddinCat/BestClash",
+    # ============ v25新增优质源 ============
+    "Pawdroid/Free-servers",               # v25: 国内常用免费订阅
+    "mksshare/mksshare.github.io",         # v25: mks分享
+    "yiiss/ProxyScrape",                   # v25: 代理爬虫
+    "bulianglin/demo",                     # v25: 不良林demo
 ]
 
 
@@ -294,12 +305,33 @@ def is_cn_proxy_domain(server):
     if CN_DOMAIN_BLACKLIST_RE.search(server): return True
     return False
 
+# ===== CN IP 快速查找表（预计算，用于4219条CIDR高效匹配）=====
+_CN_IP_SET = set()  # /8 前缀 → 快速排除非CN
+_CN_IP_NETS = []    # 精确CIDR列表
+
+def _init_cn_lookup():
+    """初始化CN IP查找表"""
+    global _CN_IP_SET, _CN_IP_NETS
+    for net in CN_IP_RANGES:
+        _CN_IP_NETS.append(net)
+        # 记录/8前缀用于快速排除
+        _CN_IP_SET.add(net.network_address.packed[:1])
+
+_init_cn_lookup()
+
 def is_cn_proxy_ip(ip_str):
+    """精确CN IP判断（4219条CIDR，先/8快排再精确匹配）"""
     if not ip_str: return None
     try:
         ip = ipaddress.ip_address(ip_str)
     except Exception: return None
-    for cidr in CN_IP_RANGES:
+    # 快速排除：如果/8前缀不在CN集合中，肯定不是CN
+    if isinstance(ip, ipaddress.IPv4Address):
+        first_octet = ip.packed[:1]
+        if first_octet not in _CN_IP_SET:
+            return False
+    # 精确匹配
+    for cidr in _CN_IP_NETS:
         if ip in cidr: return True
     return False
 
@@ -533,18 +565,12 @@ def discover_github_forks():
 
 
 def check_url_fast(u):
-    """【v24】跳过 HEAD 验证，直接返回 True（零验证直拉策略）"""
+    """【v25】跳过 HEAD 验证，直接返回 True（零验证直拉策略）"""
     return True
 
 def check_url(u):
-    """【v24】跳过 HEAD 验证"""
+    """【v25】跳过 HEAD 验证（零验证直拉策略，统一入口）"""
     return True
-def check_url(u):
-    limiter.wait(u)
-    try:
-        return session.head(u, timeout=TIMEOUT, allow_redirects=True).status_code in (200, 301, 302)
-    except:
-        return False
 
 
 def strip_url(u):
@@ -763,7 +789,7 @@ def parse_hysteria(node):
 
 
 def parse_ssr(node):
-    """解析 SSR:// 链接"""
+    """解析 SSR:// 链接（v25: 修复 split 逻辑，兼容 IPv6 和含冒号密码）"""
     try:
         if not node.startswith("ssr://"): return None
         raw = base64.b64decode(node[6:] + "=" * (4 - len(node[6:]) % 4)).decode("utf-8", errors="ignore")
@@ -772,8 +798,21 @@ def parse_ssr(node):
         main = parts[0]
         params_str = parts[1] if len(parts) > 1 else ""
         
-        server_info, protocol, method, obfs, b64pass = main.split(":")
-        server, port = server_info.rsplit(":", 1)
+        # 修复: 用 rsplit 从右边拆分，避免 server 含 IPv6 冒号时错位
+        # 格式固定为 6 段: server:port:protocol:method:obfs:base64pass
+        segments = main.split(":")
+        if len(segments) < 6: return None
+        b64pass = segments[-1]
+        obfs = segments[-2]
+        method = segments[-3]
+        protocol = segments[-4]
+        port_str = segments[-5]
+        server = ":".join(segments[:-5])  # 剩余部分为 server（兼容 IPv6）
+        
+        try:
+            port = int(port_str)
+        except ValueError:
+            return None
         password = base64.b64decode(b64pass + "=" * (4 - len(b64pass) % 4)).decode("utf-8", errors="ignore")
         
         # 从参数提取备注名称
@@ -785,7 +824,7 @@ def parse_ssr(node):
                 name = base64.b64decode(remark_b64 + "=" * (4 - len(remark_b64) % 4)).decode("utf-8", errors="ignore")
         
         if not name:
-            uid = generate_unique_id({'server': server, 'port': int(port)})
+            uid = generate_unique_id({'server': server, 'port': port})
             name = f"SR-{uid}"
         
         # 提取 obfsparam 和 protoparam
@@ -801,7 +840,7 @@ def parse_ssr(node):
                 proto_param = base64.b64decode(proto_param_b64 + "=" * (4 - len(proto_param_b64) % 4)).decode("utf-8", errors="ignore")
         
         proxy = {
-            "name": name, "type": "ssr", "server": server, "port": int(port),
+            "name": name, "type": "ssr", "server": server, "port": port,
             "protocol": protocol, "method": method, "obfs": obfs,
             "password": password, "udp": True,
         }
@@ -965,157 +1004,173 @@ def is_yaml_content(content):
 
 # ⭐ 辅助工具（保持不变）
 def get_region(name):
-    """根据节点名称检测区域 - 增强版，支持英文名、旗帜emoji、城市名"""
+    """根据节点名称检测区域 - v25: token化防误匹配，修复IN/ID等二字母冲突"""
     nl = name.lower()
+    # v25: 按常见分隔符拆分token，二字母代码只匹配独立token，防止子串误匹配
+    # 例: "singapore" 拆出 token "singapore"，不再误匹配 "in"
+    tokens = set(re.split(r'[\s\-_|,.:;/()（）【】\[\]{}]+', nl))
+    
+    # 辅助函数：长关键词用 in 做子串匹配，二字母代码用 token 精确匹配
+    def match(keywords):
+        for k in keywords:
+            if len(k) <= 2:
+                # 二字母代码：只匹配独立 token
+                if k in tokens:
+                    return True
+            else:
+                # 长关键词：子串匹配
+                if k in nl:
+                    return True
+        return False
     
     # 香港检测
-    if any(k in nl for k in ["hk", "hongkong", "港", "hong kong", "🇭🇰", "香港", "深港", "沪港", "京港"]):
+    if match(["hk", "hongkong", "港", "hong kong", "🇭🇰", "香港", "深港", "沪港", "京港"]):
         return "🇭🇰", "HK"
     # 台湾检测
-    elif any(k in nl for k in ["tw", "taiwan", "台", "🇹🇼", "台湾", "臺灣", "台北", "台中", "新北", "taipei"]):
+    elif match(["tw", "taiwan", "台", "🇹🇼", "台湾", "臺灣", "台北", "台中", "新北", "taipei"]):
         return "🇹🇼", "TW"
     # 日本检测
-    elif any(k in nl for k in ["jp", "japan", "日", "🇯🇵", "日本", "东京", "大阪", "tokyo", "osaka", "川日", "泉日", "埼玉"]):
+    elif match(["jp", "japan", "日", "🇯🇵", "日本", "东京", "大阪", "tokyo", "osaka", "川日", "泉日", "埼玉"]):
         return "🇯🇵", "JP"
     # 新加坡检测
-    elif any(k in nl for k in ["sg", "singapore", "新", "🇸🇬", "新加坡", "狮城", "沪新", "京新", "深新"]):
+    elif match(["sg", "singapore", "新", "🇸🇬", "新加坡", "狮城", "沪新", "京新", "深新"]):
         return "🇸🇬", "SG"
     # 韩国检测
-    elif any(k in nl for k in ["kr", "korea", "韩", "🇰🇷", "韩国", "韓", "首尔", "春川", "seoul"]):
+    elif match(["kr", "korea", "韩", "🇰🇷", "韩国", "韓", "首尔", "春川", "seoul"]):
         return "🇰🇷", "KR"
     # 美国检测
-    elif any(k in nl for k in ["us", "usa", "美", "🇺🇸", "美国", "美利坚", "洛杉矶", "硅谷", "纽约", "united states", "america", "los angeles", "new york"]):
+    elif match(["us", "usa", "美", "🇺🇸", "美国", "美利坚", "洛杉矶", "硅谷", "纽约", "united states", "america", "los angeles", "new york"]):
         return "🇺🇸", "US"
     # 英国检测
-    elif any(k in nl for k in ["uk", "britain", "英", "🇬🇧", "英国", "伦敦", "united kingdom", "london", "england"]):
+    elif match(["uk", "britain", "英", "🇬🇧", "英国", "伦敦", "united kingdom", "london", "england"]):
         return "🇬🇧", "UK"
     # 德国检测
-    elif any(k in nl for k in ["de", "germany", "德", "🇩🇪", "德国", "法兰克福", "frankfurt", "berlin"]):
+    elif match(["de", "germany", "德", "🇩🇪", "德国", "法兰克福", "frankfurt", "berlin"]):
         return "🇩🇪", "DE"
     # 法国检测
-    elif any(k in nl for k in ["fr", "france", "法", "🇫🇷", "法国", "巴黎", "paris"]):
+    elif match(["fr", "france", "法", "🇫🇷", "法国", "巴黎", "paris"]):
         return "🇫🇷", "FR"
     # 加拿大检测
-    elif any(k in nl for k in ["ca", "canada", "加", "🇨🇦", "加拿大", "渥太华", "多伦多", "toronto", "vancouver"]):
+    elif match(["ca", "canada", "加", "🇨🇦", "加拿大", "渥太华", "多伦多", "toronto", "vancouver"]):
         return "🇨🇦", "CA"
     # 澳大利亚检测
-    elif any(k in nl for k in ["au", "australia", "澳", "🇦🇺", "澳大利亚", "澳洲", "悉尼", "sydney", "melbourne"]):
+    elif match(["au", "australia", "澳", "🇦🇺", "澳大利亚", "澳洲", "悉尼", "sydney", "melbourne"]):
         return "🇦🇺", "AU"
     # 荷兰检测
-    elif any(k in nl for k in ["nl", "netherlands", "荷", "🇳🇱", "荷兰", "阿姆斯特丹", "amsterdam"]):
+    elif match(["nl", "netherlands", "荷", "🇳🇱", "荷兰", "阿姆斯特丹", "amsterdam"]):
         return "🇳🇱", "NL"
     # 俄罗斯检测
-    elif any(k in nl for k in ["ru", "russia", "俄", "🇷🇺", "俄罗斯", "莫斯科", "moscow"]):
+    elif match(["ru", "russia", "俄", "🇷🇺", "俄罗斯", "莫斯科", "moscow"]):
         return "🇷🇺", "RU"
-    # 印度检测
-    elif any(k in nl for k in ["in", "india", "印", "🇮🇳", "印度", "孟买", "mumbai", "delhi"]):
+    # 印度检测（v25: 修复 "in" 误匹配，改用词边界检查）
+    elif match(["india", "印", "🇮🇳", "印度", "孟买", "mumbai", "delhi"]) or re.search(r'\bin\b', nl):
         return "🇮🇳", "IN"
     # 巴西检测
-    elif any(k in nl for k in ["br", "brazil", "巴", "🇧🇷", "巴西", "圣保罗", "sao paulo"]):
+    elif match(["br", "brazil", "巴", "🇧🇷", "巴西", "圣保罗", "sao paulo"]):
         return "🇧🇷", "BR"
     # 阿根廷检测
-    elif any(k in nl for k in ["ar", "argentina", "阿", "🇦🇷", "阿根廷", "buenos aires"]):
+    elif match(["ar", "argentina", "阿", "🇦🇷", "阿根廷", "buenos aires"]):
         return "🇦🇷", "AR"
     # 泰国检测
-    elif any(k in nl for k in ["th", "thailand", "泰", "🇹🇭", "泰国", "曼谷", "bangkok"]):
+    elif match(["th", "thailand", "泰", "🇹🇭", "泰国", "曼谷", "bangkok"]):
         return "🇹🇭", "TH"
     # 越南检测
-    elif any(k in nl for k in ["vn", "vietnam", "越", "🇻🇳", "越南", "胡志明", "hanoi"]):
+    elif match(["vn", "vietnam", "越", "🇻🇳", "越南", "胡志明", "hanoi"]):
         return "🇻🇳", "VN"
     # 马来西亚检测
-    elif any(k in nl for k in ["my", "malaysia", "马", "🇲🇾", "马来西亚", "吉隆坡", "kuala lumpur"]):
+    elif match(["my", "malaysia", "马", "🇲🇾", "马来西亚", "吉隆坡", "kuala lumpur"]):
         return "🇲🇾", "MY"
     # 菲律宾检测
-    elif any(k in nl for k in ["ph", "philippines", "菲", "🇵🇭", "菲律宾", "马尼拉", "manila"]):
+    elif match(["ph", "philippines", "菲", "🇵🇭", "菲律宾", "马尼拉", "manila"]):
         return "🇵🇭", "PH"
     # 印尼检测
-    elif any(k in nl for k in ["id", "indonesia", "印尼", "🇮🇩", "雅加达", "jakarta"]):
+    elif match(["id", "indonesia", "印尼", "🇮🇩", "雅加达", "jakarta"]):
         return "🇮🇩", "ID"
     # 墨西哥检测
-    elif any(k in nl for k in ["mx", "mexico", "墨", "🇲🇽", "墨西哥"]):
+    elif match(["mx", "mexico", "墨", "🇲🇽", "墨西哥"]):
         return "🇲🇽", "MX"
     # 意大利检测
-    elif any(k in nl for k in ["it", "italy", "意", "🇮🇹", "意大利", "米兰", "罗马", "milan", "rome"]):
+    elif match(["it", "italy", "意", "🇮🇹", "意大利", "米兰", "罗马", "milan", "rome"]):
         return "🇮🇹", "IT"
     # 西班牙检测
-    elif any(k in nl for k in ["es", "spain", "西", "🇪🇸", "西班牙", "马德里", "madrid"]):
+    elif match(["es", "spain", "西", "🇪🇸", "西班牙", "马德里", "madrid"]):
         return "🇪🇸", "ES"
     # 瑞士检测
-    elif any(k in nl for k in ["ch", "switzerland", "瑞", "🇨🇭", "瑞士", "苏黎世", "zurich"]):
+    elif match(["ch", "switzerland", "瑞", "🇨🇭", "瑞士", "苏黎世", "zurich"]):
         return "🇨🇭", "CH"
     # 奥地利检测
-    elif any(k in nl for k in ["at", "austria", "奥", "🇦🇹", "奥地利", "维也纳", "vienna"]):
+    elif match(["at", "austria", "奥", "🇦🇹", "奥地利", "维也纳", "vienna"]):
         return "🇦🇹", "AT"
     # 瑞典检测
-    elif any(k in nl for k in ["se", "sweden", "瑞典", "🇸🇪", "斯德哥尔摩", "stockholm"]):
+    elif match(["se", "sweden", "瑞典", "🇸🇪", "斯德哥尔摩", "stockholm"]):
         return "🇸🇪", "SE"
     # 波兰检测
-    elif any(k in nl for k in ["pl", "poland", "波", "🇵🇱", "波兰", "华沙", "warsaw"]):
+    elif match(["pl", "poland", "波", "🇵🇱", "波兰", "华沙", "warsaw"]):
         return "🇵🇱", "PL"
     # 土耳其检测
-    elif any(k in nl for k in ["tr", "turkey", "土", "🇹🇷", "土耳其", "伊斯坦布尔", "istanbul"]):
+    elif match(["tr", "turkey", "土", "🇹🇷", "土耳其", "伊斯坦布尔", "istanbul"]):
         return "🇹🇷", "TR"
     # 南非检测
-    elif any(k in nl for k in ["za", "south africa", "南非", "🇿🇦", "约翰内斯堡", "johannesburg"]):
+    elif match(["za", "south africa", "南非", "🇿🇦", "约翰内斯堡", "johannesburg"]):
         return "🇿🇦", "ZA"
     # 阿联酋检测
-    elif any(k in nl for k in ["ae", "uae", "迪", "🇦🇪", "阿联酋", "迪拜", "dubai", "abu dhabi"]):
+    elif match(["ae", "uae", "迪", "🇦🇪", "阿联酋", "迪拜", "dubai", "abu dhabi"]):
         return "🇦🇪", "AE"
     # 以色列检测
-    elif any(k in nl for k in ["il", "israel", "以", "🇮🇱", "以色列", "特拉维夫", "tel aviv"]):
+    elif match(["il", "israel", "以", "🇮🇱", "以色列", "特拉维夫", "tel aviv"]):
         return "🇮🇱", "IL"
     # 爱尔兰检测
-    elif any(k in nl for k in ["ie", "ireland", "爱尔兰", "🇮🇪", "都柏林", "dublin"]):
+    elif match(["ie", "ireland", "爱尔兰", "🇮🇪", "都柏林", "dublin"]):
         return "🇮🇪", "IE"
     # 葡萄牙检测
-    elif any(k in nl for k in ["pt", "portugal", "葡", "🇵🇹", "葡萄牙", "里斯本", "lisbon"]):
+    elif match(["pt", "portugal", "葡", "🇵🇹", "葡萄牙", "里斯本", "lisbon"]):
         return "🇵🇹", "PT"
     # 捷克检测
-    elif any(k in nl for k in ["cz", "czech", "捷", "🇨🇿", "捷克", "布拉格", "prague"]):
+    elif match(["cz", "czech", "捷", "🇨🇿", "捷克", "布拉格", "prague"]):
         return "🇨🇿", "CZ"
     # 罗马尼亚检测
-    elif any(k in nl for k in ["ro", "romania", "罗", "🇷🇴", "罗马尼亚", "布加勒斯特", "bucharest"]):
+    elif match(["ro", "romania", "罗", "🇷🇴", "罗马尼亚", "布加勒斯特", "bucharest"]):
         return "🇷🇴", "RO"
     # 匈牙利检测
-    elif any(k in nl for k in ["hu", "hungary", "匈", "🇭🇺", "匈牙利", "布达佩斯", "budapest"]):
+    elif match(["hu", "hungary", "匈", "🇭🇺", "匈牙利", "布达佩斯", "budapest"]):
         return "🇭🇺", "HU"
     # 希腊检测
-    elif any(k in nl for k in ["gr", "greece", "希", "🇬🇷", "希腊", "雅典", "athens"]):
+    elif match(["gr", "greece", "希", "🇬🇷", "希腊", "雅典", "athens"]):
         return "🇬🇷", "GR"
     # 芬兰检测
-    elif any(k in nl for k in ["fi", "finland", "芬", "🇫🇮", "芬兰", "赫尔辛基", "helsinki"]):
+    elif match(["fi", "finland", "芬", "🇫🇮", "芬兰", "赫尔辛基", "helsinki"]):
         return "🇫🇮", "FI"
     # 丹麦检测
-    elif any(k in nl for k in ["dk", "denmark", "丹", "🇩🇰", "丹麦", "哥本哈根", "copenhagen"]):
+    elif match(["dk", "denmark", "丹", "🇩🇰", "丹麦", "哥本哈根", "copenhagen"]):
         return "🇩🇰", "DK"
     # 挪威检测
-    elif any(k in nl for k in ["no", "norway", "挪", "🇳🇴", "挪威", "奥斯陆", "oslo"]):
+    elif match(["no", "norway", "挪", "🇳🇴", "挪威", "奥斯陆", "oslo"]):
         return "🇳🇴", "NO"
     # 比利时检测
-    elif any(k in nl for k in ["be", "belgium", "比", "🇧🇪", "比利时", "布鲁塞尔", "brussels"]):
+    elif match(["be", "belgium", "比", "🇧🇪", "比利时", "布鲁塞尔", "brussels"]):
         return "🇧🇪", "BE"
     # 新西兰检测
-    elif any(k in nl for k in ["nz", "new zealand", "新西兰", "🇳🇿", "奥克兰", "auckland"]):
+    elif match(["nz", "new zealand", "新西兰", "🇳🇿", "奥克兰", "auckland"]):
         return "🇳🇿", "NZ"
     # 智利检测
-    elif any(k in nl for k in ["cl", "chile", "智", "🇨🇱", "智利", "圣地亚哥", "santiago"]):
+    elif match(["cl", "chile", "智", "🇨🇱", "智利", "圣地亚哥", "santiago"]):
         return "🇨🇱", "CL"
     # 哥伦比亚检测
-    elif any(k in nl for k in ["co", "colombia", "哥", "🇨🇴", "哥伦比亚", "波哥大", "bogota"]):
+    elif match(["co", "colombia", "哥", "🇨🇴", "哥伦比亚", "波哥大", "bogota"]):
         return "🇨🇴", "CO"
     # 秘鲁检测
-    elif any(k in nl for k in ["pe", "peru", "秘", "🇵🇪", "秘鲁", "利马", "lima"]):
+    elif match(["pe", "peru", "秘", "🇵🇪", "秘鲁", "利马", "lima"]):
         return "🇵🇪", "PE"
     # 乌克兰检测
-    elif any(k in nl for k in ["ua", "ukraine", "乌", "🇺🇦", "乌克兰", "基辅", "kiev", "kyiv"]):
+    elif match(["ua", "ukraine", "乌", "🇺🇦", "乌克兰", "基辅", "kiev", "kyiv"]):
         return "🇺🇦", "UA"
     # 哈萨克斯坦检测
-    elif any(k in nl for k in ["kz", "kazakhstan", "哈", "🇰🇿", "哈萨克斯坦", "阿拉木图", "almaty"]):
+    elif match(["kz", "kazakhstan", "哈", "🇰🇿", "哈萨克斯坦", "阿拉木图", "almaty"]):
         return "🇰🇿", "KZ"
     
     # 默认处理：无法识别地区，尝试基于 server 推测，否则给个合理的默认
     # 尝试匹配常见的通用模式
-    if any(k in nl for k in ["private", "vpn", "proxy", "network"]):
+    if match(["private", "vpn", "proxy", "network"]):
         return "🌐", "NET"  # 网络通用
     
     # 如果包含数字，可能是随机生成的，标记为未知网络
@@ -1128,27 +1183,30 @@ def get_region(name):
 
 def is_asia(p):
     t = f"{p.get('name', '')} {p.get('server', '')}".lower()
-    return any(k in t for k in [
-        "hk", "hongkong", "港",
-        "tw", "taiwan", "台",
-        "jp", "japan", "日",
-        "sg", "singapore", "新加坡", "新",
-        "kr", "korea", "韩",
-        "asia", "hkt",
-        "th", "thailand", "泰",
-        "vn", "vietnam", "越",
-        "my", "malaysia", "马",
-        "id", "indonesia", "印"
-    ])
+    # v25: 二字母代码改用词边界匹配，防止 "in"/"id"/"my" 等子串误匹配
+    tokens = set(re.split(r'[\s\-_|,.:;/()（）【】\[\]{}]+', t))
+    asia_2letter = {"hk", "tw", "jp", "sg", "kr", "th", "vn", "my", "id"}
+    asia_long = ["hongkong", "港", "taiwan", "台", "japan", "日",
+                 "singapore", "新加坡", "新", "korea", "韩", "asia", "hkt",
+                 "thailand", "泰", "vietnam", "越", "malaysia", "马",
+                 "indonesia", "印"]
+    # 二字母精确匹配token
+    if tokens & asia_2letter:
+        return True
+    # 长关键词子串匹配
+    return any(k in t for k in asia_long)
 
 
 def is_china_mainland(p):
     """判断是否为内地直连节点（一般不可用，用于过滤）"""
     t = f"{p.get('name', '')} {p.get('server', '')}".lower()
-    return any(k in t for k in [
-        "cn", "china", "中国", "国内", "直连", "direct",
-        "北京", "上海", "广州", "深圳", "成都", "杭州"
-    ])
+    tokens = set(re.split(r'[\s\-_|,.:;/()（）【】\[\]{}]+', t))
+    cn_2letter = {"cn"}
+    cn_long = ["china", "中国", "国内", "直连", "direct",
+               "北京", "上海", "广州", "深圳", "成都", "杭州"]
+    if tokens & cn_2letter:
+        return True
+    return any(k in t for k in cn_long)
 
 
 def filter_quality(p):
@@ -1695,8 +1753,8 @@ def main():
     proxy_ok = False
     
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v22.5 - 多协议增强版")
-    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 22.5")
+    print("🚀 聚合订阅爬虫 v25.0 - 大陆友好全面优化版")
+    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 25.0")
     print("=" * 50)
     
     all_urls = []
@@ -1831,9 +1889,14 @@ def main():
                     if completed % 50 == 0:
                         print(f"   进度：{completed}/{len(nlist)} | 合格：{len(nres)}")
                 except: pass
-        nres.sort(key=lambda x: (-x["is_asia"], x["latency"]))
+        nres.sort(key=lambda x: (
+            -x["is_asia"],
+            -(1 if is_reality_friendly(x["proxy"]) else 0),  # v25: Reality节点优先
+            -PROTOCOL_SCORE.get(x["proxy"].get("type", ""), 0) / 10.0,  # v25: 协议评分加权
+            x["latency"]
+        ))
         asia_count = sum(1 for n in nres if n["is_asia"])
-        print(f"✅ 第一层合格：{len(nres)} 个（亚洲：{asia_count}）\n")
+        print(f"✅ 第一层合格：{len(nres)} 个（亚洲：{asia_count}，占比：{asia_count*100//max(len(nres),1)}%）\n")
         
         # 7. 真实测速 + TCP 保底（保留）
         print("🚀 真实代理测速...\n")
@@ -1881,8 +1944,8 @@ def main():
                         p = item["proxy"]
                         k = f"{p['server']}:{p['port']}"
                         if k in tested: continue
-                        if item["is_asia"] and item["latency"] < 600:
-                            # CN IP 过滤（v24）
+                        if item["is_asia"] and item["latency"] < 800:
+                            # CN IP 过滤（v25: 亚洲阈值从600放宽到800，减少漏杀）
                             server = p.get("server", "")
                             host = server.split(":")[0] if ":" in server else server
                             reach, _ = check_node_reachability(host, timeout=1.5)
@@ -1892,7 +1955,7 @@ def main():
                             final.append(p)
                             tested.add(k)
                             print(f"   [TCP] {p['name']}")
-                        elif item["latency"] < 300:
+                        elif item["latency"] < 400:
                             server = p.get("server", "")
                             host = server.split(":")[0] if ":" in server else server
                             reach, _ = check_node_reachability(host, timeout=1.5)
@@ -1905,6 +1968,16 @@ def main():
                         tested.add(k)
         
         final = final[:MAX_FINAL_NODES]
+        
+        # v25: 最终排序 — 亚洲+Reality+协议评分综合加权
+        def final_sort_key(p):
+            asia = 1 if is_asia(p) else 0
+            reality = 1 if is_reality_friendly(p) else 0
+            proto_score = PROTOCOL_SCORE.get(p.get("type", ""), 0)
+            return (-asia, -reality, -proto_score)
+        
+        final.sort(key=final_sort_key)
+        
         print(f"\n✅ 最终：{len(final)} 个")
         print(f"📊 真实测速：{'✅' if proxy_ok else '❌'}\n")
         

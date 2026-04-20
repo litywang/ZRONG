@@ -27,10 +27,17 @@ jobs:
       - name: Install Dependencies
         run: pip install --upgrade -q requests pyyaml urllib3
 
-      - name: Run Crawler v24
+      - name: Run Crawler v25
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
+          MAX_FINAL_NODES: 350
+          MAX_LATENCY: 10000
+          MAX_PROXY_LATENCY: 20000
+          MAX_TCP_TEST_NODES: 1200
+          MAX_PROXY_TEST_NODES: 300
+          MAX_FETCH_NODES: 5000
+          MAX_FORK_REPOS: 60
         run: python crawler.py
 
       - name: Check Output
@@ -38,7 +45,8 @@ jobs:
           echo "=== 节点统计 ==="
           echo "proxies.yaml: $(wc -l < proxies.yaml) 行"
           echo "节点数: $(grep -c 'name:' proxies.yaml) 个"
-          echo "区域: $(grep -oE '(HK|TW|JP|SG|KR|MY|US)-[0-9]+' proxies.yaml | cut -d- -f1 | sort | uniq -c | sort -rn)"
+          echo "区域: $(grep -oE '(HK|TW|JP|SG|KR|MY|TH|VN|ID|US|OT)-[0-9]+' proxies.yaml | cut -d- -f1 | sort | uniq -c | sort -rn)"
+          echo "亚洲占比: $(grep -oE '(HK|TW|JP|SG|KR|MY|TH|VN|ID)-[0-9]+' proxies.yaml | wc -l) / $(grep -c 'name:' proxies.yaml)"
 
       - name: Commit and Push
         env:
@@ -49,7 +57,7 @@ jobs:
           git add proxies.yaml subscription.txt
           git status
           git diff --staged --stat
-          git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M')" || echo "Nothing to commit"
+          git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M') [v25]" || echo "Nothing to commit"
           git push https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}.git HEAD:main
 
       - name: Upload Logs on Failure

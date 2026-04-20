@@ -1003,22 +1003,24 @@ def is_yaml_content(content):
 
 
 # ⭐ 辅助工具（保持不变）
-def get_region(name):
-    """根据节点名称检测区域 - v25: token化防误匹配，修复IN/ID等二字母冲突"""
+def get_region(name, server=None):
+    """根据节点名称检测区域 - v25: 修复emoji flag识别 + 域名fallback
+    server: 可选，节点server字段，用于从域名后缀反推地区（如 .kr/.sg/.vn）
+    """
     nl = name.lower()
-    # v25: 按常见分隔符拆分token，二字母代码只匹配独立token，防止子串误匹配
-    # 例: "singapore" 拆出 token "singapore"，不再误匹配 "in"
-    tokens = set(re.split(r'[\s\-_|,.:;/()（）【】\[\]{}]+', nl))
-    
-    # 辅助函数：长关键词用 in 做子串匹配，二字母代码用 token 精确匹配
+    # v25 FIX: Regional Indicator emoji flag (如🇭🇰) 由两个U+1F1Ex字符组成
+    # 当后接数字时(🇭🇰1)，re.split无法拆开，导致二字母匹配全部失败
+    # 修复：先去除Regional Indicator字符对，再用普通分隔符分词
+    nl_no_flag = re.sub(r'[\U0001F1E6-\U0001F1FF]{2}', '', nl)
+    tokens = set(re.split(r'[\s\-_|,.:;/()（）【】\[\]{}]+', nl_no_flag))
+
+    # 辅助函数：区分真正的二字母ASCII代码 vs emoji/多字符
     def match(keywords):
         for k in keywords:
-            if len(k) <= 2:
-                # 二字母代码：只匹配独立 token
+            if len(k) == 2 and k.isalpha() and k.isascii():
                 if k in tokens:
                     return True
             else:
-                # 长关键词：子串匹配
                 if k in nl:
                     return True
         return False
@@ -1173,11 +1175,109 @@ def get_region(name):
     if match(["private", "vpn", "proxy", "network"]):
         return "🌐", "NET"  # 网络通用
     
-    # 如果包含数字，可能是随机生成的，标记为未知网络
-    if any(c.isdigit() for c in nl):
-        return "🌐", "NET"
+    # 如果包含数字，可能是随机生成的，尝试从域名后缀反推
+    if any(c.isdigit() for c in nl) and server:
+        srv = server.lower()
+        # 从右向左取最后两个部分做模糊匹配
+        parts = srv.split(".")
+        for i in range(max(0, len(parts)-2), len(parts)):
+            seg = ".".join(parts[i:])
+            # TLD/常见域名后缀 → 国家/地区
+            if seg.endswith(".kr") or "kr." in srv:
+                return "🇰🇷", "KR"
+            if seg.endswith(".sg") or ".com.sg" in srv or ".net.sg" in srv:
+                return "🇸🇬", "SG"
+            if seg.endswith(".vn") or "vn." in srv:
+                return "🇻🇳", "VN"
+            if seg.endswith(".th") or "th." in srv:
+                return "🇹🇭", "TH"
+            if seg.endswith(".my") or "my." in srv:
+                return "🇲🇾", "MY"
+            if seg.endswith(".id") or ".co.id" in srv or ".or.id" in srv:
+                return "🇮🇩", "ID"
+            if seg.endswith(".ph") or ".com.ph" in srv:
+                return "🇵🇭", "PH"
+            if seg.endswith(".jp") or ".co.jp" in srv or ".ne.jp" in srv:
+                return "🇯🇵", "JP"
+            if seg.endswith(".hk") or ".com.hk" in srv or ".net.hk" in srv:
+                return "🇭🇰", "HK"
+            if seg.endswith(".tw") or ".com.tw" in srv or ".net.tw" in srv:
+                return "🇹🇼", "TW"
+            if seg.endswith(".au") or ".com.au" in srv:
+                return "🇦🇺", "AU"
+            if seg.endswith(".uk") or ".co.uk" in srv:
+                return "🇬🇧", "UK"
+            if seg.endswith(".de") or ".de." in srv:
+                return "🇩🇪", "DE"
+            if seg.endswith(".fr") or ".fr." in srv:
+                return "🇫🇷", "FR"
+            if seg.endswith(".nl") or ".nl." in srv:
+                return "🇳🇱", "NL"
+            if seg.endswith(".ru") or ".ru." in srv:
+                return "🇷🇺", "RU"
+            if seg.endswith(".us") or ".us." in srv:
+                return "🇺🇸", "US"
+            if seg.endswith(".br") or ".com.br" in srv:
+                return "🇧🇷", "BR"
+            if seg.endswith(".ca") or ".ca." in srv:
+                return "🇨🇦", "CA"
+            if seg.endswith(".in") or ".co.in" in srv or ".net.in" in srv:
+                return "🇮🇳", "IN"
+            if seg.endswith(".it") or ".it." in srv:
+                return "🇮🇹", "IT"
+            if seg.endswith(".es") or ".es." in srv:
+                return "🇪🇸", "ES"
+            if seg.endswith(".tr") or ".com.tr" in srv:
+                return "🇹🇷", "TR"
+            if seg.endswith(".pl") or ".pl." in srv:
+                return "🇵🇱", "PL"
+            if seg.endswith(".cz") or ".cz." in srv:
+                return "🇨🇿", "CZ"
+            if seg.endswith(".ar") or ".com.ar" in srv:
+                return "🇦🇷", "AR"
+            if seg.endswith(".cl") or ".cl." in srv:
+                return "🇨🇱", "CL"
+            if seg.endswith(".mx") or ".mx." in srv:
+                return "🇲🇽", "MX"
+            if seg.endswith(".ae") or ".ae." in srv:
+                return "🇦🇪", "AE"
+            if seg.endswith(".il") or ".il." in srv:
+                return "🇮🇱", "IL"
+            if seg.endswith(".ie") or ".ie." in srv:
+                return "🇮🇪", "IE"
+            if seg.endswith(".nz") or ".nz." in srv:
+                return "🇳🇿", "NZ"
+            if seg.endswith(".ch") or ".ch." in srv:
+                return "🇨🇭", "CH"
+            if seg.endswith(".at") or ".at." in srv:
+                return "🇦🇹", "AT"
+            if seg.endswith(".se") or ".se." in srv:
+                return "🇸🇪", "SE"
+            if seg.endswith(".pt") or ".pt." in srv:
+                return "🇵🇹", "PT"
+            if seg.endswith(".ro") or ".ro." in srv:
+                return "🇷🇴", "RO"
+            if seg.endswith(".hu") or ".hu." in srv:
+                return "🇭🇺", "HU"
+            if seg.endswith(".fi") or ".fi." in srv:
+                return "🇫🇮", "FI"
+            if seg.endswith(".dk") or ".dk." in srv:
+                return "🇩🇰", "DK"
+            if seg.endswith(".no") or ".no." in srv:
+                return "🇳🇴", "NO"
+            if seg.endswith(".be") or ".be." in srv:
+                return "🇧🇪", "BE"
+            if seg.endswith(".za") or ".za." in srv:
+                return "🇿🇦", "ZA"
+            if seg.endswith(".kz") or ".kz." in srv:
+                return "🇰🇿", "KZ"
+            if seg.endswith(".ua") or ".ua." in srv:
+                return "🇺🇦", "UA"
+            if seg.endswith(".bg") or ".bg." in srv:
+                return "🇧🇬", "BG"
+            if seg.endswith(".gr") or ".gr." in srv:
+                return "🇬🇷", "GR"
     
-    # 默认给亚洲地区（因为亚洲节点通常可用性较高）
     return "🌐", "NET"
 
 
@@ -1663,9 +1763,12 @@ class NodeNamer:
     def to_fancy(self, t):
         return ''.join(self.FANCY.get(c.upper(), c) for c in t)
 
-    def generate(self, flag, lat, speed=None, tcp=False):
-        """【v24】简短命名，含区域emoji + 编号"""
-        code, region = get_region(flag)
+    def generate(self, flag, lat, speed=None, tcp=False, server=None):
+        """【v25】简短命名，含区域emoji + 编号
+        flag: 原始节点名称（或emoji字符串）
+        server: 节点server字段，用于域名fallback
+        """
+        code, region = get_region(flag, server=server)
         self.counters[region] = self.counters.get(region, 0) + 1
         num = self.counters[region]
         # v24: 去掉花体字，简短实用
@@ -1927,8 +2030,9 @@ def main():
                             done_count += 1
                             k = f"{p['server']}:{p['port']}"
                             if r["success"] and r["latency"] < MAX_PROXY_LATENCY:
-                                fl, cd = get_region(p.get("name", ""))
-                                p["name"] = namer.generate(fl, int(r["latency"]), r["speed"], tcp=False)
+                                srv = p.get("server", "")
+                                fl, cd = get_region(p.get("name", ""), server=srv)
+                                p["name"] = namer.generate(fl, int(r["latency"]), r["speed"], tcp=False, server=srv)
                                 final.append(p)
                                 tested.add(k)
                                 print(f"   ✅ {p['name']}")
@@ -1952,8 +2056,9 @@ def main():
                             host = server.split(":")[0] if ":" in server else server
                             reach, _ = check_node_reachability(host, timeout=1.5)
                             if not reach: continue
-                            fl, cd = get_region(p.get("name", ""))
-                            p["name"] = namer.generate(fl, int(item["latency"]), tcp=True)
+                            srv = p.get("server", "")
+                            fl, cd = get_region(p.get("name", ""), server=srv)
+                            p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv)
                             final.append(p)
                             tested.add(k)
                             print(f"   [TCP] {p['name']}")
@@ -1962,8 +2067,9 @@ def main():
                             host = server.split(":")[0] if ":" in server else server
                             reach, _ = check_node_reachability(host, timeout=1.5)
                             if not reach: continue
-                            fl, cd = get_region(p.get("name", ""))
-                            p["name"] = namer.generate(fl, int(item["latency"]), tcp=True)
+                            srv = p.get("server", "")
+                            fl, cd = get_region(p.get("name", ""), server=srv)
+                            p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv)
                             final.append(p)
                             tested.add(k)
                             print(f"   [TCP] {p['name']}")

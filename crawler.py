@@ -9,7 +9,6 @@
 
 import httpx
 import asyncio
-import aiofiles
 import requests, base64, hashlib, time, json, socket, os, sys, re, yaml, subprocess, signal, gzip, shutil, ssl, urllib.request, urllib.error, urllib.parse
 requests.packages.urllib3.disable_warnings()
 

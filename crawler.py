@@ -150,7 +150,7 @@ TIMEOUT = 8
 
 MAX_FETCH_NODES = int(os.getenv("MAX_FETCH_NODES", 5000))     # v25: 扩大候选池（原3000）
 MAX_TCP_TEST_NODES = int(os.getenv("MAX_TCP_TEST_NODES", 1200)) # v25: TCP翻倍（原600，匹配README 10s阈值）
-MAX_PROXY_TEST_NODES = int(os.getenv("MAX_PROXY_TEST_NODES", 1200)) # v28.4: 全量进入Clash测速，不再浪费第一层合格节点
+MAX_PROXY_TEST_NODES = int(os.getenv("MAX_PROXY_TEST_NODES", 600))  # v28.5: 分批安全上限（每批600，避免Mihomo崩溃）
 MAX_FINAL_NODES = int(os.getenv("MAX_FINAL_NODES", 150))       # v28.4: 150够用（TCP补充几乎无效，不凑数）
 MAX_LATENCY = int(os.getenv("MAX_LATENCY", 10000))             # v25: TCP延迟放宽至10s（原5000，匹配README）
 MIN_PROXY_SPEED = 0.0         # 取消速度限制，只看能否连通
@@ -2057,106 +2057,121 @@ def main():
         print(f"✅ 第一层合格：{len(nres)} 个（亚洲：{asia_count}，占比：{asia_count*100//max(len(nres),1)}%）\n")
         
         # 7. 真实测速 + TCP 保底（保留）
-        print("🚀 真实代理测速...\n")
+        print("🚀 真实代理测速（分批）...\n")
         final = []
         tested = set()
+        proxy_ok = False
+        nres_untested = nres[:MAX_TCP_TEST_NODES]
+        batch_size = MAX_PROXY_TEST_NODES
+        batch_id = 0
         
         if len(nres) > 0:
-            tprox = [n["proxy"] for n in nres[:MAX_PROXY_TEST_NODES]]
-            if clash.create_config(tprox) and clash.start():
-                proxy_ok = True
-                print("📊 测速中...\n")
-                tprox_list = nres[:MAX_PROXY_TEST_NODES]
+            while len(final) < MAX_FINAL_NODES and nres_untested:
+                batch_id += 1
+                batch_items = []
+                for item in nres_untested:
+                    if len(batch_items) >= batch_size: break
+                    k = f"{item['proxy']['server']}:{item['proxy']['port']}"
+                    if k not in tested:
+                        batch_items.append(item)
+                if not batch_items: break
                 
-                # ⚡ 并发测试代理（原来是串行，改为并发大幅提速）
+                tprox = [item["proxy"] for item in batch_items]
+                print(f"📦 第{batch_id}批：{len(tprox)} 个节点...\n")
+                
+                if not clash.create_config(tprox) or not clash.start():
+                    print("   ❌ Clash 启动失败，跳过本批")
+                    clash.stop()
+                    break
+                
+                proxy_ok = True
                 def test_one(item):
                     p = item["proxy"]
                     r = clash.test_proxy(p["name"])
                     return item, p, r
                 
-                with ThreadPoolExecutor(max_workers=20) as tex:
-                    test_futures = {tex.submit(test_one, item): item for item in tprox_list}
-                    done_count = 0
-                    for future in as_completed(test_futures):
-                        try:
-                            item, p, r = future.result(timeout=8)
-                            done_count += 1
-                            k = f"{p['server']}:{p['port']}"
-                            if r["success"] and r["latency"] < MAX_PROXY_LATENCY:
-                                srv = p.get("server", "")
-                                sni_val = p.get("sni", "") or p.get("servername", "")
-                                # v27 FIX: 也取 ws-opts 里的 Host（WS 域名通常比 server 更精确）
-                                ws_opts = p.get("ws-opts", {})
-                                ws_host = (
-                                    ws_opts.get("headers", {}).get("Host", "")
-                                    if isinstance(ws_opts, dict)
-                                    else ""
-                                )
-                                if ws_host:
-                                    sni_val = ws_host
-                                fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
-                                p["name"] = namer.generate(fl, int(r["latency"]), r["speed"], tcp=False, server=srv, sni=sni_val)
-                                final.append(p)
-                                tested.add(k)
-                                print(f"   ✅ {p['name']}")
-                            if len(final) >= MAX_FINAL_NODES:
-                                break
-                            if done_count % 10 == 0:
-                                print(f"   进度：{done_count}/{len(tprox_list)} | 合格：{len(final)}")
-                        except: pass
-                clash.stop()
-                
-                # v28.3: 改用 MAX_FINAL_NODES，不再硬编码180
-                if len(final) < MAX_FINAL_NODES:
-                    print(f"\n⚠️ 测速合格 {len(final)} 个/{MAX_FINAL_NODES} 目标，使用 TCP 补充...\n")
-                    for item in nres:
-                        if len(final) >= MAX_FINAL_NODES: break
-                        p = item["proxy"]
-                        k = f"{p['server']}:{p['port']}"
-                        if k in tested: continue
-                        # v26: 严格限制TCP补充条件
-                        if item["is_asia"] and item["latency"] < 400:  # v26: 800→400
-                            # CN IP 过滤
-                            server = p.get("server", "")
-                            host = server.split(":")[0] if ":" in server else server
-                            reach, _ = check_node_reachability(host, timeout=1.5)
-                            if not reach: continue
-                            srv = p.get("server", "")
-                            sni_val = p.get("sni", "") or p.get("servername", "")
-                            ws_opts = p.get("ws-opts", {})
-                            ws_host = (
-                                ws_opts.get("headers", {}).get("Host", "")
-                                if isinstance(ws_opts, dict) else ""
-                            )
-                            if ws_host:
-                                sni_val = ws_host
-                            fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
-                            # v26: TCP补充节点添加标记
-                            p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val) + "[TCP]"
-                            final.append(p)
-                            tested.add(k)
-                            print(f"   [TCP] {p['name']}")
-                        elif item["latency"] < 200:  # v26: 400→200
-                            server = p.get("server", "")
-                            host = server.split(":")[0] if ":" in server else server
-                            reach, _ = check_node_reachability(host, timeout=1.5)
-                            if not reach: continue
-                            srv = p.get("server", "")
-                            sni_val = p.get("sni", "") or p.get("servername", "")
-                            ws_opts = p.get("ws-opts", {})
-                            ws_host = (
-                                ws_opts.get("headers", {}).get("Host", "")
-                                if isinstance(ws_opts, dict) else ""
-                            )
-                            if ws_host:
-                                sni_val = ws_host
-                            fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
-                            # v26: TCP补充节点添加标记
-                            p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val) + "[TCP]"
-                            final.append(p)
-                            tested.add(k)
-                            print(f"   [TCP] {p['name']}")
+                try:
+                    with ThreadPoolExecutor(max_workers=20) as tex:
+                        test_futures = {tex.submit(test_one, item): item for item in batch_items}
+                        done_count = 0
+                        for future in as_completed(test_futures):
+                            try:
+                                item, p, r = future.result(timeout=8)
+                                done_count += 1
+                                k = f"{p['server']}:{p['port']}"
+                                if r["success"] and r["latency"] < MAX_PROXY_LATENCY:
+                                    srv = p.get("server", "")
+                                    sni_val = p.get("sni", "") or p.get("servername", "")
+                                    ws_opts = p.get("ws-opts", {})
+                                    ws_host = (
+                                        ws_opts.get("headers", {}).get("Host", "")
+                                        if isinstance(ws_opts, dict) else ""
+                                    )
+                                    if ws_host:
+                                        sni_val = ws_host
+                                    fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
+                                    p["name"] = namer.generate(fl, int(r["latency"]), r["speed"], tcp=False, server=srv, sni=sni_val)
+                                    final.append(p)
+                                    tested.add(k)
+                                    print(f"   ✅ {p['name']}")
+                                if len(final) >= MAX_FINAL_NODES: break
+                                if done_count % 20 == 0:
+                                    print(f"   进度：{done_count}/{len(batch_items)} | 合格：{len(final)}")
+                            except: pass
+                    clash.stop()
+                    print(f"\n   第{batch_id}批完成：累计合格 {len(final)} 个\n")
+                except Exception as e:
+                    print(f"   ❌ Clash 崩溃: {e}")
+                    clash.stop()
+                    break
+            
+            # TCP 补充
+            if len(final) < MAX_FINAL_NODES:
+                print(f"\n⚠️ 测速合格 {len(final)} 个/{MAX_FINAL_NODES} 目标，使用 TCP 补充...\n")
+                for item in nres:
+                    if len(final) >= MAX_FINAL_NODES: break
+                    p = item["proxy"]
+                    k = f"{p['server']}:{p['port']}"
+                    if k in tested: continue
+                    if item["is_asia"] and item["latency"] < 400:
+                        server = p.get("server", "")
+                        host = server.split(":")[0] if ":" in server else server
+                        reach, _ = check_node_reachability(host, timeout=1.5)
+                        if not reach: continue
+                        srv = p.get("server", "")
+                        sni_val = p.get("sni", "") or p.get("servername", "")
+                        ws_opts = p.get("ws-opts", {})
+                        ws_host = (
+                            ws_opts.get("headers", {}).get("Host", "")
+                            if isinstance(ws_opts, dict) else ""
+                        )
+                        if ws_host:
+                            sni_val = ws_host
+                        fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
+                        p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val) + "[TCP]"
+                        final.append(p)
                         tested.add(k)
+                        print(f"   [TCP] {p['name']}")
+                    elif item["latency"] < 200:
+                        server = p.get("server", "")
+                        host = server.split(":")[0] if ":" in server else server
+                        reach, _ = check_node_reachability(host, timeout=1.5)
+                        if not reach: continue
+                        srv = p.get("server", "")
+                        sni_val = p.get("sni", "") or p.get("servername", "")
+                        ws_opts = p.get("ws-opts", {})
+                        ws_host = (
+                            ws_opts.get("headers", {}).get("Host", "")
+                            if isinstance(ws_opts, dict) else ""
+                        )
+                        if ws_host:
+                            sni_val = ws_host
+                        fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
+                        p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val) + "[TCP]"
+                        final.append(p)
+                        tested.add(k)
+                        print(f"   [TCP] {p['name']}")
+                    tested.add(k)
         
         final = final[:MAX_FINAL_NODES]
         

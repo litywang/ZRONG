@@ -50,8 +50,8 @@ if _cfg_path.exists():
     except Exception as _e:
         print(f"[sources.yaml] load failed, fallback to inline: {_e}")
 
-CANDIDATE_URLS = (_yaml_urls or [
-    # ============ 国内优质源（优先） ============
+_INLINE_CANDIDATE_URLS = [
+    # ============ 内联回退列表（sources.yaml 不存在时使用） ============
     "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
     "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt",
     "https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/v2",
@@ -126,7 +126,9 @@ CANDIDATE_URLS = (_yaml_urls or [
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/hysteria2.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/tuic.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
-]) if not _yaml_urls else []
+]
+CANDIDATE_URLS = _yaml_urls if _yaml_urls else _INLINE_CANDIDATE_URLS
+
 
 TELEGRAM_CHANNELS = (_yaml_chans or [
     "v2ray_free", "freev2rayng", "v2rayng_free", "sub_free",

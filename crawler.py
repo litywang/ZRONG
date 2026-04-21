@@ -10,6 +10,7 @@
 import httpx
 import asyncio
 import requests, base64, hashlib, time, json, socket, os, sys, re, yaml, subprocess, signal, gzip, shutil, ssl, urllib.request, urllib.error, urllib.parse
+from typing import Dict, List, Set, Tuple, Optional, Any
 requests.packages.urllib3.disable_warnings()
 
 # ========== httpx 同步客户端（高性能连接池 + HTTP/2）==========

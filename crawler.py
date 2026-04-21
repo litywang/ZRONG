@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v28.1 - httpx高性能版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.1
-优化：httpx连接池 + HTTP/2 + sources.yaml配置外置
+聚合订阅爬虫 v28.5 - 异步增强版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.5
+优化：httpx连接池 + 异步HTTP抓取 + sources.yaml配置外置 + Clash分批测速
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性
 """
 
 import httpx
+import asyncio
+import aiofiles
 import requests, base64, hashlib, time, json, socket, os, sys, re, yaml, subprocess, signal, gzip, shutil, ssl, urllib.request, urllib.error, urllib.parse
 requests.packages.urllib3.disable_warnings()
 
@@ -21,9 +23,22 @@ def get_http_client():
             limits=httpx.Limits(max_connections=100, max_keepalive_connections=50),
             follow_redirects=True,
             verify=False
-            # http2=True 需要 pip install httpx[http2]，Actions环境未安装，暂时禁用
         )
     return _http_client
+
+# ========== httpx 异步客户端（v29 异步抓取）==========
+_async_http_client = None
+def get_async_http_client():
+    global _async_http_client
+    if _async_http_client is None:
+        _async_http_client = httpx.AsyncClient(
+            timeout=httpx.Timeout(15.0, connect=8.0),
+            limits=httpx.Limits(max_connections=150, max_keepalive_connections=80),
+            follow_redirects=True,
+            verify=False,
+            http2=True
+        )
+    return _async_http_client
 import ipaddress
 from cn_cidr_data import CN_IP_RANGES as _CN_IP_RANGES_RAW
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -1475,6 +1490,170 @@ def fetch(url):
     return ""
 
 
+# ========== v29 异步抓取函数（保留同步逻辑，仅将 HTTP 层异步化）==========
+_async_fetch_sem = None
+
+def _get_async_sem():
+    global _async_fetch_sem
+    if _async_fetch_sem is None:
+        _async_fetch_sem = asyncio.Semaphore(80)  # 并发限制
+    return _async_fetch_sem
+
+
+# ========== v29 异步节点解析（保留同步逻辑，仅 HTTP 层异步化）==========
+async def async_fetch_and_parse(client: httpx.AsyncClient, url: str) -> Tuple[Dict, bool]:
+    """异步获取并解析单个 URL 的节点"""
+    local_nodes = {}
+    content = await async_fetch_url(client, url, SUB_MIRRORS)
+    if not content:
+        return local_nodes, False
+    
+    # 判断是否为 YAML 订阅源
+    if is_yaml_content(content):
+        yaml_nodes = parse_yaml_proxies(content)
+        for p in yaml_nodes:
+            k = f"{p['server']}:{p.get('port',0)}:{p.get('uuid', p.get('password', ''))}"
+            h = hashlib.md5(k.encode()).hexdigest()
+            if h not in local_nodes:
+                local_nodes[h] = p
+        return local_nodes, True
+    
+    # 普通文本订阅（协议链接）
+    if is_base64(content):
+        content = decode_b64(content)
+    for line in content.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        p = parse_node(line)
+        if p:
+            k = f"{p['server']}:{p['port']}:{p.get('uuid', p.get('password', ''))}"
+            h = hashlib.md5(k.encode()).hexdigest()
+            if h not in local_nodes:
+                local_nodes[h] = p
+    return local_nodes, False
+
+
+async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple[Dict, int, int]:
+    """
+    异步批量抓取并解析所有节点的入口
+    返回: (nodes_dict, yaml_count, txt_count)
+    """
+    client = get_async_http_client()
+    
+    # 限制并发数
+    sem = asyncio.Semaphore(80)
+    
+    async def fetch_with_limit(url: str):
+        async with sem:
+            return await async_fetch_and_parse(client, url)
+    
+    print(f"🌐 异步抓取 {len(all_urls)} 个订阅源...")
+    
+    # 创建所有任务
+    tasks = [fetch_with_limit(url) for url in all_urls]
+    
+    # 进度跟踪
+    nodes = {}
+    yaml_count = 0
+    txt_count = 0
+    completed = 0
+    
+    # 使用 as_completed 逐个收集结果
+    for coro in asyncio.as_completed(tasks):
+        local_nodes, is_yaml = await coro
+        completed += 1
+        
+        for h, p in local_nodes.items():
+            if h not in nodes:
+                nodes[h] = p
+        
+        if is_yaml:
+            yaml_count += 1
+        else:
+            txt_count += 1
+        
+        if completed % 50 == 0:
+            print(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
+        
+        if len(nodes) >= max_nodes:
+            print(f"   ✅ 已达上限 {max_nodes}，提前结束")
+            break
+    
+    await client.aclose()
+    
+    return nodes, yaml_count, txt_count
+
+
+async def async_fetch_url(client: httpx.AsyncClient, url: str, mirror_pool: List[str]) -> str:
+    """异步抓取单个 URL（带镜像池）"""
+    sem = _get_async_sem()
+    headers = random.choice(HEADERS_POOL)
+    is_github = "github" in url.lower() or "raw.githubusercontent" in url
+    
+    if not is_github:
+        # 非GitHub URL：直连
+        async with sem:
+            for _ in range(2):
+                try:
+                    resp = await client.get(url, headers=headers)
+                    if resp.status_code == 200:
+                        return resp.text.strip()
+                    elif resp.status_code in (403, 429):
+                        await asyncio.sleep(3)
+                        continue
+                except Exception:
+                    await asyncio.sleep(1)
+        return ""
+    
+    # GitHub: 镜像池 + 原始URL兜底
+    all_urls = []
+    for mirror in mirror_pool:
+        if mirror:
+            mirror_host = mirror.rstrip("/").replace("https://", "").replace("http://", "")
+            all_urls.append(url.replace("raw.githubusercontent.com", mirror_host))
+    all_urls.append(url)  # 原始URL兜底
+    
+    async with sem:
+        for try_url in all_urls:
+            for _ in range(2):
+                try:
+                    resp = await client.get(try_url, headers=headers)
+                    if resp.status_code == 200:
+                        text = resp.text.strip()
+                        if text.startswith("<!") or text.startswith("<html"):
+                            continue
+                        if len(text) > 50:
+                            return text
+                    elif resp.status_code in (403, 429, 503):
+                        await asyncio.sleep(random.uniform(2.0, 5.0))
+                        continue
+                except Exception:
+                    await asyncio.sleep(random.uniform(0.5, 1.5))
+    return ""
+
+
+async def async_fetch_urls(urls: List[str], mirror_pool: List[str] = None) -> Dict[str, str]:
+    """
+    异步批量抓取多个 URL
+    返回: {url: content}
+    """
+    if mirror_pool is None:
+        mirror_pool = SUB_MIRRORS
+    
+    client = get_async_http_client()
+    tasks = [async_fetch_url(client, url, mirror_pool) for url in urls]
+    
+    # 使用 tqdm 显示进度（如果可用）
+    try:
+        from tqdm.asyncio import tqdm as async_tqdm
+        results = await async_tqdm.gather(*tasks, desc="🌐 异步抓取")
+    except ImportError:
+        results = await asyncio.gather(*tasks)
+    
+    return {url: content for url, content in zip(urls, results) if content}
+
+
 def tcp_ping(host, port, to=1.5):
     """【v24】TCP Ping，支持丢包检测历史记录"""
     if not host: return 9999.0
@@ -1910,28 +2089,32 @@ def main():
     namer = NodeNamer()
     proxy_ok = False
     
+    # v29: 异步抓取模式（可选启用）
+    USE_ASYNC_FETCH = os.getenv("USE_ASYNC_FETCH", "0") == "1"
+    
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v25.0 - 大陆友好全面优化版")
-    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 25.0")
+    print("🚀 聚合订阅爬虫 v28.5 - 异步增强版")
+    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.5")
+    print(f"异步抓取: {'✅ 启用' if USE_ASYNC_FETCH else '❌ 禁用（同步模式）'}")
     print("=" * 50)
     
     all_urls = []
     
     try:
-        # 1. GitHub Fork 发现（新增加）
+        # 1. GitHub Fork 发现（同步，GitHub API 限制）
         print("\n🔍 GitHub Fork 发现...\n")
         fork_subs = discover_github_forks()
         all_urls.extend(fork_subs)
         print(f"✅ Fork 来源：{len(fork_subs)} 个\n")
         
-        # 2. Telegram 频道爬取（保留）
+        # 2. Telegram 频道爬取（同步，需要保持会话）
         print("📱 爬取 Telegram 频道...\n")
         tg_subs = crawl_telegram_channels(TELEGRAM_CHANNELS, pages=1, limits=20)
         tg_urls = list(set([strip_url(u) for u in tg_subs.keys()]))
         all_urls.extend(tg_urls)
         print(f"✅ Telegram 订阅：{len(tg_urls)} 个\n")
         
-        # 3. 固定订阅源（直接加入，跳过验证，由后续 fetch_and_parse 自然淘汰）
+        # 3. 固定订阅源
         print("📥 加载固定订阅源...\n")
         fixed_urls = [strip_url(u) for u in CANDIDATE_URLS if strip_url(u)]
         all_urls.extend(fixed_urls)
@@ -1941,56 +2124,62 @@ def main():
         all_urls = list(set(all_urls))
         print(f"📊 总订阅源：{len(all_urls)} 个\n")
         
-        # 5. 抓取节点（并行优化）
+        # 5. 抓取节点（可选异步模式）
         print("📥 抓取节点...\n")
         nodes = {}
-        yaml_count = 0  # 统计 YAML 源解析数
+        yaml_count = 0
         txt_count = 0
         
-        def fetch_and_parse(url):
-            """并行获取并解析节点（支持 txt + yaml 两种格式）"""
-            local_nodes = {}
-            c = fetch(url)
-            if not c: return local_nodes, False
+        if USE_ASYNC_FETCH:
+            # v29 异步抓取路径
+            print("🌐 使用异步抓取模式...")
+            nodes, yaml_count, txt_count = asyncio.run(
+                async_fetch_nodes(all_urls, MAX_FETCH_NODES)
+            )
+        else:
+            # v28.x 同步抓取路径（保留）
+            def fetch_and_parse(url):
+                """并行获取并解析节点（支持 txt + yaml 两种格式）"""
+                local_nodes = {}
+                c = fetch(url)
+                if not c: return local_nodes, False
+                
+                if is_yaml_content(c):
+                    yaml_nodes = parse_yaml_proxies(c)
+                    for p in yaml_nodes:
+                        k = f"{p['server']}:{p.get('port',0)}:{p.get('uuid', p.get('password', ''))}"
+                        h = hashlib.md5(k.encode()).hexdigest()
+                        if h not in local_nodes:
+                            local_nodes[h] = p
+                    return local_nodes, True
+                
+                if is_base64(c): c = decode_b64(c)
+                for l in c.splitlines():
+                    l = l.strip()
+                    if not l or l.startswith("#"): continue
+                    p = parse_node(l)
+                    if p:
+                        k = f"{p['server']}:{p['port']}:{p.get('uuid', p.get('password', ''))}"
+                        h = hashlib.md5(k.encode()).hexdigest()
+                        if h not in local_nodes:
+                            local_nodes[h] = p
+                return local_nodes, False
             
-            # 判断是否为 YAML 订阅源
-            if is_yaml_content(c):
-                yaml_nodes = parse_yaml_proxies(c)
-                for p in yaml_nodes:
-                    k = f"{p['server']}:{p.get('port',0)}:{p.get('uuid', p.get('password', ''))}"
-                    h = hashlib.md5(k.encode()).hexdigest()
-                    if h not in local_nodes:
-                        local_nodes[h] = p
-                return local_nodes, True
-            
-            # 普通文本订阅（协议链接）
-            if is_base64(c): c = decode_b64(c)
-            for l in c.splitlines():
-                l = l.strip()
-                if not l or l.startswith("#"): continue
-                p = parse_node(l)
-                if p:
-                    k = f"{p['server']}:{p['port']}:{p.get('uuid', p.get('password', ''))}"
-                    h = hashlib.md5(k.encode()).hexdigest()
-                    if h not in local_nodes:
-                        local_nodes[h] = p
-            return local_nodes, False
-        
-        with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as ex:  # 使用高并发
-            futures = {ex.submit(fetch_and_parse, u): u for u in all_urls}
-            completed = 0
-            for future in as_completed(futures):
-                completed += 1
-                local_nodes, is_yaml = future.result()
-                for h, p in local_nodes.items():
-                    if h not in nodes:
-                        nodes[h] = p
-                if is_yaml: yaml_count += 1
-                else: txt_count += 1
-                if completed % 50 == 0:  # 减少打印频率
-                    print(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
-                if len(nodes) >= MAX_FETCH_NODES:
-                    break
+            with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as ex:
+                futures = {ex.submit(fetch_and_parse, u): u for u in all_urls}
+                completed = 0
+                for future in as_completed(futures):
+                    completed += 1
+                    local_nodes, is_yaml = future.result()
+                    for h, p in local_nodes.items():
+                        if h not in nodes:
+                            nodes[h] = p
+                    if is_yaml: yaml_count += 1
+                    else: txt_count += 1
+                    if completed % 50 == 0:
+                        print(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
+                    if len(nodes) >= MAX_FETCH_NODES:
+                        break
         
         print(f"✅ 唯一节点：{len(nodes)} 个 (YAML源: {yaml_count}, TXT源: {txt_count})\n")
         

@@ -1,14 +1,29 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v27.0 - 区域识别修复版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 27.0
-优化：修复get_region域名后缀匹配逻辑 + 移除数字检查限制
+聚合订阅爬虫 v28.1 - httpx高性能版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.1
+优化：httpx连接池 + HTTP/2 + sources.yaml配置外置
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性
 """
 
+import httpx
 import requests, base64, hashlib, time, json, socket, os, sys, re, yaml, subprocess, signal, gzip, shutil, ssl, urllib.request, urllib.error, urllib.parse
 requests.packages.urllib3.disable_warnings()
+
+# ========== httpx 同步客户端（高性能连接池 + HTTP/2）==========
+_http_client = None
+def get_http_client():
+    global _http_client
+    if _http_client is None:
+        _http_client = httpx.Client(
+            timeout=httpx.Timeout(15.0, connect=8.0),
+            limits=httpx.Limits(max_connections=100, max_keepalive_connections=50),
+            follow_redirects=True,
+            verify=False,
+            http2=True
+        )
+    return _http_client
 import ipaddress
 from cn_cidr_data import CN_IP_RANGES as _CN_IP_RANGES_RAW
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -1412,8 +1427,9 @@ def decode_b64(c):
 
 
 def fetch(url):
-    """【v24 优化】GitHub URL 多镜像池遍历，非GH直连"""
+    """【v28.1 httpx优化】GitHub URL 多镜像池遍历 + HTTP/2"""
     limiter.wait(url)
+    client = get_http_client()
     headers = random.choice(HEADERS_POOL)
     is_github = "github" in url.lower() or "raw.githubusercontent" in url
 
@@ -1421,8 +1437,7 @@ def fetch(url):
     if not is_github:
         for attempt in range(2):
             try:
-                resp = session.get(url, headers=headers, timeout=18,
-                                   allow_redirects=True, verify=False)
+                resp = client.get(url, headers=headers)
                 if resp.status_code == 200:
                     return resp.text.strip()
                 elif resp.status_code in (403, 429):
@@ -1438,19 +1453,14 @@ def fetch(url):
         if mirror:
             mirror_host = mirror.rstrip("/").replace("https://", "")
             all_urls.append(url.replace("raw.githubusercontent.com", mirror_host))
-    all_urls.append(url)  # 最后回退到原始地址
+    all_urls.append(url)
 
-    tried = 0
     for try_url in all_urls:
-        tried += 1
         for attempt in range(2):
             try:
-                resp = session.get(try_url, headers=headers, timeout=20,
-                                   allow_redirects=True, verify=False)
+                resp = client.get(try_url, headers=headers)
                 if resp.status_code == 200:
-                    # requests 自动处理 gzip，解码后直接返回
                     text = resp.text.strip()
-                    # 跳过HTML错误页面
                     if text.startswith("<!") or text.startswith("<html"):
                         continue
                     if len(text) > 50:

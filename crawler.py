@@ -20,8 +20,8 @@ def get_http_client():
             timeout=httpx.Timeout(15.0, connect=8.0),
             limits=httpx.Limits(max_connections=100, max_keepalive_connections=50),
             follow_redirects=True,
-            verify=False,
-            http2=True
+            verify=False
+            # http2=True 需要 pip install httpx[http2]，Actions环境未安装，暂时禁用
         )
     return _http_client
 import ipaddress

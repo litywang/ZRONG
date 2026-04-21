@@ -1,8 +1,8 @@
-# 🚀 ZRONG —— 智能订阅聚合工具 v28.3
+# 🚀 ZRONG —— 智能订阅聚合工具 v28.7
 
 > 🌟 **极致 · 稳定 · 精准 · 高效** | GitHub Actions 全自动化节点筛选平台
 > 基于 wzdnzd/aggregator + mahdibland/V2RayAggregator 核心逻辑深度重构
-> **v28.1 httpx 高性能版：连接池优化 + 12种协议支持 + 全量优质源 + 产出300+节点**
+> **v28.7 高可用版：IP地理定位 + 多URL验证 + 协议握手检测 + 异步抓取**
 
 [![GitHub stars](https://img.shields.io/github/stars/litywang/ZRONG?style=flat-square)](https://github.com/litywang/ZRONG/stargazers)
 [![GitHub workflow](https://img.shields.io/github/actions/workflow/status/litywang/ZRONG/update.yml?style=flat-square)](https://github.com/litywang/ZRONG/actions)
@@ -14,15 +14,17 @@
 
 | 维度 | 功能亮点 | 技术实现 |
 |------|----------|---------|
-| 🔥 **多源采集** | Telegram + GitHub Fork + 固定订阅源 | 三路并行发现 |
+| 🔥 **多源采集** | Telegram + GitHub Fork + 固定订阅源(63) | 三路并行发现 + 异步抓取 |
 | 🇨🇳 **内地优先** | 国内维护源优先加载 | ermaozi / peasoft 等 |
 | 📄 **双格式解析** | TXT 协议链接 + YAML 配置 | 自动识别并行处理 |
 | 🔗 **全协议支持** | 12种协议 | VMess / VLESS / Trojan / SS / SSR / Hysteria2 / Hysteria / TUIC / Snell / HTTP / SOCKS5 / AnyTLS |
 | 🧹 **智能去重** | MD5(协议特征) | 重复率 < 1% |
 | 🔍 **质量过滤** | 排除过期/测试/高倍率节点 | 借鉴 wzdnzd/aggregator |
-| ⚡ **三层检测** | TCP Ping → Speedtest → 输出 | 分层验证架构 |
-| 🌏 **区域感知** | HK / TW / JP / SG / KR / US 等 | 地域加权排序 |
-| 🚀 **httpx 高性能** | 连接池 + Keep-Alive | 网络请求效率提升 |
+| ⚡ **四层验证** | TCP Ping → 协议握手 → Clash测速 → TCP补充 | 分层递进，层层收紧 |
+| 🌏 **IP地理定位** | ip-api.com 批量查询 | 纯IP节点也能正确标记区域 |
+| 🔄 **多URL验证** | gstatic + Cloudflare + Apple | 消除单URL不可达误杀 |
+| 🔁 **失败重试** | Clash测速失败自动重试1次 | 减少网络抖动误杀 |
+| 🚀 **异步抓取** | httpx AsyncClient | 抓取效率提升 |
 
 ---
 
@@ -56,7 +58,7 @@
 
 ```
 ==================================================
-🚀 ZRONG v28.1 - httpx 高性能版
+🚀 ZRONG v28.7 - 高可用版
 作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
 ==================================================
 
@@ -64,31 +66,37 @@
    📦 wzdnzd/aggregator: 30 forks
 ✅ Fork 来源：1500 个
 
-📱 爬取 Telegram 频道...
+📱 爬取 Telegram 频道（32频道）...
 ✅ Telegram 订阅：8 个
 
-📥 加载固定订阅源...
-✅ 固定订阅源：0 个
+📥 加载固定订阅源（63个）...
+✅ 固定订阅源：63 个
 
-📊 总订阅源：1508 个
+📊 总订阅源：1571 个
 
-📥 抓取节点...
-   进度: 100/1508 | 节点: 5000
+📥 异步抓取节点...
+   进度: 100/1571 | 节点: 5000
 ✅ 唯一节点：5000 个
 
-⚡ 第一层：TCP 延迟测试...
-✅ 第一层合格：800 个（亚洲：320）
+🔍 质量过滤：5000 → 4200 个
 
-🚀 真实代理测速...
-   ✅ HK01-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶|⚡145ms|📥12.5MB
-   ✅ JP02-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶|⚡89ms|📥18.5MB
+🌍 IP 地理位置预查询...
+   🌍 IP 地理位置查询：100 个（已缓存 85）
 
-✅ 最终：300 个节点
+⚡ 第一层：TCP 延迟测试 + 协议握手验证...
+✅ 第一层合格：600 个（亚洲：240）
+
+🚀 真实代理测速（分批 600/批，40并发，多URL+重试）...
+   ✅ 🇭🇰1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | ⚡145ms
+   ✅ 🇯🇵1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | ⚡89ms
+   ✅ 🇸🇬1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | ⚡210ms
+
+✅ 最终：150 个节点
 
 📊 统计结果
 --------------------------------------------------
-• 总订阅：1508 | 原始：5000 | TCP：800 | 最终：300
-• 亚洲：135 个 (45%)
+• 总订阅：1571 | 原始：5000 | 过滤：4200 | TCP：600 | 最终：150
+• 亚洲：68 个 (45%)
 --------------------------------------------------
 ```
 
@@ -123,13 +131,25 @@
 |------|--------|------|
 | `MAX_WORKERS` | 60 | 并发线程数 |
 | `FETCH_WORKERS` | 100 | 抓取并发数 |
+| `USE_ASYNC_FETCH` | 1 | 启用异步抓取 |
 | `TIMEOUT` | 8s | 请求超时 |
-| `MAX_LATENCY` | 10000ms | TCP 延迟阈值 |
-| `MAX_PROXY_LATENCY` | 20000ms | 代理延迟阈值 |
+| `MAX_LATENCY` | 3000ms | TCP 延迟阈值（v28.6 收紧） |
+| `MAX_PROXY_LATENCY` | 3000ms | 代理延迟阈值 |
 | `MAX_FETCH_NODES` | 5000 | 抓取上限 |
-| `MAX_TCP_TEST_NODES` | 2000 | TCP 测试上限 |
-| `MAX_PROXY_TEST_NODES` | 500 | 代理测试上限 |
-| `MAX_FINAL_NODES` | 300 | 最终输出上限 |
+| `MAX_TCP_TEST_NODES` | 1200 | TCP 测试上限 |
+| `MAX_PROXY_TEST_NODES` | 600 | 代理测试上限（分批） |
+| `MAX_FINAL_NODES` | 150 | 最终输出上限 |
+
+### 环境变量覆盖
+
+所有 `MAX_*` 参数和 `USE_ASYNC_FETCH` 均可通过 GitHub Actions 环境变量覆盖，无需修改代码：
+
+```yaml
+env:
+  USE_ASYNC_FETCH: 1
+  MAX_FINAL_NODES: 200
+  MAX_PROXY_LATENCY: 3000
+```
 
 ---
 
@@ -146,9 +166,16 @@
 <details>
 <summary><b>Q: 节点数量太少如何优化？</b></summary>
 
-1. 放宽延迟阈值（需自行修改代码）
-2. 增加 Telegram 频道数量
-3. 添加更多固定订阅源到 `CANDIDATE_URLS`
+1. 放宽 `MAX_PROXY_LATENCY`（如改为 5000）
+2. 增加 `MAX_FINAL_NODES`（如改为 200）
+3. 添加更多固定订阅源到 `sources.yaml`
+4. 增加 Telegram 频道数量
+</details>
+
+<details>
+<summary><b>Q: 节点区域全显示 🌐 怎么办？</b></summary>
+
+v28.6 已加入 IP 地理位置查询（ip-api.com），纯 IP 节点也能正确识别区域。如仍显示 🌐，可能是 IP 查询超时，可检查网络环境。
 </details>
 
 <details>
@@ -163,17 +190,25 @@
 
 ## 📜 更新日志
 
+### v28.7 (2026-04-21) - 🎯 高可用版
+- ✅ **多URL测速验证**：gstatic + Cloudflare + Apple，任一成功即通过
+- ✅ **Clash 失败重试**：首次失败后等 0.5s 重测，减少网络抖动误杀
+- ✅ **测速并发翻倍**：20→40 线程，加快测速速度
+- ✅ **Geo 感知排序**：IP 地理位置已知节点优先送入 Clash 测速
+
+### v28.6 (2026-04-21) - 🔒 TCP 层收紧版
+- ✅ **协议握手验证**：TCP 不只验端口，验证 vmess/vless/trojan 的 TLS 握手、ss/ssr 的静默响应、http/socks5 的协议握手
+- ✅ **MAX_LATENCY 收紧**：10000ms → 3000ms，甩掉高延迟废节点
+- ✅ **IP 地理位置查询**：ip-api.com 批量查询，纯 IP 节点也能标记区域
+
+### v28.5 (2026-04-21) - 🔧 分批测速修复版
+- ✅ **Clash 分批测速**：600节点/批，Clash 停启循环，避免 Mihomo 崩溃
+- ✅ **CANDIDATE_URLS 条件修复**：63 个固定订阅源从 v28.0 起未生效，已修复
+- ✅ **异步抓取层**：httpx AsyncClient 抓取，提升效率
+
 ### v28.3 (2026-04-21) - 🎯 可用率修复版
-- ✅ **恢复 gstatic.com**：baidu.com 直连测不出代理效果，国际出口才是核心指标
+- ✅ **恢复 gstatic.com**：国际出口才是代理核心指标
 - ✅ **保留 3s 阈值**：剔除极慢不稳定节点
-- ✅ **TCP 补充改用 MAX_FINAL_NODES**：不再硬编码 180，由参数统一控制
-
-### v28.2 (2026-04-21) - 🎯 可用率优化版（回退）
-- ⚠️ baidu.com 思路有误，回退
-
-### v28.1 (2026-04-21) - ⚡ httpx 高性能版
-- ✅ **httpx 连接池**：替换 requests，连接复用 + Keep-Alive
-- ✅ **移除 HTTP/2 依赖**：避免 GitHub Actions 环境缺少 h2 包
 
 ### v28.0 (2026-04-20) - 🔧 性能优化版
 - ✅ **sources.yaml 外置配置**：订阅源配置与代码分离
@@ -182,21 +217,13 @@
 
 ### v27.0 (2026-04-15) - 🔧 区域识别修复版
 - ✅ **修复 TLD 匹配逻辑**：避免 .co/.cl 等后缀误匹配
-- ✅ **移除数字检查限制**：扩大节点来源
 
 ### v26.0 (2026-04-10) - 🇨🇳 内地优化版
 - ✅ **内地优质源优先**：ermaozi / peasoft / aiboboxx 等
-- ✅ **TCP 补充阈值放宽**：亚洲 < 400ms，非亚洲 < 200ms
 
 ### v25.0 (2026-04-05) - ⚡ Reality 优先版
 - ✅ **Reality 节点优先排序**
 - ✅ **协议评分加权**
-
-### v23.0 (2026-04-03) - 🚀 终极优化版
-- ✅ **扩展订阅源**：新增 16 个高质量订阅源
-- ✅ **扩展 Telegram 频道**：总计 50 个
-- ✅ **扩展 GitHub Fork**：总计 28 个 base repo
-- ✅ **放宽测试阈值**：移除速度要求
 
 ---
 
@@ -208,10 +235,13 @@ git clone https://github.com/litywang/ZRONG.git
 cd ZRONG
 
 # 安装依赖
-pip install requests pyyaml urllib3 httpx
+pip install requests pyyaml urllib3 httpx httpx[http2]
 
 # 直接运行
 python crawler.py
+
+# 启用异步抓取
+USE_ASYNC_FETCH=1 python crawler.py
 
 # Docker 部署
 docker build -t zrong .

@@ -33,20 +33,21 @@ jobs:
           python-version: '3.12'
 
       - name: Install Dependencies
-        run: pip install --upgrade -q httpx pyyaml python-dotenv urllib3 requests cachetools tqdm
+        run: pip install --upgrade -q httpx pyyaml python-dotenv urllib3 requests cachetools tqdm aiofiles
 
       - name: 更新中国 CIDR 数据
         run: python gen_cn_cidr.py
 
-      - name: Run Crawler v28
+      - name: Run Crawler v28.5
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
-          MAX_FINAL_NODES: 350
+          USE_ASYNC_FETCH: '1'
+          MAX_FINAL_NODES: 150
           MAX_LATENCY: 10000
-          MAX_PROXY_LATENCY: 20000
+          MAX_PROXY_LATENCY: 3000
           MAX_TCP_TEST_NODES: 1200
-          MAX_PROXY_TEST_NODES: 900
+          MAX_PROXY_TEST_NODES: 600
           MAX_FETCH_NODES: 5000
           MAX_FORK_REPOS: 60
         run: python crawler.py

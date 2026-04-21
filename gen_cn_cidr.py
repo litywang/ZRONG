@@ -1,30 +1,27 @@
 #!/usr/bin/env python3
-# Generate CN CIDR data from APNIC
-# v28.0: 修复硬编码路径，使用 Path(__file__) 跨平台兼容
+# -*- coding: utf-8 -*-
+"""Generate CN CIDR data from APNIC
+v28.1: 跨平台路径 + 完整导入
+"""
 import ipaddress
-from datetime import datetime
+import urllib.request
 from pathlib import Path
+from datetime import datetime
 
-print("🔄 正在从 APNIC 更新中国 CIDR 数据...")
+print("[gen_cn_cidr] Fetching CN CIDR from APNIC...")
 
 try:
-    import urllib.request
     data = urllib.request.urlopen(
         'https://raw.githubusercontent.com/gaoyifan/china-operator-ip/ip-lists/china.txt',
         timeout=15
     ).read().decode()
 except Exception as e:
-    print(f"❌ 下载失败: {e}")
+    print(f"[gen_cn_cidr] Download failed: {e}")
     raise
 
-lines = [
-    l.strip() for l in data.strip().split('\n')
-    if l.strip() and not l.strip().startswith('#')
-]
+lines = [l.strip() for l in data.strip().split('\n') if l.strip() and not l.startswith('#')]
 
-# v28.0: 跨平台路径，不再硬编码 C:\tools\...
 output_path = Path(__file__).parent / "cn_cidr_data.py"
-
 with open(output_path, 'w', encoding='utf-8') as f:
     f.write('#!/usr/bin/env python3\n')
     f.write('# -*- coding: utf-8 -*-\n')
@@ -37,4 +34,4 @@ with open(output_path, 'w', encoding='utf-8') as f:
         f.write(f'    ipaddress.ip_network("{line}"),\n')
     f.write(']\n')
 
-print(f'✅ Done: {len(lines)} CIDR blocks written to {output_path}')
+print(f"[gen_cn_cidr] Done: {len(lines)} CIDR blocks -> {output_path}")

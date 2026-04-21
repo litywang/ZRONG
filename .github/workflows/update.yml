@@ -33,7 +33,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install Dependencies
-        run: pip install --upgrade -q httpx pyyaml python-dotenv urllib3 requests
+        run: pip install --upgrade -q httpx pyyaml python-dotenv urllib3 requests cachetools tqdm
 
       - name: 更新中国 CIDR 数据
         run: python gen_cn_cidr.py

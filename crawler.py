@@ -1003,9 +1003,10 @@ def is_yaml_content(content):
 
 
 # ⭐ 辅助工具（保持不变）
-def get_region(name, server=None):
-    """根据节点名称检测区域 - v25: 修复emoji flag识别 + 域名fallback
+def get_region(name, server=None, sni=None):
+    """根据节点名称检测区域 - v27: 修复emoji flag识别 + 域名fallback + sni支持
     server: 可选，节点server字段，用于从域名后缀反推地区（如 .kr/.sg/.vn）
+    sni: 可选，节点sni字段，用于从域名后缀反推地区（优先级高于server）
     """
     nl = name.lower()
     # v25 FIX: Regional Indicator emoji flag (如🇭🇰) 由两个U+1F1Ex字符组成
@@ -1176,8 +1177,14 @@ def get_region(name, server=None):
         return "🌐", "NET"  # 网络通用
     
     # v27 FIX: 移除数字检查限制，对所有节点都尝试从域名后缀反推
+    # 优先检查 sni（通常是CDN域名，含更多信息），再检查 server
+    hosts_to_check = []
+    if sni:
+        hosts_to_check.append(sni.lower())
     if server:
-        srv = server.lower()
+        hosts_to_check.append(server.lower())
+    
+    for srv in hosts_to_check:
         # 从右向左取最后两个部分做模糊匹配
         parts = srv.split(".")
         for i in range(max(0, len(parts)-2), len(parts)):
@@ -1205,7 +1212,7 @@ def get_region(name, server=None):
                 return "🇹🇼", "TW"
             if seg.endswith(".au") or ".com.au" in srv:
                 return "🇦🇺", "AU"
-            if seg.endswith(".uk") or ".co.uk" in srv:
+            if srv.endswith(".uk") or srv.endswith(".co.uk"):
                 return "🇬🇧", "UK"
             if seg.endswith(".de") or ".de." in srv:
                 return "🇩🇪", "DE"
@@ -1235,7 +1242,7 @@ def get_region(name, server=None):
                 return "🇨🇿", "CZ"
             if seg.endswith(".ar") or ".com.ar" in srv:
                 return "🇦🇷", "AR"
-            if seg.endswith(".cl") or ".cl." in srv:
+            if srv.endswith(".cl") or srv.endswith(".co.cl"):
                 return "🇨🇱", "CL"
             if seg.endswith(".mx") or ".mx." in srv:
                 return "🇲🇽", "MX"
@@ -1277,6 +1284,27 @@ def get_region(name, server=None):
                 return "🇧🇬", "BG"
             if seg.endswith(".gr") or ".gr." in srv:
                 return "🇬🇷", "GR"
+            # v27: 新增更多国家后缀
+            if seg.endswith(".ir") or ".ir." in srv:
+                return "🇮🇷", "IR"
+            if seg.endswith(".pk") or ".pk." in srv:
+                return "🇵🇰", "PK"
+            if seg.endswith(".bd") or ".bd." in srv:
+                return "🇧🇩", "BD"
+            if seg.endswith(".ng") or ".ng." in srv:
+                return "🇳🇬", "NG"
+            if seg.endswith(".eg") or ".eg." in srv:
+                return "🇪🇬", "EG"
+            if seg.endswith(".ke") or ".ke." in srv:
+                return "🇰🇪", "KE"
+            if srv.endswith(".co") or srv.endswith(".com.co"):
+                return "🇨🇴", "CO"
+            if seg.endswith(".pe") or ".pe." in srv:
+                return "🇵🇪", "PE"
+            if seg.endswith(".ve") or ".ve." in srv:
+                return "🇻🇪", "VE"
+            if seg.endswith(".ec") or ".ec." in srv:
+                return "🇪🇨", "EC"
     
     return "🌐", "NET"
 
@@ -1763,12 +1791,13 @@ class NodeNamer:
     def to_fancy(self, t):
         return ''.join(self.FANCY.get(c.upper(), c) for c in t)
 
-    def generate(self, flag, lat, speed=None, tcp=False, server=None):
-        """【v26】简短命名，含区域emoji + 编号 + 哥特体后缀
+    def generate(self, flag, lat, speed=None, tcp=False, server=None, sni=None):
+        """【v27】简短命名，含区域emoji + 编号 + 哥特体后缀
         flag: 原始节点名称（或emoji字符串）
         server: 节点server字段，用于域名fallback
+        sni: 节点sni字段，用于域名fallback（优先级高于server）
         """
-        code, region = get_region(flag, server=server)
+        code, region = get_region(flag, server=server, sni=sni)
         self.counters[region] = self.counters.get(region, 0) + 1
         num = self.counters[region]
         # v26: 添加哥特体后缀 -𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
@@ -2031,8 +2060,18 @@ def main():
                             k = f"{p['server']}:{p['port']}"
                             if r["success"] and r["latency"] < MAX_PROXY_LATENCY:
                                 srv = p.get("server", "")
-                                fl, cd = get_region(p.get("name", ""), server=srv)
-                                p["name"] = namer.generate(fl, int(r["latency"]), r["speed"], tcp=False, server=srv)
+                                sni_val = p.get("sni", "") or p.get("servername", "")
+                                # v27 FIX: 也取 ws-opts 里的 Host（WS 域名通常比 server 更精确）
+                                ws_opts = p.get("ws-opts", {})
+                                ws_host = (
+                                    ws_opts.get("headers", {}).get("Host", "")
+                                    if isinstance(ws_opts, dict)
+                                    else ""
+                                )
+                                if ws_host:
+                                    sni_val = ws_host
+                                fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
+                                p["name"] = namer.generate(fl, int(r["latency"]), r["speed"], tcp=False, server=srv, sni=sni_val)
                                 final.append(p)
                                 tested.add(k)
                                 print(f"   ✅ {p['name']}")
@@ -2059,9 +2098,17 @@ def main():
                             reach, _ = check_node_reachability(host, timeout=1.5)
                             if not reach: continue
                             srv = p.get("server", "")
-                            fl, cd = get_region(p.get("name", ""), server=srv)
+                            sni_val = p.get("sni", "") or p.get("servername", "")
+                            ws_opts = p.get("ws-opts", {})
+                            ws_host = (
+                                ws_opts.get("headers", {}).get("Host", "")
+                                if isinstance(ws_opts, dict) else ""
+                            )
+                            if ws_host:
+                                sni_val = ws_host
+                            fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
                             # v26: TCP补充节点添加标记
-                            p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv) + "[TCP]"
+                            p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val) + "[TCP]"
                             final.append(p)
                             tested.add(k)
                             print(f"   [TCP] {p['name']}")
@@ -2071,9 +2118,17 @@ def main():
                             reach, _ = check_node_reachability(host, timeout=1.5)
                             if not reach: continue
                             srv = p.get("server", "")
-                            fl, cd = get_region(p.get("name", ""), server=srv)
+                            sni_val = p.get("sni", "") or p.get("servername", "")
+                            ws_opts = p.get("ws-opts", {})
+                            ws_host = (
+                                ws_opts.get("headers", {}).get("Host", "")
+                                if isinstance(ws_opts, dict) else ""
+                            )
+                            if ws_host:
+                                sni_val = ws_host
+                            fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
                             # v26: TCP补充节点添加标记
-                            p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv) + "[TCP]"
+                            p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val) + "[TCP]"
                             final.append(p)
                             tested.add(k)
                             print(f"   [TCP] {p['name']}")

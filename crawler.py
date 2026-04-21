@@ -493,27 +493,28 @@ def _proto_handshake_ok(host, port, ptype, proxy=None, timeout=3.0):
             return tls_ok
         elif ptype in ("ss", "ssr"):
             # Shadowsocks 收到未知数据会静默丢弃或断开
-            # 连接后发 1 字节垃圾，如果立即 RST 则不是 SS
+            # 策略：发送垃圾数据后，如果服务器立即回显数据或立即 RST → 不是 SS
+            # 如果超时无响应 → 可能是 SS（默认放过，不误杀）
             try:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 s.settimeout(timeout)
                 s.connect((host, port))
                 s.send(b"\x00")
-                time.sleep(0.3)
-                # SS 服务器通常不会立即关闭连接
                 try:
                     data = s.recv(16)
                     s.close()
-                    # 如果收到数据，不是 SS（SS 不回显）
-                    return len(data) == 0 or data == b''
+                    # BUGFIX: recv 返回 b'' 表示对端已关闭连接（FIN），
+                    # 不是 SS 特征；返回非空数据 = 服务器回显了 = 肯定不是 SS
+                    # b''（连接关闭）→ 保守放过，不误杀
+                    if data and data != b'':
+                        return False  # 服务器回显了数据，不是 SS
+                    return True  # 连接关闭或空，可能是 SS，不误杀
                 except socket.timeout:
-                    # 超时 = 服务器没断开 = 可能是 SS
                     s.close()
-                    return True
+                    return True  # 超时 = 服务器没断开 = 可能是 SS
                 except (ConnectionResetError, ConnectionAbortedError):
                     s.close()
-                    # 立即断开 = 不是 SS
-                    return False
+                    return False  # 立即 RST = 不是 SS
             except:
                 return True  # 连接失败默认放过，不误杀
         elif ptype == "hysteria" or ptype == "hysteria2":
@@ -925,9 +926,15 @@ def parse_ssr(node):
         if not node.startswith("ssr://"): return None
         raw = base64.b64decode(node[6:] + "=" * (4 - len(node[6:]) % 4)).decode("utf-8", errors="ignore")
         # SSR 格式: server:port:protocol:method:obfs:base64pass/?obfsparam=xxx&remark=xxx
-        parts = raw.split("/?")
-        main = parts[0]
-        params_str = parts[1] if len(parts) > 1 else ""
+        # BUGFIX: 先用 /? 分割（maxsplit=1），避免 base64 密码含 /? 时被错误分割
+        # SSR 标准格式: main_part/?params
+        qmark_pos = raw.find("/?")
+        if qmark_pos != -1:
+            main = raw[:qmark_pos]
+            params_str = raw[qmark_pos + 2:]  # 跳过 /?
+        else:
+            main = raw
+            params_str = ""
         
         # 修复: 用 rsplit 从右边拆分，避免 server 含 IPv6 冒号时错位
         # 格式固定为 6 段: server:port:protocol:method:obfs:base64pass
@@ -2052,9 +2059,11 @@ class ClashManager:
 
     def create_config(self, proxies):
         ensure_clash_dir()
+        # BUGFIX: 移除内部双重截断，调用方已用 batch_size 限制了 proxies 数量
+        # 原代码 proxies[:MAX_PROXY_TEST_NODES] 出现两次，与外层 batch_size 职责重叠
         names = []
         seen = set()
-        for i, p in enumerate(proxies[:MAX_PROXY_TEST_NODES]):
+        for i, p in enumerate(proxies):
             name = p["name"]
             if name in seen: name = f"{name}-{i}"
             seen.add(name)
@@ -2064,7 +2073,7 @@ class ClashManager:
             "port": CLASH_PORT, "socks-port": CLASH_PORT + 1, "allow-lan": False, "mode": "rule",
             "log-level": "error", "external-controller": f"127.0.0.1:{CLASH_API_PORT}",
             "secret": "", "ipv6": False, "unified-delay": True, "tcp-concurrent": True,
-            "proxies": proxies[:MAX_PROXY_TEST_NODES],
+            "proxies": proxies,
             "proxy-groups": [{"name": "TEST", "type": "select", "proxies": names}],
             "rules": ["MATCH,TEST"]
         }
@@ -2325,8 +2334,10 @@ def main():
                     for h, p in local_nodes.items():
                         if h not in nodes:
                             nodes[h] = p
-                    if is_yaml: yaml_count += 1
-                    else: txt_count += 1
+                    # BUGFIX: 仅在有节点时才计入 yaml/txt 统计
+                    if local_nodes:
+                        if is_yaml: yaml_count += 1
+                        else: txt_count += 1
                     if completed % 50 == 0:
                         print(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
                     if len(nodes) >= MAX_FETCH_NODES:
@@ -2354,8 +2365,13 @@ def main():
         all_servers = set()
         for p in nodes.values():
             srv = p.get("server", "")
-            # 去除可能的端口
-            host = srv.split(":")[0] if ":" in srv else srv
+            # BUGFIX: IPv6 安全提取 host
+            if srv.startswith("[") and "]" in srv:
+                host = srv.split("]")[0][1:]
+            elif ":" in srv:
+                host = srv.split(":")[0]
+            else:
+                host = srv
             if is_pure_ip(host):
                 all_servers.add(host)
         _ip_geo_batch(list(all_servers)[:500])  # 最多查 500 个
@@ -2370,7 +2386,13 @@ def main():
                 server = proxy.get("server", "")
                 port = proxy.get("port", 0)
                 if not server or not port: return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
-                host = server.split(":")[0] if ":" in server else server
+                # BUGFIX: IPv6 地址格式 [fe80::1]:443 需特殊处理
+                if server.startswith("[") and "]" in server:
+                    host = server.split("]")[0][1:]  # 提取 [xxx] 中的 xxx
+                elif ":" in server:
+                    host = server.split(":")[0]  # IPv4:port 格式
+                else:
+                    host = server
                 lat = tcp_ping(host, port)
                 if lat >= 9999: return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
                 # 丢包率检测（v24）
@@ -2406,7 +2428,13 @@ def main():
         def _geo_score(item):
             """IP 地理位置已知 = +2 分（更可靠），亚洲 = +1 分"""
             srv = item["proxy"].get("server", "")
-            host = srv.split(":")[0] if ":" in srv else srv
+            # BUGFIX: IPv6 安全提取 host
+            if srv.startswith("[") and "]" in srv:
+                host = srv.split("]")[0][1:]
+            elif ":" in srv:
+                host = srv.split(":")[0]
+            else:
+                host = srv
             score = 0
             geo = _ip_geo_cache.get(host)
             if geo:
@@ -2509,7 +2537,13 @@ def main():
                     if k in tested: continue
                     if item["is_asia"] and item["latency"] < 400:
                         server = p.get("server", "")
-                        host = server.split(":")[0] if ":" in server else server
+                        # BUGFIX: IPv6 安全提取 host
+                        if server.startswith("[") and "]" in server:
+                            host = server.split("]")[0][1:]
+                        elif ":" in server:
+                            host = server.split(":")[0]
+                        else:
+                            host = server
                         reach, _ = check_node_reachability(host, timeout=1.5)
                         if not reach:
                             tested.add(k)  # BUGFIX: reachability 失败也标记，避免下次重复检测
@@ -2530,7 +2564,13 @@ def main():
                         print(f"   [TCP] {p['name']}")
                     elif item["latency"] < 200:
                         server = p.get("server", "")
-                        host = server.split(":")[0] if ":" in server else server
+                        # BUGFIX: IPv6 安全提取 host
+                        if server.startswith("[") and "]" in server:
+                            host = server.split("]")[0][1:]
+                        elif ":" in server:
+                            host = server.split(":")[0]
+                        else:
+                            host = server
                         reach, _ = check_node_reachability(host, timeout=1.5)
                         if not reach:
                             tested.add(k)  # BUGFIX: 不符合条件的也标记，避免下次重复检测

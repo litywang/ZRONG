@@ -149,11 +149,11 @@ TIMEOUT = 8
 MAX_FETCH_NODES = int(os.getenv("MAX_FETCH_NODES", 5000))     # v25: 扩大候选池（原3000）
 MAX_TCP_TEST_NODES = int(os.getenv("MAX_TCP_TEST_NODES", 1200)) # v25: TCP翻倍（原600，匹配README 10s阈值）
 MAX_PROXY_TEST_NODES = int(os.getenv("MAX_PROXY_TEST_NODES", 900)) # v26: 代理测速三倍（原300），提高可用率
-MAX_FINAL_NODES = int(os.getenv("MAX_FINAL_NODES", 350))       # v25: 目标300+大陆友好节点（原180）
+MAX_FINAL_NODES = int(os.getenv("MAX_FINAL_NODES", 200))       # v28.2: 目标200个高质量节点，宁缺毋滥
 MAX_LATENCY = int(os.getenv("MAX_LATENCY", 10000))             # v25: TCP延迟放宽至10s（原5000，匹配README）
 MIN_PROXY_SPEED = 0.0         # 取消速度限制，只看能否连通
-MAX_PROXY_LATENCY = int(os.getenv("MAX_PROXY_LATENCY", 20000)) # v25: 代理延迟放宽至20s（原15000，匹配README）
-TEST_URL = "http://www.gstatic.com/generate_204"
+MAX_PROXY_LATENCY = int(os.getenv("MAX_PROXY_LATENCY", 3000))  # v28.2: 收紧至3s，剔除不稳定节点，提高实测可用率
+TEST_URL = "http://www.baidu.com"  # v28.2: 换国内可访问URL，测国内可达性，提高大陆友好节点可用率
 
 CLASH_PORT = 17890
 CLASH_API_PORT = 19090
@@ -1794,6 +1794,7 @@ class ClashManager:
             lat = (time.time() - start) * 1000
             if resp.status_code in [200, 204, 301, 302]:
                 # ⚡ 跳过测速，只测连通性，大幅节省时间
+                # v28.2: 支持 baidu.com(200) 和 gstatic.com(204) 两种响应格式
                 result = {"success": True, "latency": round(lat, 1), "speed": 0.0, "error": ""}
             else:
                 result["error"] = f"Status:{resp.status_code}"

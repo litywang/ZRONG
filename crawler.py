@@ -701,6 +701,15 @@ def strip_url(u):
     if u: return u.strip().replace("\n", "").replace(" ", "")
     return ""
 
+def _safe_port(val, default=443):
+    """BUGFIX: port 安全转换，防止 None/非法值"""
+    try:
+        p = int(val) if val else default
+        if p <= 0 or p > 65535: return default
+        return p
+    except (ValueError, TypeError):
+        return default
+
 
 # ⭐ 节点解析器（保持不变）
 def parse_vmess(node):
@@ -716,12 +725,13 @@ def parse_vmess(node):
         # 从 ps 字段提取原始名称
         original_name = c.get("ps", "")
         if not original_name:
-            uid = generate_unique_id({'server': c.get('add') or c.get('host'), 'port': int(c.get('port', 443)), 'uuid': c.get('id')})
+            uid = generate_unique_id({'server': c.get('add') or c.get('host'), 'port': _safe_port(c.get('port'), 443), 'uuid': c.get('id')})
             original_name = f"VM-{uid}"
         
+        vmess_port = _safe_port(c.get("port"), 443)
         p = {
             "name": original_name, "type": "vmess", "server": c.get("add") or c.get("host", ""),
-            "port": int(c.get("port", 443)), "uuid": c.get("id", ""), "alterId": int(c.get("aid", 0)),
+            "port": vmess_port, "uuid": c.get("id", ""), "alterId": int(c.get("aid", 0)),
             "cipher": "auto", "udp": True, "skip-cert-verify": True
         }
         net = c.get("net", "tcp").lower()
@@ -754,10 +764,11 @@ def parse_vless(node):
         sec = gp("security")
         
         # 从 URL fragment 提取原始名称
-        original_name = p_url.fragment if p_url.fragment else f"VL-{generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443), 'uuid': uuid})}"
+        original_name = p_url.fragment if p_url.fragment else f"VL-{generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'uuid': uuid})}"
         
+        port_val = _safe_port(p_url.port)
         proxy = {
-            "name": original_name, "type": "vless", "server": p_url.hostname, "port": int(p_url.port or 443),
+            "name": original_name, "type": "vless", "server": p_url.hostname, "port": port_val,
             "uuid": uuid, "udp": True, "skip-cert-verify": True
         }
         if sec in ["tls", "reality"]:
@@ -798,10 +809,10 @@ def parse_trojan(node):
         gp = lambda k: params.get(k, [""])[0]
         
         # 从 URL fragment 提取原始名称
-        original_name = p_url.fragment if p_url.fragment else f"TJ-{generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443), 'password': pwd})}"
+        original_name = p_url.fragment if p_url.fragment else f"TJ-{generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'password': pwd})}"
         
         proxy = {
-            "name": original_name, "type": "trojan", "server": p_url.hostname, "port": int(p_url.port or 443),
+            "name": original_name, "type": "trojan", "server": p_url.hostname, "port": _safe_port(p_url.port),
             "password": pwd, "udp": True, "skip-cert-verify": True, "sni": gp("sni") or p_url.hostname
         }
         alpn = gp("alpn")
@@ -830,9 +841,9 @@ def parse_ss(node):
         
         # 如果没有原始名称，生成默认名称
         if not original_name:
-            original_name = f"SS-{generate_unique_id({'server': server, 'port': int(port), 'password': pwd})}"
+            original_name = f"SS-{generate_unique_id({'server': server, 'port': _safe_port(port), 'password': pwd})}"
         
-        return {"name": original_name, "type": "ss", "server": server, "port": int(port), "cipher": method, "password": pwd, "udp": True}
+        return {"name": original_name, "type": "ss", "server": server, "port": _safe_port(port), "cipher": method, "password": pwd, "udp": True}
     except: return None
 
 
@@ -846,10 +857,10 @@ def parse_hysteria2(node):
         pwd = unquote(p_url.username or "")
         params = parse_qs(p_url.query)
         gp = lambda k: params.get(k, [""])[0]
-        uid = generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443), 'password': pwd})
+        uid = generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'password': pwd})
         proxy = {
             "name": f"H2-{uid}", "type": "hysteria2", "server": p_url.hostname,
-            "port": int(p_url.port or 443), "password": pwd, "udp": True, "skip-cert-verify": True
+            "port": _safe_port(p_url.port), "password": pwd, "udp": True, "skip-cert-verify": True
         }
         sni = gp("sni")
         if sni: proxy["sni"] = sni
@@ -875,10 +886,10 @@ def parse_tuic(node):
         uuid_val = p_url.username or ""
         params = parse_qs(p_url.query)
         gp = lambda k: params.get(k, [""])[0]
-        uid = generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443), 'password': uuid_val})
+        uid = generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'password': uuid_val})
         proxy = {
             "name": f"TU-{uid}", "type": "tuic", "server": p_url.hostname,
-            "port": int(p_url.port or 443), "uuid": uuid_val, "password": uuid_val,
+            "port": _safe_port(p_url.port), "uuid": uuid_val, "password": uuid_val,
             "udp": True, "skip-cert-verify": True
         }
         sni = gp("sni")
@@ -900,10 +911,10 @@ def parse_hysteria(node):
         pwd = unquote(p_url.username or "")
         params = parse_qs(p_url.query)
         gp = lambda k: params.get(k, [""])[0]
-        uid = generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443), 'password': pwd})
+        uid = generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'password': pwd})
         proxy = {
             "name": f"HY-{uid}", "type": "hysteria", "server": p_url.hostname,
-            "port": int(p_url.port or 443), "password": pwd, "udp": True,
+            "port": _safe_port(p_url.port), "password": pwd, "udp": True,
             "skip-cert-verify": True, "protocol": "udp"
         }
         sni = gp("sni")
@@ -949,6 +960,7 @@ def parse_ssr(node):
         
         try:
             port = int(port_str)
+            if port <= 0 or port > 65535: return None
         except ValueError:
             return None
         password = base64.b64decode(b64pass + "=" * (4 - len(b64pass) % 4)).decode("utf-8", errors="ignore")
@@ -997,12 +1009,11 @@ def parse_http_proxy(node):
         # 格式: http://user:pass@server:port#name 或 http://server:port
         username = unquote(p_url.username or "")
         password = unquote(p_url.password or "")
-        name = p_url.fragment if p_url.fragment else f"HT-{generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 80)})}"
         ptype = "https" if node.startswith("https://") else "http"
+        name = p_url.fragment if p_url.fragment else f"HT-{generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port, 443 if ptype == 'https' else 80)})}"
         proxy = {
             "name": name, "type": ptype, "server": p_url.hostname,
-            # BUGFIX: 加括号明确优先级，避免 or 与三元表达式歧义
-            "port": int(p_url.port or (443 if ptype == "https" else 80)),
+            "port": _safe_port(p_url.port, 443 if ptype == "https" else 80),
         }
         if username: proxy["username"] = username
         if password: proxy["password"] = password
@@ -1018,11 +1029,11 @@ def parse_socks(node):
         if not p_url.hostname: return None
         username = unquote(p_url.username or "")
         password = unquote(p_url.password or "")
-        name = p_url.fragment if p_url.fragment else f"SK-{generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 1080)})}"
         ptype = "socks5" if node.startswith("socks5://") else "socks4"
+        name = p_url.fragment if p_url.fragment else f"SK-{generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port, 1080)})}"
         proxy = {
             "name": name, "type": ptype, "server": p_url.hostname,
-            "port": int(p_url.port or 1080),
+            "port": _safe_port(p_url.port, 1080),
         }
         if username: proxy["username"] = username
         if password: proxy["password"] = password
@@ -1036,12 +1047,12 @@ def parse_anytls(node):
         if not node.startswith("anytls://"): return None
         p_url = urlparse(node)
         if not p_url.hostname: return None
-        name = p_url.fragment if p_url.fragment else "AT-" + generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443)})
+        name = p_url.fragment if p_url.fragment else "AT-" + generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port)})
         params = parse_qs(p_url.query)
         gp = lambda k: params.get(k, [""])[0]
         proxy = {
             "name": name, "type": "anytls", "server": p_url.hostname,
-            "port": int(p_url.port or 443), "udp": True, "skip-cert-verify": True,
+            "port": _safe_port(p_url.port), "udp": True, "skip-cert-verify": True,
         }
         sni = gp("sni")
         if sni: proxy["sni"] = sni
@@ -1061,10 +1072,10 @@ def parse_snell(node):
         pwd = unquote(p_url.username or "")
         params = parse_qs(p_url.query)
         gp = lambda k: params.get(k, [""])[0]
-        name = p_url.fragment if p_url.fragment else f"SN-{generate_unique_id({'server': p_url.hostname, 'port': int(p_url.port or 443)})}"
+        name = p_url.fragment if p_url.fragment else f"SN-{generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port)})}"
         proxy = {
             "name": name, "type": "snell", "server": p_url.hostname,
-            "port": int(p_url.port or 443), "psk": pwd, "udp": True
+            "port": _safe_port(p_url.port), "psk": pwd, "udp": True
         }
         obfs = gp("obfs")
         if obfs: proxy["obfs-opts"] = {"mode": obfs}
@@ -1172,55 +1183,55 @@ def get_region(name, server=None, sni=None):
     elif match(["tw", "taiwan", "台", "🇹🇼", "台湾", "臺灣", "台北", "台中", "新北", "taipei"]):
         return "🇹🇼", "TW"
     # 日本检测
-    elif match(["jp", "japan", "日", "🇯🇵", "日本", "东京", "大阪", "tokyo", "osaka", "川日", "泉日", "埼玉"]):
+    elif match(["jp", "japan", "🇯🇵", "日本", "东京", "大阪", "tokyo", "osaka", "川日", "泉日", "埼玉"]):
         return "🇯🇵", "JP"
     # 新加坡检测
-    elif match(["sg", "singapore", "新", "🇸🇬", "新加坡", "狮城", "沪新", "京新", "深新"]):
+    elif match(["sg", "singapore", "🇸🇬", "新加坡", "狮城", "沪新", "京新", "深新"]):
         return "🇸🇬", "SG"
     # 韩国检测
     elif match(["kr", "korea", "韩", "🇰🇷", "韩国", "韓", "首尔", "春川", "seoul"]):
         return "🇰🇷", "KR"
     # 美国检测
-    elif match(["us", "usa", "美", "🇺🇸", "美国", "美利坚", "洛杉矶", "硅谷", "纽约", "united states", "america", "los angeles", "new york"]):
+    elif match(["us", "usa", "🇺🇸", "美国", "美利坚", "洛杉矶", "硅谷", "纽约", "united states", "america", "los angeles", "new york"]):
         return "🇺🇸", "US"
     # 英国检测
-    elif match(["uk", "britain", "英", "🇬🇧", "英国", "伦敦", "united kingdom", "london", "england"]):
+    elif match(["uk", "britain", "🇬🇧", "英国", "伦敦", "united kingdom", "london", "england"]):
         return "🇬🇧", "UK"
     # 德国检测
-    elif match(["de", "germany", "德", "🇩🇪", "德国", "法兰克福", "frankfurt", "berlin"]):
+    elif match(["de", "germany", "🇩🇪", "德国", "法兰克福", "frankfurt", "berlin"]):
         return "🇩🇪", "DE"
     # 法国检测
-    elif match(["fr", "france", "法", "🇫🇷", "法国", "巴黎", "paris"]):
+    elif match(["fr", "france", "🇫🇷", "法国", "巴黎", "paris"]):
         return "🇫🇷", "FR"
     # 加拿大检测
-    elif match(["ca", "canada", "加", "🇨🇦", "加拿大", "渥太华", "多伦多", "toronto", "vancouver"]):
+    elif match(["ca", "canada", "🇨🇦", "加拿大", "渥太华", "多伦多", "toronto", "vancouver"]):
         return "🇨🇦", "CA"
     # 澳大利亚检测
-    elif match(["au", "australia", "澳", "🇦🇺", "澳大利亚", "澳洲", "悉尼", "sydney", "melbourne"]):
+    elif match(["au", "australia", "🇦🇺", "澳大利亚", "澳洲", "悉尼", "sydney", "melbourne"]):
         return "🇦🇺", "AU"
     # 荷兰检测
-    elif match(["nl", "netherlands", "荷", "🇳🇱", "荷兰", "阿姆斯特丹", "amsterdam"]):
+    elif match(["nl", "netherlands", "🇳🇱", "荷兰", "阿姆斯特丹", "amsterdam"]):
         return "🇳🇱", "NL"
     # 俄罗斯检测
-    elif match(["ru", "russia", "俄", "🇷🇺", "俄罗斯", "莫斯科", "moscow"]):
+    elif match(["ru", "russia", "🇷🇺", "俄罗斯", "莫斯科", "moscow"]):
         return "🇷🇺", "RU"
     # 印度检测（v25: 修复 "in" 误匹配，改用词边界检查）
-    elif match(["india", "印", "🇮🇳", "印度", "孟买", "mumbai", "delhi"]) or re.search(r'\bin\b', nl):
+    elif match(["india", "🇮🇳", "印度", "孟买", "mumbai", "delhi"]) or re.search(r'\bin\b', nl):
         return "🇮🇳", "IN"
     # 巴西检测
-    elif match(["br", "brazil", "巴", "🇧🇷", "巴西", "圣保罗", "sao paulo"]):
+    elif match(["br", "brazil", "🇧🇷", "巴西", "圣保罗", "sao paulo"]):
         return "🇧🇷", "BR"
     # 阿根廷检测
-    elif match(["ar", "argentina", "阿", "🇦🇷", "阿根廷", "buenos aires"]):
+    elif match(["ar", "argentina", "🇦🇷", "阿根廷", "buenos aires"]):
         return "🇦🇷", "AR"
     # 泰国检测
-    elif match(["th", "thailand", "泰", "🇹🇭", "泰国", "曼谷", "bangkok"]):
+    elif match(["th", "thailand", "🇹🇭", "泰国", "曼谷", "bangkok"]):
         return "🇹🇭", "TH"
     # 越南检测
-    elif match(["vn", "vietnam", "越", "🇻🇳", "越南", "胡志明", "hanoi"]):
+    elif match(["vn", "vietnam", "🇻🇳", "越南", "胡志明", "hanoi"]):
         return "🇻🇳", "VN"
     # 马来西亚检测
-    elif match(["my", "malaysia", "马", "🇲🇾", "马来西亚", "吉隆坡", "kuala lumpur"]):
+    elif match(["my", "malaysia", "🇲🇾", "马来西亚", "吉隆坡", "kuala lumpur"]):
         return "🇲🇾", "MY"
     # 菲律宾检测
     elif match(["ph", "philippines", "菲", "🇵🇭", "菲律宾", "马尼拉", "manila"]):
@@ -1232,25 +1243,25 @@ def get_region(name, server=None, sni=None):
     elif match(["mx", "mexico", "墨", "🇲🇽", "墨西哥"]):
         return "🇲🇽", "MX"
     # 意大利检测
-    elif match(["it", "italy", "意", "🇮🇹", "意大利", "米兰", "罗马", "milan", "rome"]):
+    elif match(["it", "italy", "🇮🇹", "意大利", "米兰", "罗马", "milan", "rome"]):
         return "🇮🇹", "IT"
     # 西班牙检测
-    elif match(["es", "spain", "西", "🇪🇸", "西班牙", "马德里", "madrid"]):
+    elif match(["es", "spain", "🇪🇸", "西班牙", "马德里", "madrid"]):
         return "🇪🇸", "ES"
     # 瑞士检测
-    elif match(["ch", "switzerland", "瑞", "🇨🇭", "瑞士", "苏黎世", "zurich"]):
+    elif match(["ch", "switzerland", "🇨🇭", "瑞士", "苏黎世", "zurich"]):
         return "🇨🇭", "CH"
     # 奥地利检测
-    elif match(["at", "austria", "奥", "🇦🇹", "奥地利", "维也纳", "vienna"]):
+    elif match(["at", "austria", "🇦🇹", "奥地利", "维也纳", "vienna"]):
         return "🇦🇹", "AT"
     # 瑞典检测
     elif match(["se", "sweden", "瑞典", "🇸🇪", "斯德哥尔摩", "stockholm"]):
         return "🇸🇪", "SE"
     # 波兰检测
-    elif match(["pl", "poland", "波", "🇵🇱", "波兰", "华沙", "warsaw"]):
+    elif match(["pl", "poland", "🇵🇱", "波兰", "华沙", "warsaw"]):
         return "🇵🇱", "PL"
     # 土耳其检测
-    elif match(["tr", "turkey", "土", "🇹🇷", "土耳其", "伊斯坦布尔", "istanbul"]):
+    elif match(["tr", "turkey", "🇹🇷", "土耳其", "伊斯坦布尔", "istanbul"]):
         return "🇹🇷", "TR"
     # 南非检测
     elif match(["za", "south africa", "南非", "🇿🇦", "约翰内斯堡", "johannesburg"]):
@@ -1295,16 +1306,16 @@ def get_region(name, server=None, sni=None):
     elif match(["nz", "new zealand", "新西兰", "🇳🇿", "奥克兰", "auckland"]):
         return "🇳🇿", "NZ"
     # 智利检测
-    elif match(["cl", "chile", "智", "🇨🇱", "智利", "圣地亚哥", "santiago"]):
+    elif match(["cl", "chile", "🇨🇱", "智利", "圣地亚哥", "santiago"]):
         return "🇨🇱", "CL"
     # 哥伦比亚检测
-    elif match(["co", "colombia", "哥", "🇨🇴", "哥伦比亚", "波哥大", "bogota"]):
+    elif match(["co", "colombia", "🇨🇴", "哥伦比亚", "波哥大", "bogota"]):
         return "🇨🇴", "CO"
     # 秘鲁检测
-    elif match(["pe", "peru", "秘", "🇵🇪", "秘鲁", "利马", "lima"]):
+    elif match(["pe", "peru", "🇵🇪", "秘鲁", "利马", "lima"]):
         return "🇵🇪", "PE"
     # 乌克兰检测
-    elif match(["ua", "ukraine", "乌", "🇺🇦", "乌克兰", "基辅", "kiev", "kyiv"]):
+    elif match(["ua", "ukraine", "🇺🇦", "乌克兰", "基辅", "kiev", "kyiv"]):
         return "🇺🇦", "UA"
     # 哈萨克斯坦检测
     elif match(["kz", "kazakhstan", "哈", "🇰🇿", "哈萨克斯坦", "阿拉木图", "almaty"]):
@@ -1329,15 +1340,15 @@ def get_region(name, server=None, sni=None):
         for i in range(max(0, len(parts)-2), len(parts)):
             seg = ".".join(parts[i:])
             # TLD/常见域名后缀 → 国家/地区
-            if seg.endswith(".kr") or "kr." in srv:
+            if seg.endswith(".kr") or ".co.kr" in srv:
                 return "🇰🇷", "KR"
             if seg.endswith(".sg") or ".com.sg" in srv or ".net.sg" in srv:
                 return "🇸🇬", "SG"
-            if seg.endswith(".vn") or "vn." in srv:
+            if seg.endswith(".vn") or ".com.vn" in srv:
                 return "🇻🇳", "VN"
-            if seg.endswith(".th") or "th." in srv:
+            if seg.endswith(".th") or ".co.th" in srv:
                 return "🇹🇭", "TH"
-            if seg.endswith(".my") or "my." in srv:
+            if seg.endswith(".my") or ".com.my" in srv:
                 return "🇲🇾", "MY"
             if seg.endswith(".id") or ".co.id" in srv or ".or.id" in srv:
                 return "🇮🇩", "ID"
@@ -1353,98 +1364,98 @@ def get_region(name, server=None, sni=None):
                 return "🇦🇺", "AU"
             if srv.endswith(".uk") or srv.endswith(".co.uk"):
                 return "🇬🇧", "UK"
-            if seg.endswith(".de") or ".de." in srv:
+            if seg.endswith(".de") or ".co.de" in srv:
                 return "🇩🇪", "DE"
-            if seg.endswith(".fr") or ".fr." in srv:
+            if seg.endswith(".fr") or ".co.fr" in srv:
                 return "🇫🇷", "FR"
-            if seg.endswith(".nl") or ".nl." in srv:
+            if seg.endswith(".nl") or ".co.nl" in srv:
                 return "🇳🇱", "NL"
-            if seg.endswith(".ru") or ".ru." in srv:
+            if seg.endswith(".ru") or ".co.ru" in srv:
                 return "🇷🇺", "RU"
-            if seg.endswith(".us") or ".us." in srv:
+            if seg.endswith(".us") or ".com.us" in srv:
                 return "🇺🇸", "US"
             if seg.endswith(".br") or ".com.br" in srv:
                 return "🇧🇷", "BR"
-            if seg.endswith(".ca") or ".ca." in srv:
+            if seg.endswith(".ca") or ".co.ca" in srv:
                 return "🇨🇦", "CA"
             if seg.endswith(".in") or ".co.in" in srv or ".net.in" in srv:
                 return "🇮🇳", "IN"
-            if seg.endswith(".it") or ".it." in srv:
+            if seg.endswith(".it") or ".co.it" in srv:
                 return "🇮🇹", "IT"
-            if seg.endswith(".es") or ".es." in srv:
+            if seg.endswith(".es") or ".co.es" in srv:
                 return "🇪🇸", "ES"
             if seg.endswith(".tr") or ".com.tr" in srv:
                 return "🇹🇷", "TR"
-            if seg.endswith(".pl") or ".pl." in srv:
+            if seg.endswith(".pl") or ".co.pl" in srv:
                 return "🇵🇱", "PL"
-            if seg.endswith(".cz") or ".cz." in srv:
+            if seg.endswith(".cz") or ".co.cz" in srv:
                 return "🇨🇿", "CZ"
             if seg.endswith(".ar") or ".com.ar" in srv:
                 return "🇦🇷", "AR"
             if srv.endswith(".cl") or srv.endswith(".co.cl"):
                 return "🇨🇱", "CL"
-            if seg.endswith(".mx") or ".mx." in srv:
+            if seg.endswith(".mx") or ".com.mx" in srv:
                 return "🇲🇽", "MX"
-            if seg.endswith(".ae") or ".ae." in srv:
+            if seg.endswith(".ae") or ".co.ae" in srv:
                 return "🇦🇪", "AE"
-            if seg.endswith(".il") or ".il." in srv:
+            if seg.endswith(".il") or ".co.il" in srv:
                 return "🇮🇱", "IL"
-            if seg.endswith(".ie") or ".ie." in srv:
+            if seg.endswith(".ie") or ".co.ie" in srv:
                 return "🇮🇪", "IE"
-            if seg.endswith(".nz") or ".nz." in srv:
+            if seg.endswith(".nz") or ".co.nz" in srv:
                 return "🇳🇿", "NZ"
-            if seg.endswith(".ch") or ".ch." in srv:
+            if seg.endswith(".ch") or ".co.ch" in srv:
                 return "🇨🇭", "CH"
-            if seg.endswith(".at") or ".at." in srv:
+            if seg.endswith(".at") or ".co.at" in srv:
                 return "🇦🇹", "AT"
-            if seg.endswith(".se") or ".se." in srv:
+            if seg.endswith(".se") or ".co.se" in srv:
                 return "🇸🇪", "SE"
-            if seg.endswith(".pt") or ".pt." in srv:
+            if seg.endswith(".pt") or ".com.pt" in srv:
                 return "🇵🇹", "PT"
-            if seg.endswith(".ro") or ".ro." in srv:
+            if seg.endswith(".ro") or ".co.ro" in srv:
                 return "🇷🇴", "RO"
-            if seg.endswith(".hu") or ".hu." in srv:
+            if seg.endswith(".hu") or ".co.hu" in srv:
                 return "🇭🇺", "HU"
-            if seg.endswith(".fi") or ".fi." in srv:
+            if seg.endswith(".fi") or ".co.fi" in srv:
                 return "🇫🇮", "FI"
-            if seg.endswith(".dk") or ".dk." in srv:
+            if seg.endswith(".dk") or ".co.dk" in srv:
                 return "🇩🇰", "DK"
-            if seg.endswith(".no") or ".no." in srv:
+            if seg.endswith(".no") or ".co.no" in srv:
                 return "🇳🇴", "NO"
-            if seg.endswith(".be") or ".be." in srv:
+            if seg.endswith(".be") or ".co.be" in srv:
                 return "🇧🇪", "BE"
-            if seg.endswith(".za") or ".za." in srv:
+            if seg.endswith(".za") or ".co.za" in srv:
                 return "🇿🇦", "ZA"
-            if seg.endswith(".kz") or ".kz." in srv:
+            if seg.endswith(".kz") or ".co.kz" in srv:
                 return "🇰🇿", "KZ"
-            if seg.endswith(".ua") or ".ua." in srv:
+            if seg.endswith(".ua") or ".com.ua" in srv:
                 return "🇺🇦", "UA"
-            if seg.endswith(".bg") or ".bg." in srv:
+            if seg.endswith(".bg") or ".co.bg" in srv:
                 return "🇧🇬", "BG"
-            if seg.endswith(".gr") or ".gr." in srv:
+            if seg.endswith(".gr") or ".co.gr" in srv:
                 return "🇬🇷", "GR"
             # v27: 新增更多国家后缀
-            if seg.endswith(".ir") or ".ir." in srv:
+            if seg.endswith(".ir") or ".co.ir" in srv:
                 return "🇮🇷", "IR"
-            if seg.endswith(".pk") or ".pk." in srv:
+            if seg.endswith(".pk") or ".com.pk" in srv:
                 return "🇵🇰", "PK"
-            if seg.endswith(".bd") or ".bd." in srv:
+            if seg.endswith(".bd") or ".com.bd" in srv:
                 return "🇧🇩", "BD"
-            if seg.endswith(".ng") or ".ng." in srv:
+            if seg.endswith(".ng") or ".com.ng" in srv:
                 return "🇳🇬", "NG"
-            if seg.endswith(".eg") or ".eg." in srv:
+            if seg.endswith(".eg") or ".com.eg" in srv:
                 return "🇪🇬", "EG"
-            if seg.endswith(".ke") or ".ke." in srv:
+            if seg.endswith(".ke") or ".co.ke" in srv:
                 return "🇰🇪", "KE"
             # BUGFIX: .co 是哥伦比亚 ccTLD 但也是流行短域名(如 xxx.co)，
             # 仅在 .com.co 二级域时判定为哥伦比亚，避免误匹配
             if srv.endswith(".com.co") or srv.endswith(".org.co") or srv.endswith(".net.co"):
                 return "🇨🇴", "CO"
-            if seg.endswith(".pe") or ".pe." in srv:
+            if seg.endswith(".pe") or ".com.pe" in srv:
                 return "🇵🇪", "PE"
-            if seg.endswith(".ve") or ".ve." in srv:
+            if seg.endswith(".ve") or ".com.ve" in srv:
                 return "🇻🇪", "VE"
-            if seg.endswith(".ec") or ".ec." in srv:
+            if seg.endswith(".ec") or ".com.ec" in srv:
                 return "🇪🇨", "EC"
     
     # v28.5 FIX: IP 地理位置 fallback
@@ -1685,6 +1696,7 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
     异步批量抓取并解析所有节点的入口
     返回: (nodes_dict, yaml_count, txt_count)
     """
+    global _async_http_client
     client = get_async_http_client()
     
     # 限制并发数
@@ -1728,6 +1740,7 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
                 break
     finally:
         await client.aclose()
+        _async_http_client = None  # 重置全局引用，防止后续使用已关闭的客户端
     
     return nodes, yaml_count, txt_count
 
@@ -2087,7 +2100,11 @@ class ClashManager:
         LOG_FILE.touch()
         try:
             cmd = [str(CLASH_PATH.absolute()), "-d", str(WORK_DIR.absolute()), "-f", str(CONFIG_FILE.absolute())]
-            self.process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, preexec_fn=os.setsid, cwd=str(WORK_DIR.absolute()))
+            # BUGFIX: preexec_fn=os.setsid 仅 Linux 可用，Windows 不支持
+            popen_kwargs = {"stdout": subprocess.PIPE, "stderr": subprocess.STDOUT, "text": True, "cwd": str(WORK_DIR.absolute())}
+            if os.name != "nt":
+                popen_kwargs["preexec_fn"] = os.setsid
+            self.process = subprocess.Popen(cmd, **popen_kwargs)
             for i in range(30):
                 time.sleep(1)
                 if self.process.poll() is not None:
@@ -2110,7 +2127,11 @@ class ClashManager:
     def stop(self):
         if self.process:
             try:
-                os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
+                # BUGFIX: os.killpg/signal.SIGTERM 仅 Linux 可用
+                if os.name != "nt":
+                    os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
+                else:
+                    self.process.terminate()
                 self.process.wait(timeout=5)
             except: pass
             self.process = None
@@ -2179,6 +2200,11 @@ def format_proxy_to_link(p):
                     "id": p["uuid"], "aid": p.get("alterId", 0), "net": p.get("network", "tcp"), 
                     "type": "none", "host": p.get("sni", ""), "path": p.get("ws-opts", {}).get("path", ""), 
                     "tls": "tls" if p.get("tls") else ""}
+            # BUGFIX: grpc 传输层信息
+            if p.get("grpc-opts"):
+                data["path"] = p["grpc-opts"].get("grpc-service-name", "")
+                data["host"] = ""
+                data["type"] = "gun"
             return "vmess://" + base64.b64encode(json.dumps(data, separators=(',', ':')).encode()).decode()
         
         elif ptype == "trojan":
@@ -2191,6 +2217,10 @@ def format_proxy_to_link(p):
             security = "tls" if p.get('tls') or p.get('reality') else "none"
             flow = p.get('flow', '')
             params = f"type={p.get('network', 'tcp')}&security={security}"
+            # BUGFIX: grpc 传输层信息
+            if p.get('network') == 'grpc' and p.get('grpc-opts'):
+                svc = p['grpc-opts'].get('grpc-service-name', '')
+                if svc: params += f"&serviceName={svc}"
             if flow: params += f"&flow={flow}"
             if p.get('sni'): params += f"&sni={p['sni']}"
             return f"vless://{uuid}@{p['server']}:{p['port']}?{params}#{name_enc}"

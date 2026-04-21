@@ -733,6 +733,10 @@ def parse_vmess(node):
             if c.get("path"): wo["path"] = c.get("path")
             if c.get("host"): wo["headers"] = {"Host": c.get("host")}
             if wo: p["ws-opts"] = wo
+        elif net == "grpc":
+            # BUGFIX: 补充 grpc 传输层 serviceName
+            if c.get("path"):
+                p["grpc-opts"] = {"grpc-service-name": c.get("path")}
         return p if p["server"] and p["uuid"] else None
     except: return None
 
@@ -773,6 +777,11 @@ def parse_vless(node):
             if gp("path"): wo["path"] = gp("path")
             if gp("host"): wo["headers"] = {"Host": gp("host")}
             if wo: proxy["ws-opts"] = wo
+        elif tp == "grpc":
+            # BUGFIX: 补充 grpc 传输层支持
+            proxy["network"] = "grpc"
+            if gp("serviceName"):
+                proxy["grpc-opts"] = {"grpc-service-name": gp("serviceName")}
         return proxy
     except: return None
 
@@ -985,7 +994,8 @@ def parse_http_proxy(node):
         ptype = "https" if node.startswith("https://") else "http"
         proxy = {
             "name": name, "type": ptype, "server": p_url.hostname,
-            "port": int(p_url.port or 443 if ptype == "https" else 80),
+            # BUGFIX: 加括号明确优先级，避免 or 与三元表达式歧义
+            "port": int(p_url.port or (443 if ptype == "https" else 80)),
         }
         if username: proxy["username"] = username
         if password: proxy["password"] = password
@@ -1419,7 +1429,9 @@ def get_region(name, server=None, sni=None):
                 return "🇪🇬", "EG"
             if seg.endswith(".ke") or ".ke." in srv:
                 return "🇰🇪", "KE"
-            if srv.endswith(".co") or srv.endswith(".com.co"):
+            # BUGFIX: .co 是哥伦比亚 ccTLD 但也是流行短域名(如 xxx.co)，
+            # 仅在 .com.co 二级域时判定为哥伦比亚，避免误匹配
+            if srv.endswith(".com.co") or srv.endswith(".org.co") or srv.endswith(".net.co"):
                 return "🇨🇴", "CO"
             if seg.endswith(".pe") or ".pe." in srv:
                 return "🇵🇪", "PE"
@@ -1483,10 +1495,11 @@ def is_asia(p):
     # v25: 二字母代码改用词边界匹配，防止 "in"/"id"/"my" 等子串误匹配
     tokens = set(re.split(r'[\s\-_|,.:;/()（）【】\[\]{}]+', t))
     asia_2letter = {"hk", "tw", "jp", "sg", "kr", "th", "vn", "my", "id"}
+    # BUGFIX: 移除单字"新"，误匹配"新版本/更新/新建"等；"印"也移除，误匹配"印花/印度尼西亚"不精确
     asia_long = ["hongkong", "港", "taiwan", "台", "japan", "日",
-                 "singapore", "新加坡", "新", "korea", "韩", "asia", "hkt",
+                 "singapore", "新加坡", "korea", "韩", "asia", "hkt",
                  "thailand", "泰", "vietnam", "越", "malaysia", "马",
-                 "indonesia", "印"]
+                 "indonesia", "印尼"]
     # 二字母精确匹配token
     if tokens & asia_2letter:
         return True
@@ -1685,28 +1698,29 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
     txt_count = 0
     completed = 0
     
-    # 使用 as_completed 逐个收集结果
-    for coro in asyncio.as_completed(tasks):
-        local_nodes, is_yaml = await coro
-        completed += 1
-        
-        for h, p in local_nodes.items():
-            if h not in nodes:
-                nodes[h] = p
-        
-        if is_yaml:
-            yaml_count += 1
-        else:
-            txt_count += 1
-        
-        if completed % 50 == 0:
-            print(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
-        
-        if len(nodes) >= max_nodes:
-            print(f"   ✅ 已达上限 {max_nodes}，提前结束")
-            break
-    
-    await client.aclose()
+    # BUGFIX: 确保异步客户端在异常时也关闭
+    try:
+        for coro in asyncio.as_completed(tasks):
+            local_nodes, is_yaml = await coro
+            completed += 1
+            
+            for h, p in local_nodes.items():
+                if h not in nodes:
+                    nodes[h] = p
+            
+            if is_yaml:
+                yaml_count += 1
+            else:
+                txt_count += 1
+            
+            if completed % 50 == 0:
+                print(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
+            
+            if len(nodes) >= max_nodes:
+                print(f"   ✅ 已达上限 {max_nodes}，提前结束")
+                break
+    finally:
+        await client.aclose()
     
     return nodes, yaml_count, txt_count
 
@@ -1824,8 +1838,10 @@ def clean_url(url):
     # 移除所有不可见字符和换行符
     cleaned = re.sub(r'\s+', '', url)
     
-    # 统一协议为 https
-    cleaned = cleaned.replace("http://", "https://", 1)
+    # BUGFIX: 不再强制 http→https，部分订阅源仅支持 http
+    # 统一协议为 https（仅对 github 域名，其他保持原样）
+    if 'github' in cleaned.lower():
+        cleaned = cleaned.replace("http://", "https://", 1)
     
     # 去除尾部标点
     cleaned = cleaned.rstrip('.,;:!?"\\')
@@ -2421,7 +2437,8 @@ def main():
         batch_id = 0
         
         if len(nres) > 0:
-            while len(final) < MAX_FINAL_NODES and nres_untested:
+            batch_enough = False  # BUGFIX: 标志位，用于内层 break 跳出后通知外层 while
+            while len(final) < MAX_FINAL_NODES and nres_untested and not batch_enough:
                 batch_id += 1
                 batch_items = []
                 for item in nres_untested:
@@ -2469,7 +2486,9 @@ def main():
                                     final.append(p)
                                     tested.add(k)
                                     print(f"   ✅ {p['name']}")
-                                if len(final) >= MAX_FINAL_NODES: break
+                                if len(final) >= MAX_FINAL_NODES:
+                                    batch_enough = True  # BUGFIX: 通知外层 while 退出
+                                    break
                                 if done_count % 20 == 0:
                                     print(f"   进度：{done_count}/{len(batch_items)} | 合格：{len(final)}")
                             except: pass
@@ -2492,7 +2511,9 @@ def main():
                         server = p.get("server", "")
                         host = server.split(":")[0] if ":" in server else server
                         reach, _ = check_node_reachability(host, timeout=1.5)
-                        if not reach: continue
+                        if not reach:
+                            tested.add(k)  # BUGFIX: reachability 失败也标记，避免下次重复检测
+                            continue
                         srv = p.get("server", "")
                         sni_val = p.get("sni", "") or p.get("servername", "")
                         ws_opts = p.get("ws-opts", {})
@@ -2511,7 +2532,9 @@ def main():
                         server = p.get("server", "")
                         host = server.split(":")[0] if ":" in server else server
                         reach, _ = check_node_reachability(host, timeout=1.5)
-                        if not reach: continue
+                        if not reach:
+                            tested.add(k)  # BUGFIX: 不符合条件的也标记，避免下次重复检测
+                            continue
                         srv = p.get("server", "")
                         sni_val = p.get("sni", "") or p.get("servername", "")
                         ws_opts = p.get("ws-opts", {})
@@ -2526,7 +2549,8 @@ def main():
                         final.append(p)
                         tested.add(k)
                         print(f"   [TCP] {p['name']}")
-                    tested.add(k)
+                    else:
+                        tested.add(k)  # BUGFIX: 不符合任何条件的节点也标记，避免无限循环
         
         final = final[:MAX_FINAL_NODES]
         
@@ -2564,9 +2588,11 @@ def main():
         with open("proxies.yaml", "w", encoding="utf-8") as f:
             yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
         
-        b64_lines = [format_proxy_to_link(p) for p in unique_final]
+        # BUGFIX: 标准订阅格式 = 整块 base64 编码（大部分客户端要求此格式）
+        plain_lines = '\n'.join(format_proxy_to_link(p) for p in unique_final)
+        b64_content = base64.b64encode(plain_lines.encode('utf-8')).decode('utf-8')
         with open("subscription.txt", "w", encoding="utf-8") as f:
-            f.write('\n'.join(b64_lines))
+            f.write(b64_content)
         
         # 统计
         tt = time.time() - st

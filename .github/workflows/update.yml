@@ -1,10 +1,12 @@
-name: Update Subscription Nodes
+name: Update Subscription Nodes - v28
 
 on:
   push:
     branches: [main]
     paths:
       - 'crawler.py'
+      - 'gen_cn_cidr.py'
+      - 'sources.yaml'
       - 'cn_cidr_data.py'
       - '.github/workflows/update.yml'
   schedule:
@@ -17,7 +19,7 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
@@ -31,9 +33,12 @@ jobs:
           python-version: '3.12'
 
       - name: Install Dependencies
-        run: pip install --upgrade -q requests pyyaml urllib3
+        run: pip install --upgrade -q httpx pyyaml python-dotenv urllib3 requests
 
-      - name: Run Crawler v25
+      - name: 更新中国 CIDR 数据
+        run: python gen_cn_cidr.py
+
+      - name: Run Crawler v28
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
@@ -41,7 +46,7 @@ jobs:
           MAX_LATENCY: 10000
           MAX_PROXY_LATENCY: 20000
           MAX_TCP_TEST_NODES: 1200
-          MAX_PROXY_TEST_NODES: 300
+          MAX_PROXY_TEST_NODES: 900
           MAX_FETCH_NODES: 5000
           MAX_FORK_REPOS: 60
         run: python crawler.py
@@ -60,10 +65,10 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add proxies.yaml subscription.txt
+          git add proxies.yaml subscription.txt cn_cidr_data.py
           git status
           git diff --staged --stat
-          git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M') [v25]" || echo "Nothing to commit"
+          git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M') [v28]" || echo "Nothing to commit"
           git push https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}.git HEAD:main
 
       - name: Upload Logs on Failure

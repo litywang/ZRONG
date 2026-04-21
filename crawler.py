@@ -22,7 +22,20 @@ import random
 from datetime import datetime
 
 # ==================== 配置区 ====================
-CANDIDATE_URLS = [
+# v28.0: 配置外置化 — 优先读 sources.yaml，回退保留内联（向后兼容）
+_yaml_urls, _yaml_chans = [], []
+_cfg_path = Path(__file__).parent / "sources.yaml"
+if _cfg_path.exists():
+    try:
+        with open(_cfg_path, encoding="utf-8") as _f:
+            _data = yaml.safe_load(_f) or {}
+            _yaml_urls = _data.get("candidate_urls", [])
+            _yaml_chans = _data.get("telegram_channels", [])
+        print(f"[sources.yaml] loaded {_yaml_urls.__len__()} urls / {_yaml_chans.__len__()} tg channels")
+    except Exception as _e:
+        print(f"[sources.yaml] load failed, fallback to inline: {_e}")
+
+CANDIDATE_URLS = (_yaml_urls or [
     # ============ 国内优质源（优先） ============
     "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
     "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt",
@@ -57,7 +70,7 @@ CANDIDATE_URLS = [
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/All_Configs_Sub.txt",
     "https://raw.githubusercontent.com/SagerNet/sing-box/develop/Configs/proxies.json",
     "https://raw.githubusercontent.com/XTLS/Xray-core/master/examples/config.json",
-    "https://api.mrx.one/v2ray?token=your-token-here",  # 假的token，示例
+    # v28.0: api.mrx.one 假token 已移除（由 sources.yaml 管理）
     # ============ 国内额外优质源 ============
     "https://raw.githubusercontent.com/adiwzx/freenode/main/v2ray.txt",
     "https://raw.githubusercontent.com/xingsin/test/main/list",
@@ -98,11 +111,9 @@ CANDIDATE_URLS = [
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/hysteria2.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/tuic.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
-]
+]) if not _yaml_urls else []
 
-TELEGRAM_CHANNELS = [
-    # ============ v25: 精简至30个活跃频道（去除死频道，节省并发） ============
-    # 一线活跃（近3月有更新）
+TELEGRAM_CHANNELS = (_yaml_chans or [
     "v2ray_free", "freev2rayng", "v2rayng_free", "sub_free",
     "vmessfree", "vlessfree", "trojanfree", "proxiesdaily",
     "clashnode", "freeclash", "freeproxy", "v2ray_share",
@@ -111,7 +122,7 @@ TELEGRAM_CHANNELS = [
     "freev2ray", "clashvpn", "v2rayngvpn", "freeVPNjd",
     "hysteria2_free", "SSR_V2Ray", "FreeNodeVPN", "proxy_node",
     "clash_daily", "SpeedNode",
-]
+])
 
 HEADERS_POOL = [
     {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36", "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8", "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8", "Accept-Encoding": "gzip, deflate, br", "Sec-Fetch-Dest": "document", "Sec-Fetch-Mode": "navigate", "Sec-Fetch-Site": "none", "Sec-Fetch-User": "?1", "Connection": "keep-alive"},

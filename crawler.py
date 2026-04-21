@@ -150,8 +150,8 @@ TIMEOUT = 8
 
 MAX_FETCH_NODES = int(os.getenv("MAX_FETCH_NODES", 5000))     # v25: 扩大候选池（原3000）
 MAX_TCP_TEST_NODES = int(os.getenv("MAX_TCP_TEST_NODES", 1200)) # v25: TCP翻倍（原600，匹配README 10s阈值）
-MAX_PROXY_TEST_NODES = int(os.getenv("MAX_PROXY_TEST_NODES", 900)) # v26: 代理测速三倍（原300），提高可用率
-MAX_FINAL_NODES = int(os.getenv("MAX_FINAL_NODES", 200))       # v28.2: 目标200个高质量节点，宁缺毋滥
+MAX_PROXY_TEST_NODES = int(os.getenv("MAX_PROXY_TEST_NODES", 1200)) # v28.4: 全量进入Clash测速，不再浪费第一层合格节点
+MAX_FINAL_NODES = int(os.getenv("MAX_FINAL_NODES", 150))       # v28.4: 150够用（TCP补充几乎无效，不凑数）
 MAX_LATENCY = int(os.getenv("MAX_LATENCY", 10000))             # v25: TCP延迟放宽至10s（原5000，匹配README）
 MIN_PROXY_SPEED = 0.0         # 取消速度限制，只看能否连通
 MAX_PROXY_LATENCY = int(os.getenv("MAX_PROXY_LATENCY", 3000))  # v28.3: 保持3s阈值剔除极慢节点

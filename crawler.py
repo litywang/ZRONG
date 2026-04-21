@@ -1349,7 +1349,54 @@ def get_region(name, server=None, sni=None):
             if seg.endswith(".ec") or ".ec." in srv:
                 return "🇪🇨", "EC"
     
+    # v28.5 FIX: IP 地理位置 fallback
+    if is_pure_ip(server):
+        geo = _ip_geo_cache.get(server)
+        if geo:
+            cc = geo.get("countryCode", "").upper()
+            if cc:
+                flag = _cc_to_flag(cc)
+                return flag, cc
+    if sni and not is_pure_ip(sni):
+        pass  # SNI 域名已在上面 TLD 匹配中处理过
+    
     return "🌐", "NET"
+
+
+# ========== IP 地理位置缓存 (ip-api.com 批量查询) ==========
+_ip_geo_cache = {}
+
+def _cc_to_flag(cc):
+    """国家代码转 emoji flag，如 'US' → '🇺🇸'"""
+    try:
+        return ''.join(chr(0x1F1E6 + ord(c) - ord('A')) for c in cc.upper()[:2])
+    except:
+        return "🌐"
+
+def _ip_geo_batch(ips):
+    """批量查询 IP 地理位置，使用 ip-api.com（免费，100条/批）"""
+    global _ip_geo_cache
+    if not ips:
+        return
+    # 过滤已缓存和无效的
+    to_query = [ip for ip in ips if ip not in _ip_geo_cache and is_pure_ip(ip)]
+    if not to_query:
+        return
+    # ip-api.com 批量接口，每批最多 100 个
+    BATCH = 100
+    for i in range(0, len(to_query), BATCH):
+        batch = to_query[i:i+BATCH]
+        try:
+            c = get_http_client()
+            r = c.post("http://ip-api.com/batch?fields=status,countryCode,query",
+                       json=batch, timeout=10)
+            if r.status_code == 200:
+                for item in r.json():
+                    if item.get("status") == "success":
+                        _ip_geo_cache[item["query"]] = item
+                print(f"   🌍 IP 地理位置查询：{len(batch)} 个（已缓存 {len(_ip_geo_cache)}）")
+        except Exception as e:
+            print(f"   ⚠️ IP 地理位置查询失败: {e}")
 
 
 def is_asia(p):
@@ -2197,6 +2244,17 @@ def main():
         if not nodes:
             print("❌ 过滤后无有效节点!")
             return
+        
+        # 5.6 预查询 IP 地理位置（批量，用于节点区域识别）
+        print("🌍 预查询 IP 地理位置...\n")
+        all_servers = set()
+        for p in nodes.values():
+            srv = p.get("server", "")
+            # 去除可能的端口
+            host = srv.split(":")[0] if ":" in srv else srv
+            if is_pure_ip(host):
+                all_servers.add(host)
+        _ip_geo_batch(list(all_servers)[:500])  # 最多查 500 个
         
         # 6. TCP 测试（提高并发）
         print("⚡ 第一层：TCP 延迟测试...\n")

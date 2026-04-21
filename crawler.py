@@ -37,7 +37,7 @@ import random
 from datetime import datetime
 
 # ==================== 配置区 ====================
-# v28.0: 配置外置化 — 优先读 sources.yaml，回退保留内联（向后兼容）
+# v28.3: 可用率修复 — 恢复gstatic.com，改MAX_FINAL_NODES控制TCP补充上限
 _yaml_urls, _yaml_chans = [], []
 _cfg_path = Path(__file__).parent / "sources.yaml"
 if _cfg_path.exists():
@@ -152,8 +152,8 @@ MAX_PROXY_TEST_NODES = int(os.getenv("MAX_PROXY_TEST_NODES", 900)) # v26: 代理
 MAX_FINAL_NODES = int(os.getenv("MAX_FINAL_NODES", 200))       # v28.2: 目标200个高质量节点，宁缺毋滥
 MAX_LATENCY = int(os.getenv("MAX_LATENCY", 10000))             # v25: TCP延迟放宽至10s（原5000，匹配README）
 MIN_PROXY_SPEED = 0.0         # 取消速度限制，只看能否连通
-MAX_PROXY_LATENCY = int(os.getenv("MAX_PROXY_LATENCY", 3000))  # v28.2: 收紧至3s，剔除不稳定节点，提高实测可用率
-TEST_URL = "http://www.baidu.com"  # v28.2: 换国内可访问URL，测国内可达性，提高大陆友好节点可用率
+MAX_PROXY_LATENCY = int(os.getenv("MAX_PROXY_LATENCY", 3000))  # v28.3: 保持3s阈值剔除极慢节点
+TEST_URL = "http://www.gstatic.com/generate_204"  # v28.3: 恢复gstatic.com（国际出口才是代理核心指标）
 
 CLASH_PORT = 17890
 CLASH_API_PORT = 19090
@@ -2104,11 +2104,11 @@ def main():
                         except: pass
                 clash.stop()
                 
-                # v26: 提高TCP补充阈值（亚洲<400ms，非亚洲<200ms），提升可用率
-                if len(final) < 180:
-                    print(f"\n⚠️ 测速合格 {len(final)} 个，使用 TCP 补充（仅高延迟节点）...\n")
+                # v28.3: 改用 MAX_FINAL_NODES，不再硬编码180
+                if len(final) < MAX_FINAL_NODES:
+                    print(f"\n⚠️ 测速合格 {len(final)} 个/{MAX_FINAL_NODES} 目标，使用 TCP 补充...\n")
                     for item in nres:
-                        if len(final) >= 180: break
+                        if len(final) >= MAX_FINAL_NODES: break
                         p = item["proxy"]
                         k = f"{p['server']}:{p['port']}"
                         if k in tested: continue

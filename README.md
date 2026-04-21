@@ -1,4 +1,4 @@
-# 🚀 ZRONG —— 智能订阅聚合工具 v28.2
+# 🚀 ZRONG —— 智能订阅聚合工具 v28.3
 
 > 🌟 **极致 · 稳定 · 精准 · 高效** | GitHub Actions 全自动化节点筛选平台
 > 基于 wzdnzd/aggregator + mahdibland/V2RayAggregator 核心逻辑深度重构
@@ -163,10 +163,13 @@
 
 ## 📜 更新日志
 
-### v28.2 (2026-04-21) - 🎯 可用率优化版
-- ✅ **TEST_URL → baidu.com**：测国内可达性，替代 gstatic.com（Google 国内不可达）
-- ✅ **MAX_PROXY_LATENCY 20000ms → 3000ms**：收紧至3s，剔除不稳定节点
-- ✅ **MAX_FINAL_NODES 350 → 200**：宁缺毋滥，提高实测可用率
+### v28.3 (2026-04-21) - 🎯 可用率修复版
+- ✅ **恢复 gstatic.com**：baidu.com 直连测不出代理效果，国际出口才是核心指标
+- ✅ **保留 3s 阈值**：剔除极慢不稳定节点
+- ✅ **TCP 补充改用 MAX_FINAL_NODES**：不再硬编码 180，由参数统一控制
+
+### v28.2 (2026-04-21) - 🎯 可用率优化版（回退）
+- ⚠️ baidu.com 思路有误，回退
 
 ### v28.1 (2026-04-21) - ⚡ httpx 高性能版
 - ✅ **httpx 连接池**：替换 requests，连接复用 + Keep-Alive

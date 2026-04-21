@@ -26,9 +26,12 @@ lines = [
 output_path = Path(__file__).parent / "cn_cidr_data.py"
 
 with open(output_path, 'w', encoding='utf-8') as f:
+    f.write('#!/usr/bin/env python3\n')
+    f.write('# -*- coding: utf-8 -*-\n')
     f.write('# CN CIDR blocks from APNIC (auto-generated)\n')
     f.write('# Source: https://github.com/gaoyifan/china-operator-ip\n')
     f.write(f'# Total: {len(lines)} CIDR blocks | Generated: {datetime.now()}\n\n')
+    f.write('import ipaddress\n\n')
     f.write('CN_IP_RANGES = [\n')
     for line in lines:
         f.write(f'    ipaddress.ip_network("{line}"),\n')

@@ -17,6 +17,9 @@ CHANGELOG v28.8:
 import httpx
 import asyncio
 import requests, base64, hashlib, time, json, socket, os, sys, re, yaml, subprocess, signal, gzip, shutil, ssl, urllib.request, urllib.error, urllib.parse
+import threading
+import random
+from datetime import datetime
 from typing import Dict, List, Set, Tuple, Optional, Any
 requests.packages.urllib3.disable_warnings()
 
@@ -62,9 +65,7 @@ from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 from urllib.parse import urlparse, unquote, parse_qs
 from functools import lru_cache
-import threading
-import random
-from datetime import datetime
+# threading, random, datetime 已在文件顶部导入
 
 # ==================== 配置区 ====================
 # v28.3: 可用率修复 — 恢复gstatic.com，改MAX_FINAL_NODES控制TCP补充上限

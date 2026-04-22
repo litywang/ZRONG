@@ -2457,17 +2457,18 @@ def main():
                     host = server
                 lat = tcp_ping(host, port)
                 if lat >= 9999: return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
-                # 丢包率检测（v24）
-                ok, total, usable = packet_loss_check(host, port, timeout=2.0, attempts=3)
+                # v28.9: 放宽丢包率检测（timeout 2.0 -> 3.0, attempts 3 -> 2）
+                ok, total, usable = packet_loss_check(host, port, timeout=3.0, attempts=2)
                 if not usable: return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
-                # TLS 握手检测（v24）
-                if proxy.get("tls") == True or port == 443:
-                    tls_ok, _ = tls_handshake_ok(host, port)
+                # v28.9: TLS 握手检测放宽 - 仅对明确标记TLS的节点检测
+                if proxy.get("tls") == True and port == 443:
+                    tls_ok, _ = tls_handshake_ok(host, port, timeout=3.0)
                     if not tls_ok: return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
-                # v28.6: 协议握手验证（不只是端口开着）
+                # v28.9: 放宽协议握手验证 - 仅对 ss/ssr/socks5/http 检测
                 ptype = proxy.get("type", "").lower()
-                if not _proto_handshake_ok(host, port, ptype, proxy):
-                    return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
+                if ptype in ("ss", "ssr", "socks5", "http"):
+                    if not _proto_handshake_ok(host, port, ptype, proxy):
+                        return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
                 return {"proxy": proxy, "latency": float(lat), "is_asia": is_asia(proxy),
                         "hist_score": history_stability_score(host, port)}
             except Exception:
@@ -2669,17 +2670,28 @@ def main():
             reality = 1 if is_reality_friendly(p) else 0
             proto_score = PROTOCOL_SCORE.get(p.get("type", ""), 0)
             
-            # v28.8: 从名称中提取区域代码进行额外加权
-            name = p.get("name", "")
+            # v28.9: 修复区域匹配BUG - 使用 is_asia 和 IP 地理位置
             region_bonus = 0
-            for region in ASIA_REGIONS:
-                if region in name:
-                    region_bonus = ASIA_PRIORITY_BONUS
-                    break
-            for region in NON_FRIENDLY_REGIONS:
-                if region in name:
-                    region_bonus = -NON_FRIENDLY_PENALTY
-                    break
+            
+            # 方法1: 使用 is_asia 函数判断（最可靠）
+            if is_asia(p):
+                region_bonus = ASIA_PRIORITY_BONUS
+            else:
+                # 方法2: 检查 IP 地理位置
+                srv = p.get("server", "")
+                if srv.startswith("[") and "]" in srv:
+                    host = srv.split("]")[0][1:]
+                elif ":" in srv:
+                    host = srv.split(":")[0]
+                else:
+                    host = srv
+                geo = _ip_geo_cache.get(host)
+                if geo:
+                    cc = geo.get("countryCode", "").upper()
+                    if cc in ASIA_REGIONS:
+                        region_bonus = ASIA_PRIORITY_BONUS
+                    elif cc in NON_FRIENDLY_REGIONS:
+                        region_bonus = -NON_FRIENDLY_PENALTY
             
             # 综合评分：亚洲 > Reality > 协议评分 > 区域加权
             return (-asia, -reality, -proto_score, -region_bonus)

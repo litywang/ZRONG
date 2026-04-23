@@ -2605,99 +2605,92 @@ def main():
                     p = item["proxy"]
                     k = f"{p['server']}:{p['port']}"
                     if k in tested: continue
-                    # v28.8: 放宽亚洲节点TCP补充条件（400ms -> 800ms）
-                    if item["is_asia"] and item["latency"] < 800:
-                        server = p.get("server", "")
-                        # BUGFIX: IPv6 安全提取 host
-                        if server.startswith("[") and "]" in server:
-                            host = server.split("]")[0][1:]
-                        elif ":" in server:
-                            host = server.split(":")[0]
-                        else:
-                            host = server
-                        reach, _ = check_node_reachability(host, timeout=1.5)
-                        if not reach:
-                            tested.add(k)  # BUGFIX: reachability 失败也标记，避免下次重复检测
-                            continue
-                        srv = p.get("server", "")
-                        sni_val = p.get("sni", "") or p.get("servername", "")
-                        ws_opts = p.get("ws-opts", {})
-                        ws_host = (
-                            ws_opts.get("headers", {}).get("Host", "")
-                            if isinstance(ws_opts, dict) else ""
-                        )
-                        if ws_host:
-                            sni_val = ws_host
-                        fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
-                        p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val) + "[TCP]"
-                        final.append(p)
-                        tested.add(k)
-                        print(f"   [TCP] {p['name']}")
-                    # v28.8: 放宽非亚洲节点TCP补充条件（200ms -> 500ms）
-                    elif item["latency"] < 500:
-                        server = p.get("server", "")
-                        # BUGFIX: IPv6 安全提取 host
-                        if server.startswith("[") and "]" in server:
-                            host = server.split("]")[0][1:]
-                        elif ":" in server:
-                            host = server.split(":")[0]
-                        else:
-                            host = server
-                        reach, _ = check_node_reachability(host, timeout=1.5)
-                        if not reach:
-                            tested.add(k)  # BUGFIX: 不符合条件的也标记，避免下次重复检测
-                            continue
-                        srv = p.get("server", "")
-                        sni_val = p.get("sni", "") or p.get("servername", "")
-                        ws_opts = p.get("ws-opts", {})
-                        ws_host = (
-                            ws_opts.get("headers", {}).get("Host", "")
-                            if isinstance(ws_opts, dict) else ""
-                        )
-                        if ws_host:
-                            sni_val = ws_host
-                        fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
-                        p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val) + "[TCP]"
-                        final.append(p)
-                        tested.add(k)
-                        print(f"   [TCP] {p['name']}")
+                # v28.11: 移除TCP补充中的reachability检查（关键BUG）
+                # 原问题：reachability基于DNS解析+IP黑名单，大量正常域名节点被误杀
+                # 修复：TCP延迟本身已验证连通性，无需重复验证
+                if item["is_asia"] and item["latency"] < 800:
+                    server = p.get("server", "")
+                    # BUGFIX: IPv6 安全提取 host
+                    if server.startswith("[") and "]" in server:
+                        host = server.split("]")[0][1:]
+                    elif ":" in server:
+                        host = server.split(":")[0]
                     else:
-                        tested.add(k)  # BUGFIX: 不符合任何条件的节点也标记，避免无限循环
+                        host = server
+                    # v28.11: 不再检查reachability（TCP已验证）
+                    tested.add(k)  # BUGFIX: 标记避免重复检测
+                    srv = p.get("server", "")
+                    sni_val = p.get("sni", "") or p.get("servername", "")
+                    ws_opts = p.get("ws-opts", {})
+                    ws_host = (
+                        ws_opts.get("headers", {}).get("Host", "")
+                        if isinstance(ws_opts, dict) else ""
+                    )
+                    if ws_host:
+                        sni_val = ws_host
+                    fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
+                    p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val) + "[TCP]"
+                    final.append(p)
+                    print(f"   [TCP] {p['name']}")
+                # v28.11: 非亚洲节点阈值放宽（300ms -> 500ms）
+                elif item["latency"] < 500:
+                    server = p.get("server", "")
+                    if server.startswith("[") and "]" in server:
+                        host = server.split("]")[0][1:]
+                    elif ":" in server:
+                        host = server.split(":")[0]
+                    else:
+                        host = server
+                    # v28.11: 不再检查reachability
+                    tested.add(k)  # BUGFIX: 标记避免重复检测
+                    srv = p.get("server", "")
+                    sni_val = p.get("sni", "") or p.get("servername", "")
+                    ws_opts = p.get("ws-opts", {})
+                    ws_host = (
+                        ws_opts.get("headers", {}).get("Host", "")
+                        if isinstance(ws_opts, dict) else ""
+                    )
+                    if ws_host:
+                        sni_val = ws_host
+                    fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
+                    p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val) + "[TCP]"
+                    final.append(p)
+                    tested.add(k)
+                    print(f"   [TCP] {p['name']}")
+                else:
+                    tested.add(k)
         
         final = final[:MAX_FINAL_NODES]
         
         # v28.8: 最终排序 — 亚洲+Reality+协议评分+区域权重综合加权
         def final_sort_key(p):
-            # 基础分数
-            asia = 2 if is_asia(p) else 0  # v28.8: 亚洲节点基础分提高
+            asia = 2 if is_asia(p) else 0
             reality = 1 if is_reality_friendly(p) else 0
-            proto_score = PROTOCOL_SCORE.get(p.get("type", ""), 0)
-            
-            # v28.9: 修复区域匹配BUG - 使用 is_asia 和 IP 地理位置
+            proto_score = PROTOCOL_SCORE.get(p.get("type", ""), 0) / 10.0  # normalize
+            # v28.11: IP geo fallback for region bonus
             region_bonus = 0
-            
-            # 方法1: 使用 is_asia 函数判断（最可靠）
-            if is_asia(p):
-                region_bonus = ASIA_PRIORITY_BONUS
+            srv = p.get("server", "")
+            if srv.startswith("[") and "]" in srv:
+                host = srv.split("]")[0][1:]
+            elif ":" in srv:
+                host = srv.split(":")[0]
             else:
-                # 方法2: 检查 IP 地理位置
-                srv = p.get("server", "")
-                if srv.startswith("[") and "]" in srv:
-                    host = srv.split("]")[0][1:]
-                elif ":" in srv:
-                    host = srv.split(":")[0]
-                else:
-                    host = srv
-                geo = _ip_geo_cache.get(host)
-                if geo:
-                    cc = geo.get("countryCode", "").upper()
-                    if cc in ASIA_REGIONS:
-                        region_bonus = ASIA_PRIORITY_BONUS
-                    elif cc in NON_FRIENDLY_REGIONS:
-                        region_bonus = -NON_FRIENDLY_PENALTY
-            
-            # 综合评分：亚洲 > Reality > 协议评分 > 区域加权
-            return (-asia, -reality, -proto_score, -region_bonus)
+                host = srv
+            geo = _ip_geo_cache.get(host)
+            if geo:
+                cc = geo.get("countryCode", "").upper()
+                if cc in ASIA_REGIONS:
+                    region_bonus = ASIA_PRIORITY_BONUS
+                elif cc in NON_FRIENDLY_REGIONS:
+                    region_bonus = -NON_FRIENDLY_PENALTY
+            elif is_asia(p):
+                region_bonus = ASIA_PRIORITY_BONUS
+            # v28.11: extract latency from name for secondary sort
+            lat_from_name = 0
+            m = re.search(r"\d+", p.get("name", ""))
+            if m: lat_from_name = int(m.group(0))
+            # sort: asia > reality > proto > region > latency
+            return (-asia, -reality, -proto_score, -region_bonus, lat_from_name)
         
         final.sort(key=final_sort_key)
         

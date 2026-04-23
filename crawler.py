@@ -2627,7 +2627,9 @@ def main():
                         if ws_host:
                             sni_val = ws_host
                         fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
-                        p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val) + "[TCP]"
+                        p["name"] = namer.generate(
+                            fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val
+                        ) + "[TCP]"
                         final.append(p)
                         print(f"   [TCP] {p['name']}")
                     elif item["latency"] < 500:
@@ -2650,9 +2652,10 @@ def main():
                         if ws_host:
                             sni_val = ws_host
                         fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
-                        p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val) + "[TCP]"
+                        p["name"] = namer.generate(
+                            fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val
+                        ) + "[TCP]"
                         final.append(p)
-                        pass  # v28.12: duplicate removed
                         print(f"   [TCP] {p['name']}")
                     else:
                         tested.add(k)

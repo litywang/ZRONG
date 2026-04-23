@@ -43,7 +43,7 @@ _async_http_client = None
 _async_http_client_lock = threading.Lock()  # v28.8: 添加线程锁保护
 
 def get_async_http_client():
-    # v28.12: global removed to allow client rebuild
+    global _async_http_client  # v28.13: must declare since function assigns to it
     if _async_http_client is None:
         with _async_http_client_lock:  # v28.8: 线程安全保护
             if _async_http_client is None:  # 双重检查锁定
@@ -1720,7 +1720,7 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
     异步批量抓取并解析所有节点的入口
     返回: (nodes_dict, yaml_count, txt_count)
     """
-    # v28.12: global removed to allow client rebuild
+    global _async_http_client  # v28.12: 必须声明，因为 finally 块中有赋值
     client = get_async_http_client()
     
     # 限制并发数

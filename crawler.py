@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v28.8 - 大陆优化版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.8
+聚合订阅爬虫 v29 CN-Optimized - 大陆优化版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 29 CN-Optimized
 优化：httpx连接池 + 异步HTTP抓取 + sources.yaml配置外置 + Clash分批测速 + 大陆可用性优化
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性 + 大陆高可用
 CHANGELOG v28.8:
@@ -257,12 +257,12 @@ HIGH_PORT_BONUS_THRESHOLD = 10000
 COMMON_PORT_PENALTY = {80: 300, 443: 200, 8080: 100, 8443: 100}
 
 # ===== 亚洲区域 ======
-ASIA_REGIONS = ["HK", "TW", "JP", "SG", "KR", "TH", "VN", "MY", "ID"]  # v28.8: 扩展亚洲区域
+ASIA_REGIONS = ["HK", "TW", "JP", "SG", "KR", "TH", "VN", "MY", "ID", "PH", "AU", "NZ"]  # v29 CN: 扩展亚洲区域
 
 # v28.8: 新增区域优先级配置（提高大陆可用性）
-ASIA_PRIORITY_BONUS = 20  # 亚洲节点额外加分
-NON_FRIENDLY_REGIONS = ["IR", "IN", "RU", "NG", "ZA", "BR", "AR", "CL", "PE", "VE", "EC", "CO", "MX"]  # 对大陆不友好区域
-NON_FRIENDLY_PENALTY = 15  # 非友好区域扣分
+ASIA_PRIORITY_BONUS = 35  # v29 CN: 大幅提高亚洲节点权重
+NON_FRIENDLY_REGIONS = ["IR", "IN", "RU", "NG", "ZA", "BR", "AR", "CL", "PE", "VE", "EC", "CO", "MX", "TR", "PK", "EG", "BD"]  # v29 CN: 扩展非友好区域
+NON_FRIENDLY_PENALTY = 30  # v29 CN: 大幅降权非友好区域
 
 # ===== 并发配置 ======
 MAX_CONCURRENT_FETCH = 3
@@ -2315,8 +2315,8 @@ def main():
     USE_ASYNC_FETCH = os.getenv("USE_ASYNC_FETCH", "0") == "1"
     
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v28.8 - 大陆优化版")
-    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.8")
+    print("🚀 聚合订阅爬虫 v29 CN-Optimized - 大陆优化版")
+    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 29 CN-Optimized")
     print(f"异步抓取: {'✅ 启用' if USE_ASYNC_FETCH else '❌ 禁用（同步模式）'}")
     print("=" * 50)
     

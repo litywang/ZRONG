@@ -8,6 +8,8 @@
 CHANGELOG v28.12:
 - 合并 v28.8 国内测速URL + v28.10 国际测速URL（最大覆盖）
 - 修复三处 namer.generate 长行超134字符警告
+- TCP补充缩进修复（if/elif/else在for循环内）
+- 移除重复 tested.add(k)
 """
 
 import httpx
@@ -41,7 +43,7 @@ _async_http_client = None
 _async_http_client_lock = threading.Lock()  # v28.8: 添加线程锁保护
 
 def get_async_http_client():
-    global _async_http_client
+    # v28.12: global removed to allow client rebuild
     if _async_http_client is None:
         with _async_http_client_lock:  # v28.8: 线程安全保护
             if _async_http_client is None:  # 双重检查锁定
@@ -1718,7 +1720,7 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
     异步批量抓取并解析所有节点的入口
     返回: (nodes_dict, yaml_count, txt_count)
     """
-    global _async_http_client
+    # v28.12: global removed to allow client rebuild
     client = get_async_http_client()
     
     # 限制并发数
@@ -1765,7 +1767,7 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
                 break
     finally:
         # BUGFIX v28.8: 安全关闭客户端，避免资源泄漏
-        global _async_http_client
+        # v28.12: global removed to allow client rebuild
         if _async_http_client:
             try:
                 await _async_http_client.aclose()
@@ -2576,9 +2578,12 @@ def main():
                                     if ws_host:
                                         sni_val = ws_host
                                     fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
-                                    p["name"] = namer.generate(fl, int(r["latency"]), r["speed"], tcp=False, server=srv, sni=sni_val)
+                                    p["name"] = namer.generate(
+                                        fl, int(r["latency"]), r["speed"], tcp=False,
+                                        server=srv, sni=sni_val
+                                    )
                                     final.append(p)
-                                    tested.add(k)
+                                    tested.add(k)  # v28.12: restore
                                     print(f"   ✅ {p['name']}")
                                 if len(final) >= MAX_FINAL_NODES:
                                     batch_enough = True  # BUGFIX: 通知外层 while 退出
@@ -2601,60 +2606,57 @@ def main():
                     p = item["proxy"]
                     k = f"{p['server']}:{p['port']}"
                     if k in tested: continue
-                # v28.11: 移除TCP补充中的reachability检查（关键BUG）
-                # 原问题：reachability基于DNS解析+IP黑名单，大量正常域名节点被误杀
-                # 修复：TCP延迟本身已验证连通性，无需重复验证
-                if item["is_asia"] and item["latency"] < 800:
-                    server = p.get("server", "")
-                    # BUGFIX: IPv6 安全提取 host
-                    if server.startswith("[") and "]" in server:
-                        host = server.split("]")[0][1:]
-                    elif ":" in server:
-                        host = server.split(":")[0]
+                    if item["is_asia"] and item["latency"] < 800:
+                        server = p.get("server", "")
+                        # BUGFIX: IPv6 安全提取 host
+                        if server.startswith("[") and "]" in server:
+                            host = server.split("]")[0][1:]
+                        elif ":" in server:
+                            host = server.split(":")[0]
+                        else:
+                            host = server
+                        # v28.11: 不再检查reachability（TCP已验证）
+                        tested.add(k)  # BUGFIX: 标记避免重复检测
+                        srv = p.get("server", "")
+                        sni_val = p.get("sni", "") or p.get("servername", "")
+                        ws_opts = p.get("ws-opts", {})
+                        ws_host = (
+                            ws_opts.get("headers", {}).get("Host", "")
+                            if isinstance(ws_opts, dict) else ""
+                        )
+                        if ws_host:
+                            sni_val = ws_host
+                        fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
+                        p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val) + "[TCP]"
+                        final.append(p)
+                        print(f"   [TCP] {p['name']}")
+                    elif item["latency"] < 500:
+                        server = p.get("server", "")
+                        if server.startswith("[") and "]" in server:
+                            host = server.split("]")[0][1:]
+                        elif ":" in server:
+                            host = server.split(":")[0]
+                        else:
+                            host = server
+                        # v28.11: 不再检查reachability
+                        tested.add(k)  # BUGFIX: 标记避免重复检测
+                        srv = p.get("server", "")
+                        sni_val = p.get("sni", "") or p.get("servername", "")
+                        ws_opts = p.get("ws-opts", {})
+                        ws_host = (
+                            ws_opts.get("headers", {}).get("Host", "")
+                            if isinstance(ws_opts, dict) else ""
+                        )
+                        if ws_host:
+                            sni_val = ws_host
+                        fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
+                        p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val) + "[TCP]"
+                        final.append(p)
+                        pass  # v28.12: duplicate removed
+                        print(f"   [TCP] {p['name']}")
                     else:
-                        host = server
-                    # v28.11: 不再检查reachability（TCP已验证）
-                    tested.add(k)  # BUGFIX: 标记避免重复检测
-                    srv = p.get("server", "")
-                    sni_val = p.get("sni", "") or p.get("servername", "")
-                    ws_opts = p.get("ws-opts", {})
-                    ws_host = (
-                        ws_opts.get("headers", {}).get("Host", "")
-                        if isinstance(ws_opts, dict) else ""
-                    )
-                    if ws_host:
-                        sni_val = ws_host
-                    fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
-                    p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val) + "[TCP]"
-                    final.append(p)
-                    print(f"   [TCP] {p['name']}")
-                # v28.11: 非亚洲节点阈值放宽（300ms -> 500ms）
-                elif item["latency"] < 500:
-                    server = p.get("server", "")
-                    if server.startswith("[") and "]" in server:
-                        host = server.split("]")[0][1:]
-                    elif ":" in server:
-                        host = server.split(":")[0]
-                    else:
-                        host = server
-                    # v28.11: 不再检查reachability
-                    tested.add(k)  # BUGFIX: 标记避免重复检测
-                    srv = p.get("server", "")
-                    sni_val = p.get("sni", "") or p.get("servername", "")
-                    ws_opts = p.get("ws-opts", {})
-                    ws_host = (
-                        ws_opts.get("headers", {}).get("Host", "")
-                        if isinstance(ws_opts, dict) else ""
-                    )
-                    if ws_host:
-                        sni_val = ws_host
-                    fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
-                    p["name"] = namer.generate(fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val) + "[TCP]"
-                    final.append(p)
-                    tested.add(k)
-                    print(f"   [TCP] {p['name']}")
-                else:
-                    tested.add(k)
+                        tested.add(k)
+
         
         final = final[:MAX_FINAL_NODES]
         
@@ -2807,3 +2809,8 @@ if __name__ == "__main__":
         import traceback
         traceback.print_exc()
         sys.exit(1)
+
+
+
+
+

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # CN CIDR blocks from APNIC (auto-generated)
 # Source: https://github.com/gaoyifan/china-operator-ip
-# Total: 4211 CIDR blocks | Generated: 2026-04-23 17:11:35.660751
+# Total: 4211 CIDR blocks | Generated: 2026-04-24 01:22:54.304566
 
 import ipaddress
 

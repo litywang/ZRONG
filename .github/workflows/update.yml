@@ -38,7 +38,7 @@ jobs:
       - name: 更新中国 CIDR 数据
         run: python gen_cn_cidr.py
 
-      - name: Run Crawler v28.8
+      - name: Run Crawler v28.16
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
@@ -57,8 +57,8 @@ jobs:
           echo "=== 节点统计 ==="
           echo "proxies.yaml: $(wc -l < proxies.yaml) 行"
           echo "节点数: $(grep -c 'name:' proxies.yaml) 个"
-          echo "区域: $(grep -oE '(HK|TW|JP|SG|KR|MY|TH|VN|ID|US|OT)-[0-9]+' proxies.yaml | cut -d- -f1 | sort | uniq -c | sort -rn)"
-          echo "亚洲占比: $(grep -oE '(HK|TW|JP|SG|KR|MY|TH|VN|ID)-[0-9]+' proxies.yaml | wc -l) / $(grep -c 'name:' proxies.yaml)"
+          echo "区域: $(grep -oE '(HK|TW|JP|SG|KR|MY|TH|VN|ID|PH|MO|MN|KH|LA|US|OT)-[0-9]+' proxies.yaml | cut -d- -f1 | sort | uniq -c | sort -rn)"
+          echo "亚洲占比: $(grep -oE '(HK|TW|JP|SG|KR|MY|TH|VN|ID|PH|MO|MN|KH|LA)-[0-9]+' proxies.yaml | wc -l) / $(grep -c 'name:' proxies.yaml)"
 
       - name: Commit and Push
         env:
@@ -69,7 +69,7 @@ jobs:
           git add proxies.yaml subscription.txt cn_cidr_data.py
           git status
           git diff --staged --stat
-          git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M') [v28.8]" || echo "Nothing to commit"
+          git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M') [v28.16]" || echo "Nothing to commit"
           git push https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}.git HEAD:main
 
       - name: Upload Logs on Failure

@@ -1603,6 +1603,33 @@ def get_region(name, server=None, sni=None):
     # 印尼检测
     elif match(["id", "indonesia", "印尼", "🇮🇩", "雅加达", "jakarta"]):
         return "🇮🇩", "ID"
+    # 澳门检测 (v28.16)
+    elif match(["mo", "macau", "macao", "🇲🇴", "澳门"]):
+        return "🇲🇴", "MO"
+    # 蒙古检测 (v28.16)
+    elif match(["mn", "mongolia", "🇲🇳", "蒙古", "乌兰巴托", "ulaanbaatar"]):
+        return "🇲🇳", "MN"
+    # 柬埔寨检测 (v28.16)
+    elif match(["kh", "cambodia", "🇰🇭", "柬埔寨", "金边", "phnom penh"]):
+        return "🇰🇭", "KH"
+    # 老挝检测 (v28.16)
+    elif match(["la", "laos", "🇱🇦", "老挝", "万象", "vientiane"]):
+        return "🇱🇦", "LA"
+    # 缅甸检测 (v28.16)
+    elif match(["mm", "myanmar", "🇲🇲", "缅甸", "仰光", "yangon"]):
+        return "🇲🇲", "MM"
+    # 文莱检测 (v28.16)
+    elif match(["bn", "brunei", "🇧🇳", "文莱"]):
+        return "🇧🇳", "BN"
+    # 尼泊尔检测 (v28.16)
+    elif match(["np", "nepal", "🇳🇵", "尼泊尔", "加德满都", "kathmandu"]):
+        return "🇳🇵", "NP"
+    # 斯里兰卡检测 (v28.16)
+    elif match(["lk", "sri lanka", "🇱🇰", "斯里兰卡", "科伦坡", "colombo"]):
+        return "🇱🇰", "LK"
+    # 孟加拉检测 (v28.16)
+    elif match(["bd", "bangladesh", "🇧🇩", "孟加拉", "达卡", "dhaka"]):
+        return "🇧🇩", "BD"
     # 墨西哥检测
     elif match(["mx", "mexico", "墨", "🇲🇽", "墨西哥"]):
         return "🇲🇽", "MX"
@@ -1748,6 +1775,31 @@ def get_region(name, server=None, sni=None):
                 return "🇮🇹", "IT"
             if seg.endswith(".es") or ".co.es" in srv:
                 return "🇪🇸", "ES"
+            # v28.16: 补充亚洲区域TLD
+            if seg.endswith(".mo") or ".com.mo" in srv:
+                return "🇲🇴", "MO"
+            if seg.endswith(".mn") or ".com.mn" in srv:
+                return "🇲🇳", "MN"
+            if seg.endswith(".kh") or ".com.kh" in srv:
+                return "🇰🇭", "KH"
+            if seg.endswith(".la") or ".com.la" in srv:
+                return "🇱🇦", "LA"
+            if seg.endswith(".mm") or ".com.mm" in srv:
+                return "🇲🇲", "MM"
+            if seg.endswith(".bn") or ".com.bn" in srv:
+                return "🇧🇳", "BN"
+            if seg.endswith(".tl") or ".com.tl" in srv:
+                return "🇹🇱", "TL"
+            if seg.endswith(".np") or ".com.np" in srv:
+                return "🇳🇵", "NP"
+            if seg.endswith(".lk") or ".com.lk" in srv:
+                return "🇱🇰", "LK"
+            if seg.endswith(".bd") or ".com.bd" in srv:
+                return "🇧🇩", "BD"
+            if seg.endswith(".bt") or ".com.bt" in srv:
+                return "🇧🇹", "BT"
+            if seg.endswith(".mv") or ".com.mv" in srv:
+                return "🇲🇻", "MV"
             if seg.endswith(".tr") or ".com.tr" in srv:
                 return "🇹🇷", "TR"
             if seg.endswith(".pl") or ".co.pl" in srv:
@@ -2765,8 +2817,8 @@ def main():
     USE_ASYNC_FETCH = os.getenv("USE_ASYNC_FETCH", "0") == "1"
 
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v28.14 - 大陆优化版")
-    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.14")
+    print("🚀 聚合订阅爬虫 v28.16 - 大陆优化版")
+    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.16")
     print(f"异步抓取: {'✅ 启用' if USE_ASYNC_FETCH else '❌ 禁用（同步模式）'}")
     print("=" * 50)
 
@@ -3053,7 +3105,10 @@ def main():
                                 item, p, r = future.result(timeout=8)
                                 done_count += 1
                                 k = f"{p['server']}:{p['port']}"
-                                if r["success"] and r["latency"] < MAX_PROXY_LATENCY:
+                                if r["success"] and (
+                                    r["latency"] < MAX_PROXY_LATENCY
+                                    or (is_asia(p) and r["latency"] < MAX_PROXY_LATENCY * 1.5)
+                                ):
                                     srv = p.get("server", "")
                                     sni_val = p.get("sni", "") or p.get("servername", "")
                                     ws_opts = p.get("ws-opts", {})

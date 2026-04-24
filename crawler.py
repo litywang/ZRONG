@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v28.16 - 大陆优化版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.16
+聚合订阅爬虫 v28.17 - 大陆优化版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.17
 优化：httpx连接池 + 异步HTTP抓取 + sources.yaml配置外置 + Clash分批测速 + 大陆可用性优化
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性 + 大陆高可用
-CHANGELOG v28.16:
+CHANGELOG v28.17:
 - 【关键BUG修复】亚洲前置排序后又被sort覆盖，等于白做
 - 【配额制节点选择】分亚洲/非亚洲两组排序，按60%配额合并
 - 【is_asia增强】新增IP地理位置+SNI+域名TLD三级检测
@@ -13,6 +13,10 @@ CHANGELOG v28.16:
 - 【延迟放宽】亚洲TCP补充1500ms，非亚洲800ms
 - 【权重提升】ASIA_PRIORITY_BONUS 50→80
 - 【Bandit修复】B110/B112全部加日志，B323/B105加nosec
+CHANGELOG v28.17:
+- 【SmartRateLimiter】域名级限流策略（ip-api/t.me严格，gstatic/CF宽松）
+- 【IP缓存持久化】TTLCache + JSON文件，24h有效期，程序退出自动保存
+- 【缓存加载】启动时自动加载历史缓存，减少重复查询
 """
 
 from urllib.parse import urlparse, unquote, parse_qs
@@ -47,6 +51,7 @@ import random
 import logging
 from datetime import datetime
 from typing import Dict, List, Tuple
+from cachetools import TTLCache
 
 # v28.15: 安全地禁用urllib3警告
 urllib3_logger = logging.getLogger('urllib3')
@@ -772,10 +777,31 @@ def ensure_clash_dir():
 
 
 class SmartRateLimiter:
+    """v28.17: 域名级智能限流 + IP地理缓存持久化"""
     def __init__(self):
         self.locks = {}
         self.last_call = {}
-        self.min_interval = 1.0 / REQUESTS_PER_SECOND
+        # v28.17: 按域名分类限流策略
+        self.domain_intervals = {
+            'default': 1.0 / REQUESTS_PER_SECOND,
+            'ip-api.com': 0.5,      # IP查询更严格
+            'gstatic.com': 0.2,     # 测速URL宽松
+            'cloudflare.com': 0.3,
+            'apple.com': 0.3,
+            'raw.githubusercontent.com': 0.1,  # GitHub Raw 宽松
+            't.me': 1.0,            # Telegram 严格
+        }
+        # v28.17: IP地理缓存持久化（24h TTL）
+        self.ip_geo_cache = TTLCache(maxsize=10000, ttl=86400)
+        self._cache_lock = threading.Lock()
+        self._load_geo_cache()
+
+    def _get_interval(self, domain):
+        """获取域名对应的限流间隔"""
+        for key, interval in self.domain_intervals.items():
+            if key in domain:
+                return interval
+        return self.domain_intervals['default']
 
     def wait(self, url=""):
         domain = urlparse(url).netloc or "default"
@@ -784,10 +810,54 @@ class SmartRateLimiter:
             self.last_call[domain] = 0
         with self.locks[domain]:
             now = time.time()
+            interval = self._get_interval(domain)
             elapsed = now - self.last_call[domain]
-            if elapsed < self.min_interval:
-                time.sleep(self.min_interval - elapsed)
+            if elapsed < interval:
+                time.sleep(interval - elapsed)
             self.last_call[domain] = time.time()
+
+    def _get_cache_file(self):
+        """获取缓存文件路径"""
+        return Path(__file__).parent / ".ip_geo_cache.json"
+
+    def _load_geo_cache(self):
+        """从文件加载IP地理缓存"""
+        try:
+            cache_file = self._get_cache_file()
+            if cache_file.exists():
+                with open(cache_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    for ip, item in data.items():
+                        # 检查TTL
+                        if time.time() - item.get('ts', 0) < 86400:
+                            self.ip_geo_cache[ip] = item
+                print(f"[SmartRateLimiter] 已加载 {len(self.ip_geo_cache)} 条IP地理缓存")
+        except Exception as e:
+            logging.debug("加载IP地理缓存失败: %s", e)
+
+    def save_geo_cache(self):
+        """保存IP地理缓存到文件"""
+        try:
+            with self._cache_lock:
+                cache_file = self._get_cache_file()
+                data = {}
+                for ip, item in self.ip_geo_cache.items():
+                    data[ip] = dict(item, ts=time.time())
+                with open(cache_file, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, ensure_ascii=False)
+                print(f"[SmartRateLimiter] 已保存 {len(data)} 条IP地理缓存")
+        except Exception as e:
+            logging.debug("保存IP地理缓存失败: %s", e)
+
+    def get_geo(self, ip):
+        """获取IP地理信息（带缓存）"""
+        with self._cache_lock:
+            return self.ip_geo_cache.get(ip)
+
+    def set_geo(self, ip, geo_data):
+        """设置IP地理信息（带缓存）"""
+        with self._cache_lock:
+            self.ip_geo_cache[ip] = geo_data
 
 
 limiter = SmartRateLimiter()
@@ -1878,7 +1948,7 @@ def get_region(name, server=None, sni=None):
 
     # v28.5 FIX: IP 地理位置 fallback
     if is_pure_ip(server):
-        geo = _ip_geo_cache.get(server)
+        geo = limiter.get_geo(server)
         if geo:
             cc = geo.get("countryCode", "").upper()
             if cc:
@@ -1891,7 +1961,8 @@ def get_region(name, server=None, sni=None):
 
 
 # ========== IP 地理位置缓存 (ip-api.com 批量查询) ==========
-_ip_geo_cache = {}
+# v28.17: 使用 limiter.ip_geo_cache 替代全局变量，支持持久化
+_ip_geo_cache = limiter.ip_geo_cache
 
 
 def _cc_to_flag(cc):
@@ -1904,12 +1975,11 @@ def _cc_to_flag(cc):
 
 def _ip_geo_batch(ips):
     """批量查询 IP 地理位置，使用 ip-api.com（免费，100条/批）"""
-    # v28.15: global声明用于修改模块级变量
-    global _ip_geo_cache  # noqa: F824
+    # v28.17: 使用 limiter 的持久化缓存
     if not ips:
         return
     # 过滤已缓存和无效的
-    to_query = [ip for ip in ips if ip not in _ip_geo_cache and is_pure_ip(ip)]
+    to_query = [ip for ip in ips if ip not in limiter.ip_geo_cache and is_pure_ip(ip)]
     if not to_query:
         return
     # ip-api.com 批量接口，每批最多 100 个
@@ -1923,10 +1993,12 @@ def _ip_geo_batch(ips):
             if r.status_code == 200:
                 for item in r.json():
                     if item.get("status") == "success":
-                        _ip_geo_cache[item["query"]] = item
-                print(f"   🌍 IP 地理位置查询：{len(batch)} 个（已缓存 {len(_ip_geo_cache)}）")
+                        limiter.set_geo(item["query"], item)
+                print(f"   🌍 IP 地理位置查询：{len(batch)} 个（已缓存 {len(limiter.ip_geo_cache)}）")
         except Exception as e:
             print(f"   ⚠️ IP 地理位置查询失败: {e}")
+        # v28.17: 每批查询后保存缓存
+        limiter.save_geo_cache()
 
 
 def is_asia(p):
@@ -1960,7 +2032,7 @@ def is_asia(p):
     # v28.16: IP地理位置判断
     server = p.get("server", "")
     if is_pure_ip(server):
-        geo = _ip_geo_cache.get(server)
+        geo = limiter.get_geo(server)
         if geo:
             cc = geo.get("countryCode", "").upper()
             if cc in ASIA_REGIONS:
@@ -2817,8 +2889,8 @@ def main():
     USE_ASYNC_FETCH = os.getenv("USE_ASYNC_FETCH", "0") == "1"
 
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v28.16 - 大陆优化版")
-    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.16")
+    print("🚀 聚合订阅爬虫 v28.17 - 大陆优化版")
+    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.17")
     print(f"异步抓取: {'✅ 启用' if USE_ASYNC_FETCH else '❌ 禁用（同步模式）'}")
     print("=" * 50)
 
@@ -2973,7 +3045,7 @@ def main():
                 else:
                     host = server
                 # v28.13: 预查询 IP 地理位置（用于后续排序优化）
-                if is_pure_ip(host) and host not in _ip_geo_cache:
+                if is_pure_ip(host) and host not in limiter.ip_geo_cache:
                     _ip_geo_batch([host])
                 lat = tcp_ping(host, port)
                 if lat >= 9999:
@@ -3204,7 +3276,7 @@ def main():
                 host = srv.split(":")[0]
             else:
                 host = srv
-            geo = _ip_geo_cache.get(host)
+            geo = limiter.get_geo(host)
             if geo:
                 cc = geo.get("countryCode", "").upper()
                 if cc in ASIA_REGIONS:
@@ -3357,6 +3429,11 @@ TXT: <a href="{txt_html_url}">{txt_html_url}</a>
         sys.exit(1)
     finally:
         clash.stop()
+        # v28.17: 程序退出时保存IP地理缓存
+        try:
+            limiter.save_geo_cache()
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":

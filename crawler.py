@@ -1,10 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v28.17 - 大陆优化版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.17
+聚合订阅爬虫 v28.19 - 大陆优化版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.19
 优化：httpx连接池 + 异步HTTP抓取 + sources.yaml配置外置 + Clash分批测速 + 大陆可用性优化
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性 + 大陆高可用
+CHANGELOG v28.19:
+- 【关键修复】协议握手检测扩展到所有协议(vmess/vless/trojan/hysteria2/tuic/snell)
+- 【可用率提升】修复节点通过TCP但协议握手失败导致实际不可用的问题
+CHANGELOG v28.18:
+- 【优先级调整】Telegram>Fork>固定源，固定源放最后
+- 【输出优化】Telegram源优先抓取，固定源作为补充
+CHANGELOG v28.17:
+- 【SmartRateLimiter】域名级限流策略（ip-api/t.me严格，gstatic/CF宽松）
+- 【IP缓存持久化】TTLCache + JSON文件，24h有效期，程序退出自动保存
+- 【缓存加载】启动时自动加载历史缓存，减少重复查询
 CHANGELOG v28.17:
 - 【关键BUG修复】亚洲前置排序后又被sort覆盖，等于白做
 - 【配额制节点选择】分亚洲/非亚洲两组排序，按60%配额合并
@@ -13,10 +23,6 @@ CHANGELOG v28.17:
 - 【延迟放宽】亚洲TCP补充1500ms，非亚洲800ms
 - 【权重提升】ASIA_PRIORITY_BONUS 50→80
 - 【Bandit修复】B110/B112全部加日志，B323/B105加nosec
-CHANGELOG v28.17:
-- 【SmartRateLimiter】域名级限流策略（ip-api/t.me严格，gstatic/CF宽松）
-- 【IP缓存持久化】TTLCache + JSON文件，24h有效期，程序退出自动保存
-- 【缓存加载】启动时自动加载历史缓存，减少重复查询
 """
 
 from urllib.parse import urlparse, unquote, parse_qs
@@ -3053,14 +3059,15 @@ def main():
                 ok, total, usable = packet_loss_check(host, port, timeout=3.0, attempts=2)
                 if not usable:
                     return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
-                # v28.9: TLS 握手检测放宽 - 仅对明确标记TLS的节点检测
+                # v28.9: TLS 握手检测 - 对所有标记 TLS 的协议检测
+                # v28.19: 扩展到 vmess/vless/trojan/hysteria2 等所有协议
                 if proxy.get("tls") and port == 443:
                     tls_ok, _ = tls_handshake_ok(host, port, timeout=3.0)
                     if not tls_ok:
                         return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
-                # v28.9: 放宽协议握手验证 - 仅对 ss/ssr/socks5/http 检测
+                # v28.19: 协议握手验证 - 扩展到所有协议类型
                 ptype = proxy.get("type", "").lower()
-                if ptype in ("ss", "ssr", "socks5", "http"):
+                if ptype in ("ss", "ssr", "socks5", "http", "vmess", "vless", "trojan", "hysteria", "hysteria2", "tuic", "snell"):
                     if not _proto_handshake_ok(host, port, ptype, proxy):
                         return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
                 return {"proxy": proxy, "latency": float(lat), "is_asia": is_asia(proxy),

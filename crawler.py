@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v28.13 - 大陆优化版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.13
+聚合订阅爬虫 v28.14 - 大陆优化版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.14
 优化：httpx连接池 + 异步HTTP抓取 + sources.yaml配置外置 + Clash分批测速 + 大陆可用性优化
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性 + 大陆高可用
-CHANGELOG v28.13:
-- 修复 async_fetch_nodes 双重客户端创建导致 NoneType 错误
-- 修复 TCP补充逻辑中 host 变量未使用警告
-- 修复 get_region 中 .cl/.co TLD 误匹配（智利/哥伦比亚）
-- 新增 trojan-go:// 协议解析支持
-- 优化 IP 地理位置查询优先级（TCP测试前预查）
-- 优化亚洲节点占比计算逻辑
+CHANGELOG v28.14:
+- 大幅扩展亚洲区域列表（22个区域）
+- 提高亚洲优先级权重（35→50）
+- 增强亚洲节点检测关键词（菲律宾、澳门、蒙古等）
+- 亚洲域名直接通过过滤（提高保留率）
+- 强制亚洲节点置顶策略（目标60%+）
+- 扩展非友好区域列表（38个）
 """
 
 import httpx
@@ -260,12 +260,13 @@ HIGH_PORT_BONUS_THRESHOLD = 10000
 COMMON_PORT_PENALTY = {80: 300, 443: 200, 8080: 100, 8443: 100}
 
 # ===== 亚洲区域 ======
-ASIA_REGIONS = ["HK", "TW", "JP", "SG", "KR", "TH", "VN", "MY", "ID"]  # v28.8: 扩展亚洲区域
+# v28.14: 大幅扩展亚洲区域列表（提升亚洲节点占比）
+ASIA_REGIONS = ["HK", "TW", "JP", "SG", "KR", "TH", "VN", "MY", "ID", "PH", "MO", "MN", "KH", "LA", "MM", "BN", "TL", "NP", "LK", "BD", "BT", "MV"]  # 22个亚洲区域
 
-# v28.8: 新增区域优先级配置（提高大陆可用性）
-ASIA_PRIORITY_BONUS = 35  # 亚洲节点额外加分
-NON_FRIENDLY_REGIONS = ["IR", "IN", "RU", "NG", "ZA", "BR", "AR", "CL", "PE", "VE", "EC", "CO", "MX"]  # 对大陆不友好区域
-NON_FRIENDLY_PENALTY = 30  # 非友好区域扣分
+# v28.14: 提高亚洲优先级权重
+ASIA_PRIORITY_BONUS = 50  # 亚洲节点额外加分（35→50）
+NON_FRIENDLY_REGIONS = ["IR", "IN", "RU", "NG", "ZA", "BR", "AR", "CL", "PE", "VE", "EC", "CO", "MX", "US", "CA", "AU", "EU", "GB", "DE", "FR", "NL", "IT", "ES", "SE", "NO", "FI", "DK", "PL", "CZ", "HU", "RO", "BG", "GR", "PT", "AT", "CH", "BE", "IE"]  # 扩展非友好区域
+NON_FRIENDLY_PENALTY = 40  # 非友好区域扣分（30→40）
 
 # ===== 并发配置 ======
 MAX_CONCURRENT_FETCH = 3
@@ -1571,15 +1572,22 @@ def _ip_geo_batch(ips):
 
 
 def is_asia(p):
+    """v28.14: 增强亚洲节点检测（扩展关键词和区域覆盖）"""
     t = f"{p.get('name', '')} {p.get('server', '')}".lower()
-    # v25: 二字母代码改用词边界匹配，防止 "in"/"id"/"my" 等子串误匹配
+    # v28.14: 扩展二字母代码，增加菲律宾/澳门/蒙古等
     tokens = set(re.split(r'[\s\-_|,.:;/()（）【】\[\]{}]+', t))
-    asia_2letter = {"hk", "tw", "jp", "sg", "kr", "th", "vn", "my", "id"}
-    # BUGFIX: 移除单字"新"，误匹配"新版本/更新/新建"等；"印"也移除，误匹配"印花/印度尼西亚"不精确
+    asia_2letter = {"hk", "tw", "jp", "sg", "kr", "th", "vn", "my", "id", "ph", "mo", "mn", "kh", "la"}
+    # v28.14: 扩展长关键词列表
     asia_long = ["hongkong", "港", "taiwan", "台", "japan", "日",
                  "singapore", "新加坡", "korea", "韩", "asia", "hkt",
                  "thailand", "泰", "vietnam", "越", "malaysia", "马",
-                 "indonesia", "印尼"]
+                 "indonesia", "印尼", "philippines", "菲律宾", "phillipines",
+                 "macau", "澳门", "macao", "mongolia", "蒙古",
+                 "cambodia", "柬埔寨", "laos", "老挝", "myanmar", "缅甸",
+                 "brunei", "文莱", "nepal", "尼泊尔", "sri lanka", "斯里兰卡",
+                 "bangladesh", "孟加拉", "bhutan", "不丹", "maldives", "马尔代夫",
+                 "east asia", "southeast asia", "south asia", "东亚", "东南亚", "南亚",
+                 "asia pacific", "apac", "亚太"]
     # 二字母精确匹配token
     if tokens & asia_2letter:
         return True
@@ -1600,7 +1608,7 @@ def is_china_mainland(p):
 
 
 def filter_quality(p):
-    """【v24 大陆友好版】节点质量过滤，含 CN IP/域名黑名单 + 非代理端口过滤"""
+    """【v28.14】节点质量过滤，含 CN IP/域名黑名单 + 非代理端口过滤 + 亚洲优先"""
     name = p.get("name", "").lower()
 
     # 仅排除明显无效的
@@ -1633,9 +1641,19 @@ def filter_quality(p):
         if is_cn_proxy_ip(server):
             return False
     else:
-        reach, _ = check_node_reachability(server, timeout=2.0)
-        if not reach:
-            return False
+        # v28.14: 放宽域名检测，亚洲域名直接通过不检测reachability
+        # 提高亚洲节点保留率
+        is_asia_domain = False
+        srv_lower = server.lower()
+        asia_tlds = ['.hk', '.tw', '.jp', '.sg', '.kr', '.th', '.vn', '.my', '.id', '.ph', '.mo', '.mn']
+        for tld in asia_tlds:
+            if srv_lower.endswith(tld) or tld + '.' in srv_lower:
+                is_asia_domain = True
+                break
+        if not is_asia_domain:
+            reach, _ = check_node_reachability(server, timeout=2.0)
+            if not reach:
+                return False
 
     return True
 
@@ -2348,8 +2366,8 @@ def main():
     USE_ASYNC_FETCH = os.getenv("USE_ASYNC_FETCH", "0") == "1"
     
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v28.13 - 大陆优化版")
-    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.13")
+    print("🚀 聚合订阅爬虫 v28.14 - 大陆优化版")
+    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.14")
     print(f"异步抓取: {'✅ 启用' if USE_ASYNC_FETCH else '❌ 禁用（同步模式）'}")
     print("=" * 50)
     
@@ -2547,16 +2565,24 @@ def main():
                     score -= NON_FRIENDLY_PENALTY
             return score
         
-        # v28.8: 增强排序逻辑，优先亚洲节点
+        # v28.14: 增强排序逻辑，大幅优先亚洲节点
         nres.sort(key=lambda x: (
-            -_geo_score(x),  # v28.8: IP 地理位置加权（亚洲加分，非友好区域扣分）
+            -_geo_score(x),  # IP 地理位置加权（亚洲加分，非友好区域扣分）
             -x["is_asia"],
             -(1 if is_reality_friendly(x["proxy"]) else 0),  # Reality节点优先
             -PROTOCOL_SCORE.get(x["proxy"].get("type", ""), 0) / 10.0,  # 协议评分加权
             x["latency"]
         ))
+        # v28.14: 如果亚洲节点不足60%，调整排序策略强制提升
         asia_count = sum(1 for n in nres if n["is_asia"])
-        # v28.13: 修复占比计算精度
+        if asia_count > 0 and asia_count < len(nres) * 0.6:
+            # 重新排序：亚洲节点全部置顶，非亚洲按延迟排序
+            asia_nodes = [n for n in nres if n["is_asia"]]
+            non_asia_nodes = [n for n in nres if not n["is_asia"]]
+            nres = asia_nodes + non_asia_nodes
+            print(f"   🔄 强制亚洲置顶：{len(asia_nodes)} 亚洲 + {len(non_asia_nodes)} 非亚洲")
+        # v28.14: 重新计算亚洲数量（排序后可能已调整）
+        asia_count = sum(1 for n in nres if n["is_asia"])
         tcp_asia_pct = round(asia_count * 100 / max(len(nres), 1), 1)
         print(f"✅ 第一层合格：{len(nres)} 个（亚洲：{asia_count}，占比：{tcp_asia_pct}%）\n")
         
@@ -2685,12 +2711,12 @@ def main():
         
         final = final[:MAX_FINAL_NODES]
         
-        # v28.8: 最终排序 — 亚洲+Reality+协议评分+区域权重综合加权
+        # v28.14: 最终排序 — 强制亚洲优先+Reality+协议评分+区域权重综合加权
         def final_sort_key(p):
-            asia = 2 if is_asia(p) else 0
+            asia = 3 if is_asia(p) else 0  # v28.14: 提高亚洲权重（2→3）
             reality = 1 if is_reality_friendly(p) else 0
             proto_score = PROTOCOL_SCORE.get(p.get("type", ""), 0) / 10.0  # normalize
-            # v28.11: IP geo fallback for region bonus
+            # v28.14: IP geo fallback for region bonus
             region_bonus = 0
             srv = p.get("server", "")
             if srv.startswith("[") and "]" in srv:
@@ -2708,12 +2734,19 @@ def main():
                     region_bonus = -NON_FRIENDLY_PENALTY
             elif is_asia(p):
                 region_bonus = ASIA_PRIORITY_BONUS
-            # v28.11: extract latency from name for secondary sort
+            # v28.14: extract latency from name for secondary sort
             lat_from_name = 0
             m = re.search(r"\d+", p.get("name", ""))
             if m: lat_from_name = int(m.group(0))
             # sort: asia > reality > proto > region > latency
             return (-asia, -reality, -proto_score, -region_bonus, lat_from_name)
+        
+        # v28.14: 强制亚洲节点前置（如果不足60%）
+        asia_final = [p for p in final if is_asia(p)]
+        non_asia_final = [p for p in final if not is_asia(p)]
+        if len(asia_final) > 0 and len(asia_final) < len(final) * 0.6:
+            final = asia_final + non_asia_final
+            print(f"   🔄 最终输出强制亚洲前置：{len(asia_final)} 亚洲 + {len(non_asia_final)} 非亚洲")
         
         final.sort(key=final_sort_key)
         

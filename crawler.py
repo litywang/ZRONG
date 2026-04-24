@@ -246,20 +246,19 @@ TIMEOUT = 8
 
 MAX_FETCH_NODES = int(os.getenv("MAX_FETCH_NODES", 5000))     # v25: 扩大候选池（原3000）
 MAX_TCP_TEST_NODES = int(os.getenv("MAX_TCP_TEST_NODES", 1200))  # v25: TCP翻倍（原600，匹配README 10s阈值）
-MAX_PROXY_TEST_NODES = int(os.getenv("MAX_PROXY_TEST_NODES", 600))  # v28.5: 分批安全上限（每批600，避免Mihomo崩溃）
+MAX_PROXY_TEST_NODES = int(os.getenv("MAX_PROXY_TEST_NODES", 800))  # v28.19: 增大测速批次（原600，提高可用率）
 MAX_FINAL_NODES = int(os.getenv("MAX_FINAL_NODES", 150))       # v28.4: 150够用（TCP补充几乎无效，不凑数）
 MAX_LATENCY = int(os.getenv("MAX_LATENCY", 5000))              # v28.8: 放宽到5s（大陆网络环境需要更宽松阈值）
 MIN_PROXY_SPEED = 0.0         # 取消速度限制，只看能否连通
 MAX_PROXY_LATENCY = int(os.getenv("MAX_PROXY_LATENCY", 5000))  # v28.8: 放宽到5s（大陆网络环境需要更宽松阈值）
 TEST_URL = "http://www.gstatic.com/generate_204"  # v28.3: 恢复gstatic.com（国际出口才是代理核心指标）
-# v29 CN: Tier1-Tier3 test URLs for China
+# v28.19: 国际测速URL（代理核心指标：能否访问国际网站）
 TEST_URLS = [
-    "https://www.baidu.com/",
-    "https://www.bilibili.com/",
-    "https://www.qq.com/",
-    "https://captive.apple.com/",
-    "https://www.apple.com.cn/",
+    "https://www.google.com/generate_204",
+    "https://www.youtube.com/generate_204",
     "https://cp.cloudflare.com/",
+    "https://captive.apple.com/",
+    "https://www.gstatic.com/generate_204",
 ]
 
 CLASH_PORT = 17890
@@ -538,15 +537,18 @@ def is_cn_proxy_ip(ip_str):
 
 
 def check_node_reachability(server, timeout=3.0):
+    """v28.19: 放宽检测，解析到CN IP不直接排除（可能是CDN/中转节点）"""
     if not server:
         return False, "空server"
     if is_pure_ip(server):
         return True, "纯IP"
     if is_cn_proxy_domain(server):
         return False, "CN域名"
+    # v28.19: 移除CN IP硬排除，改为仅记录日志
+    # 很多代理使用CDN/中转，解析到CN IP不代表不可用
     resolved_ip = resolve_domain(server, timeout=timeout)
     if resolved_ip and is_cn_proxy_ip(resolved_ip):
-        return False, f"CN IP({resolved_ip})"
+        logging.debug("Node %s resolves to CN IP %s, keeping for test", server, resolved_ip)
     return True, "通过"
 
 

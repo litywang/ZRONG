@@ -16,12 +16,34 @@ CHANGELOG v28.14:
 
 import httpx
 import asyncio
-import requests, base64, hashlib, time, json, socket, os, sys, re, yaml, subprocess, signal, gzip, shutil, ssl, urllib.request, urllib.error, urllib.parse
+import requests
+import base64
+import hashlib
+import time
+import json
+import socket
+import os
+import sys
+import re
+import yaml
+import subprocess
+import signal
+import gzip
+import shutil
+import ssl
+import urllib.request
+import urllib.error
+import urllib.parse
 import threading
 import random
+import logging
 from datetime import datetime
-from typing import Dict, List, Set, Tuple, Optional, Any
-requests.packages.urllib3.disable_warnings()
+from typing import Dict, List, Tuple
+
+# v28.15: 安全地禁用urllib3警告
+urllib3_logger = logging.getLogger('urllib3')
+urllib3_logger.setLevel(logging.CRITICAL)
+urllib3_logger.propagate = False
 
 # ========== httpx 同步客户端（高性能连接池 + HTTP/2）==========
 _http_client = None
@@ -36,7 +58,7 @@ def get_http_client():
                     timeout=httpx.Timeout(15.0, connect=8.0),
                     limits=httpx.Limits(max_connections=100, max_keepalive_connections=50),
                     follow_redirects=True,
-                    verify=False
+                    verify=False  # nosec: B501 - Intentional for proxy testing with self-signed certs
                 )
     return _http_client
 
@@ -53,7 +75,7 @@ def get_async_http_client():
                     timeout=httpx.Timeout(15.0, connect=8.0),
                     limits=httpx.Limits(max_connections=150, max_keepalive_connections=80),
                     follow_redirects=True,
-                    verify=False,
+                    verify=False,  # nosec: B501
                     http2=True
                 )
     return _async_http_client
@@ -64,7 +86,7 @@ from pathlib import Path
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 from urllib.parse import urlparse, unquote, parse_qs
-from functools import lru_cache
+
 # threading, random, datetime 已在文件顶部导入
 
 # ==================== 配置区 ====================
@@ -94,7 +116,7 @@ _INLINE_CANDIDATE_URLS = [
     "https://raw.githubusercontent.com/freefq/free/master/v2",
     "https://raw.githubusercontent.com/kxswa/v2rayfree/main/v2ray",
     "https://raw.githubusercontent.com/llywhn/v2ray-subscribe/main/v2ray.txt",
-    
+
     # ============ 国际稳定源 ============
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vmess.txt",
@@ -314,7 +336,7 @@ GITHUB_BASE_REPOS = [
     "kxswa/v2rayfree",                       # 国内源
     "llywhn/v2ray-subscribe",                # 国内更新快
     "baaif/Subconverter",                    # 转换工具
-    
+
     # ============ 国际核心源 ============
     "wzdnzd/aggregator",                     # 聚合工具鼻祖
     "mahdibland/V2RayAggregator",            # V2RayAggregator 主力
@@ -393,7 +415,8 @@ _CN_IP_NETS = []    # 精确CIDR列表
 
 def _init_cn_lookup():
     """初始化CN IP查找表"""
-    global _CN_IP_SET, _CN_IP_NETS
+    # v28.15: global声明用于修改模块级变量
+    global _CN_IP_SET, _CN_IP_NETS  # noqa: F824
     for net in CN_IP_RANGES:
         _CN_IP_NETS.append(net)
         # 记录/8前缀用于快速排除
@@ -451,7 +474,8 @@ def history_stability_score(server_ip, port):
 
 # ========== 网络基准检测 ==========
 def check_network_baseline():
-    global _NETWORK_BASELINE
+    # v28.15: global声明用于修改模块级变量
+    global _NETWORK_BASELINE  # noqa: F824
     for target, port in [("8.8.8.8", 53), ("1.1.1.1", 53)]:
         lat = _tcp_ping(target, port, timeout=2.0)
         if lat < 9999:
@@ -655,7 +679,7 @@ session = create_session()
 
 def generate_unique_id(proxy):
     key = f"{proxy.get('server', '')}:{proxy.get('port', '')}:{proxy.get('uuid', proxy.get('password', ''))}"
-    return hashlib.md5(key.encode()).hexdigest()[:8].upper()
+    return hashlib.md5(key.encode(), usedforsecurity=False).hexdigest()[:8].upper()
 
 
 # ⭐ 新增：GitHub Fork 发现功能（从 v21.0 复制完整实现）
@@ -663,14 +687,14 @@ def discover_github_forks():
     """全面发掘 GitHub Fork 的高质量订阅源 - 并行优化版"""
     print("🔍 动态发现 GitHub Fork...")
     subs = []
-    
+
     # 每个 fork 的潜在路径（精简到3个最高频路径）
     potential_paths = [
-        "proxies.yaml", 
+        "proxies.yaml",
         "subscription.txt",
         "v2ray.txt",
     ]
-    
+
     # 并行获取所有 base repo 的 fork 列表
     def fetch_forks(base):
         # ⚡ 只取最新的 MAX_FORK_REPOS 个 fork
@@ -681,7 +705,7 @@ def discover_github_forks():
                 return resp.json()
         except Exception: pass
         return []
-    
+
     # 并行获取 fork 列表
     all_forks = []
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
@@ -691,9 +715,9 @@ def discover_github_forks():
             all_forks.extend(forks)
             if forks:
                 print(f"   📦 {futures[future]}: {len(forks)} forks")
-    
+
     print(f"   📊 共获取 {len(all_forks)} 个 fork...")
-    
+
     # 批量构建所有潜在 URL
     all_urls_to_check = []
     for fork in all_forks:
@@ -703,15 +727,15 @@ def discover_github_forks():
             for path in potential_paths:
                 raw_url = f"https://raw.githubusercontent.com/{fullname}/{branch}/{path}"
                 all_urls_to_check.append(raw_url)
-    
+
     # ⚡ 限制总URL数量，避免爬取时间过长
     all_urls_to_check = list(set(all_urls_to_check))
     if len(all_urls_to_check) > MAX_FORK_URLS:
         random.shuffle(all_urls_to_check)
         all_urls_to_check = all_urls_to_check[:MAX_FORK_URLS]
-    
+
     print(f"   🔗 构建 {len(all_urls_to_check)} 个潜在 URL（跳过验证，直接拉取）...")
-    
+
     subs = all_urls_to_check
     print(f"✅ GitHub Fork 共发现 {len(subs)} 个候选来源\n")
     return subs
@@ -751,13 +775,13 @@ def parse_vmess(node):
         d = base64.b64decode(payload).decode("utf-8", errors="ignore")
         if not d.startswith("{"): return None
         c = json.loads(d)
-        
+
         # 从 ps 字段提取原始名称
         original_name = c.get("ps", "")
         if not original_name:
             uid = generate_unique_id({'server': c.get('add') or c.get('host'), 'port': _safe_port(c.get('port'), 443), 'uuid': c.get('id')})
             original_name = f"VM-{uid}"
-        
+
         vmess_port = _safe_port(c.get("port"), 443)
         p = {
             "name": original_name, "type": "vmess", "server": c.get("add") or c.get("host", ""),
@@ -792,10 +816,10 @@ def parse_vless(node):
         params = parse_qs(p_url.query)
         gp = lambda k: params.get(k, [""])[0]
         sec = gp("security")
-        
+
         # 从 URL fragment 提取原始名称
         original_name = p_url.fragment if p_url.fragment else f"VL-{generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'uuid': uuid})}"
-        
+
         port_val = _safe_port(p_url.port)
         proxy = {
             "name": original_name, "type": "vless", "server": p_url.hostname, "port": port_val,
@@ -837,10 +861,10 @@ def parse_trojan(node):
         if not pwd: return None
         params = parse_qs(p_url.query)
         gp = lambda k: params.get(k, [""])[0]
-        
+
         # 从 URL fragment 提取原始名称
         original_name = p_url.fragment if p_url.fragment else f"TJ-{generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'password': pwd})}"
-        
+
         proxy = {
             "name": original_name, "type": "trojan", "server": p_url.hostname, "port": _safe_port(p_url.port),
             "password": pwd, "udp": True, "skip-cert-verify": True, "sni": gp("sni") or p_url.hostname
@@ -868,11 +892,11 @@ def parse_ss(node):
             method_pwd, server_info = info.split("@", 1)
             method, pwd = method_pwd.split(":", 1)
         server, port = server_info.split(":", 1)
-        
+
         # 如果没有原始名称，生成默认名称
         if not original_name:
             original_name = f"SS-{generate_unique_id({'server': server, 'port': _safe_port(port), 'password': pwd})}"
-        
+
         return {"name": original_name, "type": "ss", "server": server, "port": _safe_port(port), "cipher": method, "password": pwd, "udp": True}
     except Exception: return None
 
@@ -881,7 +905,6 @@ def parse_hysteria2(node):
     """解析 hysteria2:// 链接"""
     try:
         if not node.startswith("hysteria2://") and not node.startswith("hy2://"): return None
-        prefix = "hysteria2://" if node.startswith("hysteria2://") else "hy2://"
         p_url = urlparse(node)
         if not p_url.hostname: return None
         pwd = unquote(p_url.username or "")
@@ -976,7 +999,7 @@ def parse_ssr(node):
         else:
             main = raw
             params_str = ""
-        
+
         # 修复: 用 rsplit 从右边拆分，避免 server 含 IPv6 冒号时错位
         # 格式固定为 6 段: server:port:protocol:method:obfs:base64pass
         segments = main.split(":")
@@ -987,14 +1010,14 @@ def parse_ssr(node):
         protocol = segments[-4]
         port_str = segments[-5]
         server = ":".join(segments[:-5])  # 剩余部分为 server（兼容 IPv6）
-        
+
         try:
             port = int(port_str)
             if port <= 0 or port > 65535: return None
         except ValueError:
             return None
         password = base64.b64decode(b64pass + "=" * (4 - len(b64pass) % 4)).decode("utf-8", errors="ignore")
-        
+
         # 从参数提取备注名称
         name = ""
         if params_str:
@@ -1002,11 +1025,11 @@ def parse_ssr(node):
             remark_b64 = params.get("remarks", [""])[0]
             if remark_b64:
                 name = base64.b64decode(remark_b64 + "=" * (4 - len(remark_b64) % 4)).decode("utf-8", errors="ignore")
-        
+
         if not name:
             uid = generate_unique_id({'server': server, 'port': port})
             name = f"SR-{uid}"
-        
+
         # 提取 obfsparam 和 protoparam
         obfs_param = ""
         proto_param = ""
@@ -1018,7 +1041,7 @@ def parse_ssr(node):
             proto_param_b64 = params.get("protoparam", [""])[0]
             if proto_param_b64:
                 proto_param = base64.b64decode(proto_param_b64 + "=" * (4 - len(proto_param_b64) % 4)).decode("utf-8", errors="ignore")
-        
+
         proxy = {
             "name": name, "type": "ssr", "server": server, "port": port,
             "protocol": protocol, "method": method, "obfs": obfs,
@@ -1196,7 +1219,7 @@ def parse_yaml_proxies(content):
             original_name = p.get("name", "")
             if not original_name:
                 key = f"{p['server']}:{port}:{p.get('uuid', p.get('password', ''))}"
-                h = hashlib.md5(key.encode()).hexdigest()[:8].upper()
+                h = hashlib.md5(key.encode(), usedforsecurity=False).hexdigest()[:8].upper()
                 ptype_tag = {"vmess":"VM","vless":"VL","trojan":"TJ","ss":"SS","ssr":"SR",
                              "hysteria":"HY","hysteria2":"H2","tuic":"TU","wireguard":"WG","shadowtls":"ST"}
                 original_name = f"{ptype_tag.get(ptype,'XX')}-{h}"
@@ -1237,7 +1260,7 @@ def get_region(name, server=None, sni=None):
                 if k in nl:
                     return True
         return False
-    
+
     # 香港检测
     if match(["hk", "hongkong", "港", "hong kong", "🇭🇰", "香港", "深港", "沪港", "京港"]):
         return "🇭🇰", "HK"
@@ -1382,12 +1405,12 @@ def get_region(name, server=None, sni=None):
     # 哈萨克斯坦检测
     elif match(["kz", "kazakhstan", "哈", "🇰🇿", "哈萨克斯坦", "阿拉木图", "almaty"]):
         return "🇰🇿", "KZ"
-    
+
     # 默认处理：无法识别地区，尝试基于 server 推测，否则给个合理的默认
     # 尝试匹配常见的通用模式
     if match(["private", "vpn", "proxy", "network"]):
         return "🌐", "NET"  # 网络通用
-    
+
     # v27 FIX: 移除数字检查限制，对所有节点都尝试从域名后缀反推
     # 优先检查 sni（通常是CDN域名，含更多信息），再检查 server
     hosts_to_check = []
@@ -1395,7 +1418,7 @@ def get_region(name, server=None, sni=None):
         hosts_to_check.append(sni.lower())
     if server:
         hosts_to_check.append(server.lower())
-    
+
     for srv in hosts_to_check:
         # 从右向左取最后两个部分做模糊匹配
         parts = srv.split(".")
@@ -1521,7 +1544,7 @@ def get_region(name, server=None, sni=None):
                 return "🇻🇪", "VE"
             if seg.endswith(".ec") or ".com.ec" in srv:
                 return "🇪🇨", "EC"
-    
+
     # v28.5 FIX: IP 地理位置 fallback
     if is_pure_ip(server):
         geo = _ip_geo_cache.get(server)
@@ -1532,7 +1555,7 @@ def get_region(name, server=None, sni=None):
                 return flag, cc
     if sni and not is_pure_ip(sni):
         pass  # SNI 域名已在上面 TLD 匹配中处理过
-    
+
     return "🌐", "NET"
 
 
@@ -1547,7 +1570,8 @@ def _cc_to_flag(cc):
 
 def _ip_geo_batch(ips):
     """批量查询 IP 地理位置，使用 ip-api.com（免费，100条/批）"""
-    global _ip_geo_cache
+    # v28.15: global声明用于修改模块级变量
+    global _ip_geo_cache  # noqa: F824
     if not ips:
         return
     # 过滤已缓存和无效的
@@ -1742,17 +1766,17 @@ async def async_fetch_and_parse(client: httpx.AsyncClient, url: str) -> Tuple[Di
     content = await async_fetch_url(client, url, SUB_MIRRORS)
     if not content:
         return local_nodes, False
-    
+
     # 判断是否为 YAML 订阅源
     if is_yaml_content(content):
         yaml_nodes = parse_yaml_proxies(content)
         for p in yaml_nodes:
             k = f"{p['server']}:{p.get('port',0)}:{p.get('uuid', p.get('password', ''))}"
-            h = hashlib.md5(k.encode()).hexdigest()
+            h = hashlib.md5(k.encode(), usedforsecurity=False).hexdigest()
             if h not in local_nodes:
                 local_nodes[h] = p
         return local_nodes, True
-    
+
     # 普通文本订阅（协议链接）
     if is_base64(content):
         content = decode_b64(content)
@@ -1763,7 +1787,7 @@ async def async_fetch_and_parse(client: httpx.AsyncClient, url: str) -> Tuple[Di
         p = parse_node(line)
         if p:
             k = f"{p['server']}:{p['port']}:{p.get('uuid', p.get('password', ''))}"
-            h = hashlib.md5(k.encode()).hexdigest()
+            h = hashlib.md5(k.encode(), usedforsecurity=False).hexdigest()
             if h not in local_nodes:
                 local_nodes[h] = p
     return local_nodes, False
@@ -1775,44 +1799,44 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
     返回: (nodes_dict, yaml_count, txt_count)
     """
     global _async_http_client
-    
+
     # 限制并发数
     sem = asyncio.Semaphore(80)
-    
+
     client = get_async_http_client()
-    
+
     async def fetch_with_limit(url: str):
         async with sem:
             return await async_fetch_and_parse(client, url)
-    
+
     print(f"🌐 异步抓取 {len(all_urls)} 个订阅源...")
-    
+
     # 创建所有任务
     tasks = [fetch_with_limit(url) for url in all_urls]
-    
+
     # 进度跟踪
     nodes = {}
     yaml_count = 0
     txt_count = 0
     completed = 0
-    
+
     try:
         for coro in asyncio.as_completed(tasks):
             local_nodes, is_yaml = await coro
             completed += 1
-            
+
             for h, p in local_nodes.items():
                 if h not in nodes:
                     nodes[h] = p
-            
+
             if is_yaml:
                 yaml_count += 1
             else:
                 txt_count += 1
-            
+
             if completed % 50 == 0:
                 print(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
-            
+
             if len(nodes) >= max_nodes:
                 print(f"   ✅ 已达上限 {max_nodes}，提前结束")
                 break
@@ -1825,7 +1849,7 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
                 print(f"   ⚠️ 关闭异步客户端时出错: {e}")
             finally:
                 _async_http_client = None
-    
+
     return nodes, yaml_count, txt_count
 
 
@@ -1834,7 +1858,7 @@ async def async_fetch_url(client: httpx.AsyncClient, url: str, mirror_pool: List
     sem = _get_async_sem()
     headers = random.choice(HEADERS_POOL)
     is_github = "github" in url.lower() or "raw.githubusercontent" in url
-    
+
     if not is_github:
         # 非GitHub URL：直连
         async with sem:
@@ -1849,7 +1873,7 @@ async def async_fetch_url(client: httpx.AsyncClient, url: str, mirror_pool: List
                 except Exception:
                     await asyncio.sleep(1)
         return ""
-    
+
     # GitHub: 镜像池 + 原始URL兜底
     all_urls = []
     for mirror in mirror_pool:
@@ -1857,7 +1881,7 @@ async def async_fetch_url(client: httpx.AsyncClient, url: str, mirror_pool: List
             mirror_host = mirror.rstrip("/").replace("https://", "").replace("http://", "")
             all_urls.append(url.replace("raw.githubusercontent.com", mirror_host))
     all_urls.append(url)  # 原始URL兜底
-    
+
     async with sem:
         for try_url in all_urls:
             for _ in range(2):
@@ -1884,17 +1908,17 @@ async def async_fetch_urls(urls: List[str], mirror_pool: List[str] = None) -> Di
     """
     if mirror_pool is None:
         mirror_pool = SUB_MIRRORS
-    
+
     client = get_async_http_client()
     tasks = [async_fetch_url(client, url, mirror_pool) for url in urls]
-    
+
     # 使用 tqdm 显示进度（如果可用）
     try:
         from tqdm.asyncio import tqdm as async_tqdm
         results = await async_tqdm.gather(*tasks, desc="🌐 异步抓取")
     except ImportError:
         results = await asyncio.gather(*tasks)
-    
+
     return {url: content for url, content in zip(urls, results) if content}
 
 
@@ -1919,19 +1943,19 @@ def is_valid_url(url):
     """⭐ 新增：URL 有效性检查（核心优化）"""
     if not url or len(url) < 10:
         return False
-    
+
     # 去除前后空白字符（关键！）
     url = url.strip().rstrip('.,;:')
-    
+
     # 协议检查
     if not (url.startswith("http://") or url.startswith("https://")):
         return False
-    
+
     # 排除无效域名
     invalid_domains = ["t.me", "telegram.org"]
     if any(domain in url for domain in invalid_domains):
         return False
-    
+
     return True
 
 
@@ -1939,27 +1963,27 @@ def clean_url(url):
     """🔥 新增：URL 规范化（比 wzdnzd 更全面）"""
     if not url:
         return ""
-    
+
     # 移除所有不可见字符和换行符
     cleaned = re.sub(r'\s+', '', url)
-    
+
     # BUGFIX: 不再强制 http→https，部分订阅源仅支持 http
     # 统一协议为 https（仅对 github 域名，其他保持原样）
     if 'github' in cleaned.lower():
         cleaned = cleaned.replace("http://", "https://", 1)
-    
+
     # 去除尾部标点
     cleaned = cleaned.rstrip('.,;:!?"\\')
-    
+
     # 长度检查
     if len(cleaned) < 15:
         return ""
-    
+
     # 域名长度检查
     domain = urlparse(cleaned).netloc
     if not domain or len(domain) < 4:
         return ""
-    
+
     return cleaned
 
 
@@ -1975,10 +1999,10 @@ def check_subscription_quality(url):
         ".json",
         "/link/"
     ]
-    
+
     url_lower = url.lower()
     match_count = sum(1 for indicator in quality_indicators if indicator in url_lower)
-    
+
     # 至少需要匹配 1 个高质量标记
     return match_count >= 1
 
@@ -1988,24 +2012,24 @@ def get_telegram_pages(channel):
     try:
         url = f"https://t.me/s/{channel}"
         content = session.get(url, timeout=TIMEOUT).text
-        
+
         # ⭐ 优化正则（借鉴 wzdnzd）- 多种格式兼容
         patterns = [
             rf'<meta\s+content="/s/{channel}\?before=(\d+)">?',
             rf'<link[^>]*href=["\']?/s/{channel}/?\??before=(\d+)["\']?[^>]*>',
             rf'/s/{channel}[^"]*before=(\d+)',
         ]
-        
+
         for pattern in patterns:
             groups = re.findall(pattern, content, re.IGNORECASE)
             if groups and groups[0].isdigit():
                 return int(groups[0])
-        
+
         # 降级策略：尝试访问频道主页判断是否存在
         resp = session.get(f"https://t.me/{channel}", timeout=10)
         if resp.status_code == 200 and channel in resp.url:
             return 1  # 至少有一页
-        
+
         return 0
     except Exception as e:
         print(f"⚠️ {channel} 页码获取失败：{str(e)[:50]}")
@@ -2021,62 +2045,62 @@ def crawl_telegram_page(url, limits=25):
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
         }
-        
+
         content = session.get(url, timeout=TIMEOUT, headers=headers).text
-        
+
         if not content or len(content) < 100:
             return {}
-        
+
         collections = {}
-        
+
         # ⭐ wzdnzd 核心：多级正则匹配（完整移植）
         patterns = [
             # 模式 1: 标准订阅链接
             r'https?://[a-zA-Z0-9\u4e00-\u9fa5\-]+\.[a-zA-Z0-9\u4e00-\u9fa5\-]+(?::\d+)?(?:/.*)?(?:sub|subscribe|token)[^\s<>]*',
-            
+
             # 模式 2: GitHub Raw 链接
             r'https?://raw\.githubusercontent\.com/[a-zA-Z0-9\-]+/[a-zA-Z0-9\-]+/[a-zA-Z0-9\-]+/(.*\.txt|.*\.yaml|.*\.yml)',
-            
+
             # 模式 3: 通用域名 + 路径
             r'https?://(?:[a-zA-Z0-9\-]+\.)+[a-zA-Z0-9\-]+/(?:(?:sub|subscribe)/|link/[a-zA-Z0-9]+|api/v[0-9]/client/subscribe)',
         ]
-        
+
         all_links = []
         for pattern in patterns:
             all_links.extend(re.findall(pattern, content))
-        
+
         # ⭐ wzdnzd 核心：去重和质量过滤（直接采用）
         processed_urls = set()
         valid_links = []
-        
+
         for link in all_links[:limits * 2]:  # 放宽初始收集量
             # 步骤 1: URL 清理（关键）
             link = clean_url(link)
-            
+
             # 步骤 2: 有效性检查
             if not link or not is_valid_url(link):
                 continue
-            
+
             # 步骤 3: 去重（集合去重）
             if link in processed_urls:
                 continue
             processed_urls.add(link)
-            
+
             # 步骤 4: 质量筛选（提高纯度）
             if check_subscription_quality(link):
                 valid_links.append(link)
-        
+
         # 最终限制输出数量
         for link in valid_links[:limits]:
             collections[link] = {"origin": "TELEGRAM"}
-        
+
         if collections:
             print(f"   ✅ 该页面发现 {len(collections)} 个有效订阅链接")
         else:
             print(f"   ⚠️ 该页面未发现有效订阅链接：{url[:60]}")
-        
+
         return collections
-        
+
     except requests.exceptions.Timeout:
         print(f"   ⏱️ 请求超时：{url[:60]}")
         return {}
@@ -2088,7 +2112,7 @@ def crawl_telegram_page(url, limits=25):
 def crawl_telegram_channels(channels, pages=2, limits=20):
     """🔧 修复：批量爬取优化 - 并行版本"""
     all_subscribes = {}
-    
+
     def crawl_single_channel(channel):
         """单个频道爬取"""
         channel_subs = {}
@@ -2096,24 +2120,24 @@ def crawl_telegram_channels(channels, pages=2, limits=20):
             count = get_telegram_pages(channel)
             if count == 0:
                 return channel_subs, channel, "no_pages"
-            
+
             page_arrays = range(count, -1, -100)
             page_num = min(pages, len(page_arrays))
-            
+
             for i, before in enumerate(page_arrays[:page_num]):
                 url = f"https://t.me/s/{channel}?before={before}"
                 result = crawl_telegram_page(url, limits=limits)
-                
+
                 for link, meta in result.items():
                     if link not in channel_subs:
                         channel_subs[link] = meta
-                
+
                 time.sleep(random.uniform(0.1, 0.3))  # 缩短延时
-                
+
             return channel_subs, channel, "ok"
         except Exception as e:
             return channel_subs, channel, str(e)[:50]
-    
+
     # 并行爬取所有频道
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
         futures = {ex.submit(crawl_single_channel, ch): ch for ch in channels}
@@ -2121,14 +2145,14 @@ def crawl_telegram_channels(channels, pages=2, limits=20):
         for future in as_completed(futures):
             completed += 1
             channel_subs, channel, status = future.result()
-            
+
             for link, meta in channel_subs.items():
                 if link not in all_subscribes:
                     all_subscribes[link] = meta
-            
+
             tg_count = len([c for c in all_subscribes.values() if c["origin"] == "TELEGRAM"])
             print(f"📄 [{completed}/{len(channels)}] {channel}: {len(channel_subs)} 个 | 总计: {tg_count}")
-    
+
     return all_subscribes
 
 
@@ -2185,10 +2209,11 @@ class ClashManager:
         LOG_FILE.touch()
         try:
             cmd = [str(CLASH_PATH.absolute()), "-d", str(WORK_DIR.absolute()), "-f", str(CONFIG_FILE.absolute())]
-            # BUGFIX: preexec_fn=os.setsid 仅 Linux 可用，Windows 不支持
+            # BUGFIX v28.15: preexec_fn=os.setsid 仅 Linux 可用，Windows 不支持
             popen_kwargs = {"stdout": subprocess.PIPE, "stderr": subprocess.STDOUT, "text": True, "cwd": str(WORK_DIR.absolute())}
             if os.name != "nt":
-                popen_kwargs["preexec_fn"] = os.setsid
+                # pylint: disable=no-member
+                popen_kwargs["preexec_fn"] = os.setsid  # type: ignore[attr-defined]
             self.process = subprocess.Popen(cmd, **popen_kwargs)
             for i in range(30):
                 time.sleep(1)
@@ -2212,9 +2237,10 @@ class ClashManager:
     def stop(self):
         if self.process:
             try:
-                # BUGFIX: os.killpg/signal.SIGTERM 仅 Linux 可用
+                # BUGFIX v28.15: os.killpg/signal.SIGTERM 仅 Linux 可用
                 if os.name != "nt":
-                    os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
+                    # pylint: disable=no-member
+                    os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)  # type: ignore[attr-defined]
                 else:
                     self.process.terminate()
                 self.process.wait(timeout=5)
@@ -2278,11 +2304,11 @@ def format_proxy_to_link(p):
     try:
         ptype = p.get("type", "")
         name_enc = urllib.parse.quote(p.get("name", "node"), safe="")
-        
+
         if ptype == "vmess":
-            data = {"v": "2", "ps": p["name"], "add": p["server"], "port": p["port"], 
-                    "id": p["uuid"], "aid": p.get("alterId", 0), "net": p.get("network", "tcp"), 
-                    "type": "none", "host": p.get("sni", ""), "path": p.get("ws-opts", {}).get("path", ""), 
+            data = {"v": "2", "ps": p["name"], "add": p["server"], "port": p["port"],
+                    "id": p["uuid"], "aid": p.get("alterId", 0), "net": p.get("network", "tcp"),
+                    "type": "none", "host": p.get("sni", ""), "path": p.get("ws-opts", {}).get("path", ""),
                     "tls": "tls" if p.get("tls") else ""}
             # BUGFIX: grpc 传输层信息
             if p.get("grpc-opts"):
@@ -2290,12 +2316,12 @@ def format_proxy_to_link(p):
                 data["host"] = ""
                 data["type"] = "gun"
             return "vmess://" + base64.b64encode(json.dumps(data, separators=(',', ':')).encode()).decode()
-        
+
         elif ptype == "trojan":
             pwd_enc = urllib.parse.quote(p.get('password', ''), safe='')
             sni = p.get('sni', p.get('server', ''))
             return f"trojan://{pwd_enc}@{p['server']}:{p['port']}?sni={sni}#{name_enc}"
-        
+
         elif ptype == "vless":
             uuid = p.get('uuid', '')
             security = "tls" if p.get('tls') or p.get('reality') else "none"
@@ -2308,49 +2334,49 @@ def format_proxy_to_link(p):
             if flow: params += f"&flow={flow}"
             if p.get('sni'): params += f"&sni={p['sni']}"
             return f"vless://{uuid}@{p['server']}:{p['port']}?{params}#{name_enc}"
-        
+
         elif ptype == "ss":
             auth = f"{p['cipher']}:{p['password']}"
             auth_enc = base64.b64encode(auth.encode()).decode()
             return f"ss://{auth_enc}@{p['server']}:{p['port']}#{name_enc}"
-        
+
         elif ptype == "ssr":
             # SSR 格式较复杂，输出为 YAML 格式注释
-            return f"# {p['name']} (SSR)"
-        
+            return "# {} (SSR)".format(p['name'])
+
         elif ptype == "hysteria2":
             pwd = urllib.parse.quote(p.get('password', ''), safe='')
-            params = f"insecure=1"
+            params = "insecure=1"
             if p.get('sni'): params += f"&sni={p['sni']}"
             return f"hysteria2://{pwd}@{p['server']}:{p['port']}?{params}#{name_enc}"
-        
+
         elif ptype == "hysteria":
             pwd = urllib.parse.quote(p.get('password', ''), safe='')
             return f"hysteria://{pwd}@{p['server']}:{p['port']}#{name_enc}"
-        
+
         elif ptype == "tuic":
             uuid = p.get('uuid', '')
             params = "congestion_control=cubic"
             if p.get('sni'): params += f"&sni={p['sni']}"
             return f"tuic://{uuid}:{uuid}@{p['server']}:{p['port']}?{params}#{name_enc}"
-        
+
         elif ptype == "snell":
             pwd = urllib.parse.quote(p.get('psk', ''), safe='')
             return f"snell://{pwd}@{p['server']}:{p['port']}#{name_enc}"
-        
+
         elif ptype == "socks5":
             auth = ""
             if p.get('username') and p.get('password'):
                 auth = f"{urllib.parse.quote(p['username'])}:{urllib.parse.quote(p['password'])}@"
             return f"socks5://{auth}{p['server']}:{p['port']}#{name_enc}"
-        
+
         elif ptype == "http":
             auth = ""
             if p.get('username') and p.get('password'):
                 auth = f"{urllib.parse.quote(p['username'])}:{urllib.parse.quote(p['password'])}@"
             scheme = "https" if p.get('tls') else "http"
             return f"{scheme}://{auth}{p['server']}:{p['port']}#{name_enc}"
-        
+
         return f"# {p['name']}"
     except Exception: return f"# {p.get('name', 'unknown')}"
 
@@ -2361,48 +2387,48 @@ def main():
     clash = ClashManager()
     namer = NodeNamer()
     proxy_ok = False
-    
+
     # v29: 异步抓取模式（可选启用）
     USE_ASYNC_FETCH = os.getenv("USE_ASYNC_FETCH", "0") == "1"
-    
+
     print("=" * 50)
     print("🚀 聚合订阅爬虫 v28.14 - 大陆优化版")
     print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.14")
     print(f"异步抓取: {'✅ 启用' if USE_ASYNC_FETCH else '❌ 禁用（同步模式）'}")
     print("=" * 50)
-    
+
     all_urls = []
-    
+
     try:
         # 1. GitHub Fork 发现（同步，GitHub API 限制）
         print("\n🔍 GitHub Fork 发现...\n")
         fork_subs = discover_github_forks()
         all_urls.extend(fork_subs)
         print(f"✅ Fork 来源：{len(fork_subs)} 个\n")
-        
+
         # 2. Telegram 频道爬取（同步，需要保持会话）
         print("📱 爬取 Telegram 频道...\n")
         tg_subs = crawl_telegram_channels(TELEGRAM_CHANNELS, pages=1, limits=20)
         tg_urls = list(set([strip_url(u) for u in tg_subs.keys()]))
         all_urls.extend(tg_urls)
         print(f"✅ Telegram 订阅：{len(tg_urls)} 个\n")
-        
+
         # 3. 固定订阅源
         print("📥 加载固定订阅源...\n")
         fixed_urls = [strip_url(u) for u in CANDIDATE_URLS if strip_url(u)]
         all_urls.extend(fixed_urls)
         print(f"✅ 固定订阅源：{len(fixed_urls)} 个（跳过验证，直接拉取）\n")
-        
+
         # 4. 去重
         all_urls = list(set(all_urls))
         print(f"📊 总订阅源：{len(all_urls)} 个\n")
-        
+
         # 5. 抓取节点（可选异步模式）
         print("📥 抓取节点...\n")
         nodes = {}
         yaml_count = 0
         txt_count = 0
-        
+
         if USE_ASYNC_FETCH:
             # v29 异步抓取路径
             print("🌐 使用异步抓取模式...")
@@ -2416,16 +2442,16 @@ def main():
                 local_nodes = {}
                 c = fetch(url)
                 if not c: return local_nodes, False
-                
+
                 if is_yaml_content(c):
                     yaml_nodes = parse_yaml_proxies(c)
                     for p in yaml_nodes:
                         k = f"{p['server']}:{p.get('port',0)}:{p.get('uuid', p.get('password', ''))}"
-                        h = hashlib.md5(k.encode()).hexdigest()
+                        h = hashlib.md5(k.encode(), usedforsecurity=False).hexdigest()
                         if h not in local_nodes:
                             local_nodes[h] = p
                     return local_nodes, True
-                
+
                 if is_base64(c): c = decode_b64(c)
                 for l in c.splitlines():
                     l = l.strip()
@@ -2433,11 +2459,11 @@ def main():
                     p = parse_node(l)
                     if p:
                         k = f"{p['server']}:{p['port']}:{p.get('uuid', p.get('password', ''))}"
-                        h = hashlib.md5(k.encode()).hexdigest()
+                        h = hashlib.md5(k.encode(), usedforsecurity=False).hexdigest()
                         if h not in local_nodes:
                             local_nodes[h] = p
                 return local_nodes, False
-            
+
             with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as ex:
                 futures = {ex.submit(fetch_and_parse, u): u for u in all_urls}
                 completed = 0
@@ -2455,24 +2481,24 @@ def main():
                         print(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
                     if len(nodes) >= MAX_FETCH_NODES:
                         break
-        
+
         print(f"✅ 唯一节点：{len(nodes)} 个 (YAML源: {yaml_count}, TXT源: {txt_count})\n")
-        
+
         if not nodes:
             print("❌ 无有效节点!")
             return
-        
+
         # 5.5 节点质量过滤（借鉴 wzdnzd/aggregator）
         print("🔍 节点质量过滤...\n")
         before_filter = len(nodes)
         nodes = {h: p for h, p in nodes.items() if filter_quality(p)}
         after_filter = len(nodes)
         print(f"✅ 质量过滤：{before_filter} → {after_filter} 个（排除 {before_filter - after_filter} 个低质量节点）\n")
-        
+
         if not nodes:
             print("❌ 过滤后无有效节点!")
             return
-        
+
         # 5.6 预查询 IP 地理位置（批量，用于节点区域识别）
         print("🌍 预查询 IP 地理位置...\n")
         all_servers = set()
@@ -2488,12 +2514,12 @@ def main():
             if is_pure_ip(host):
                 all_servers.add(host)
         _ip_geo_batch(list(all_servers)[:500])  # 最多查 500 个
-        
+
         # 6. TCP 测试（提高并发）
         print("⚡ 第一层：TCP 延迟测试...\n")
         nlist = list(nodes.values())[:MAX_TCP_TEST_NODES]
         nres = []
-        
+
         def test_tcp_node(proxy):
             try:
                 server = proxy.get("server", "")
@@ -2515,7 +2541,7 @@ def main():
                 ok, total, usable = packet_loss_check(host, port, timeout=3.0, attempts=2)
                 if not usable: return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
                 # v28.9: TLS 握手检测放宽 - 仅对明确标记TLS的节点检测
-                if proxy.get("tls") == True and port == 443:
+                if proxy.get("tls") and port == 443:
                     tls_ok, _ = tls_handshake_ok(host, port, timeout=3.0)
                     if not tls_ok: return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
                 # v28.9: 放宽协议握手验证 - 仅对 ss/ssr/socks5/http 检测
@@ -2564,7 +2590,7 @@ def main():
                 elif cc in NON_FRIENDLY_REGIONS:
                     score -= NON_FRIENDLY_PENALTY
             return score
-        
+
         # v28.14: 增强排序逻辑，大幅优先亚洲节点
         nres.sort(key=lambda x: (
             -_geo_score(x),  # IP 地理位置加权（亚洲加分，非友好区域扣分）
@@ -2580,12 +2606,12 @@ def main():
             asia_nodes = [n for n in nres if n["is_asia"]]
             non_asia_nodes = [n for n in nres if not n["is_asia"]]
             nres = asia_nodes + non_asia_nodes
-            print(f"   🔄 强制亚洲置顶：{len(asia_nodes)} 亚洲 + {len(non_asia_nodes)} 非亚洲")
+            print("   强制亚洲置顶：{} 亚洲 + {} 非亚洲".format(len(asia_nodes), len(non_asia_nodes)))
         # v28.14: 重新计算亚洲数量（排序后可能已调整）
         asia_count = sum(1 for n in nres if n["is_asia"])
         tcp_asia_pct = round(asia_count * 100 / max(len(nres), 1), 1)
         print(f"✅ 第一层合格：{len(nres)} 个（亚洲：{asia_count}，占比：{tcp_asia_pct}%）\n")
-        
+
         # 7. 真实测速 + TCP 保底（保留）
         print("🚀 真实代理测速（分批）...\n")
         final = []
@@ -2594,7 +2620,7 @@ def main():
         nres_untested = nres[:MAX_TCP_TEST_NODES]
         batch_size = MAX_PROXY_TEST_NODES
         batch_id = 0
-        
+
         if len(nres) > 0:
             batch_enough = False  # BUGFIX: 标志位，用于内层 break 跳出后通知外层 while
             while len(final) < MAX_FINAL_NODES and nres_untested and not batch_enough:
@@ -2606,21 +2632,21 @@ def main():
                     if k not in tested:
                         batch_items.append(item)
                 if not batch_items: break
-                
+
                 tprox = [item["proxy"] for item in batch_items]
                 print(f"📦 第{batch_id}批：{len(tprox)} 个节点...\n")
-                
+
                 if not clash.create_config(tprox) or not clash.start():
                     print("   ❌ Clash 启动失败，跳过本批")
                     clash.stop()
                     break
-                
+
                 proxy_ok = True
                 def test_one(item):
                     p = item["proxy"]
                     r = clash.test_proxy(p["name"])
                     return item, p, r
-                
+
                 try:
                     with ThreadPoolExecutor(max_workers=40) as tex:  # v28.7: 20→40 并发（Clash API 异步，不需要保守）
                         test_futures = {tex.submit(test_one, item): item for item in batch_items}
@@ -2660,7 +2686,7 @@ def main():
                     print(f"   ❌ Clash 崩溃: {e}")
                     clash.stop()
                     break
-            
+
             # TCP 补充
             if len(final) < MAX_FINAL_NODES:
                 print(f"\n⚠️ 测速合格 {len(final)} 个/{MAX_FINAL_NODES} 目标，使用 TCP 补充...\n")
@@ -2708,9 +2734,9 @@ def main():
                     else:
                         tested.add(k)
 
-        
+
         final = final[:MAX_FINAL_NODES]
-        
+
         # v28.14: 最终排序 — 强制亚洲优先+Reality+协议评分+区域权重综合加权
         def final_sort_key(p):
             asia = 3 if is_asia(p) else 0  # v28.14: 提高亚洲权重（2→3）
@@ -2740,19 +2766,19 @@ def main():
             if m: lat_from_name = int(m.group(0))
             # sort: asia > reality > proto > region > latency
             return (-asia, -reality, -proto_score, -region_bonus, lat_from_name)
-        
+
         # v28.14: 强制亚洲节点前置（如果不足60%）
         asia_final = [p for p in final if is_asia(p)]
         non_asia_final = [p for p in final if not is_asia(p)]
         if len(asia_final) > 0 and len(asia_final) < len(final) * 0.6:
             final = asia_final + non_asia_final
             print(f"   🔄 最终输出强制亚洲前置：{len(asia_final)} 亚洲 + {len(non_asia_final)} 非亚洲")
-        
+
         final.sort(key=final_sort_key)
-        
+
         print(f"\n✅ 最终：{len(final)} 个")
         print(f"📊 真实测速：{'✅' if proxy_ok else '❌'}\n")
-        
+
         # 8. 输出配置（保留）
         print("📝 生成配置...\n")
         final_names = {}
@@ -2763,7 +2789,7 @@ def main():
             if count > 0: p["name"] = f"{original_name}-{count}"
             final_names[original_name] = count + 1
             unique_final.append(p)
-        
+
         cfg = {
             "proxies": unique_final,
             "proxy-groups": [
@@ -2774,19 +2800,19 @@ def main():
         }
         with open("proxies.yaml", "w", encoding="utf-8") as f:
             yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
-        
+
         # BUGFIX: 标准订阅格式 = 整块 base64 编码（大部分客户端要求此格式）
         plain_lines = '\n'.join(format_proxy_to_link(p) for p in unique_final)
         b64_content = base64.b64encode(plain_lines.encode('utf-8')).decode('utf-8')
         with open("subscription.txt", "w", encoding="utf-8") as f:
             f.write(b64_content)
-        
+
         # 统计
         tt = time.time() - st
         asia_ct = sum(1 for p in unique_final if is_asia(p))
         lats = [tcp_ping(p["server"], p["port"]) for p in unique_final[:20]] if unique_final else []
         min_lat = min(lats) if lats else 0
-        
+
         print("\n" + "=" * 180)
         print("📊 统计结果")
         print("=" * 180)
@@ -2799,7 +2825,7 @@ def main():
         print(f"• 最低延迟：{min_lat:.1f} ms")
         print(f"• 耗时：{tt:.1f} 秒")
         print("=" * 180 + "\n")
-        
+
         # 9. Telegram 推送（保留）
         if BOT_TOKEN and CHAT_ID and REPO_NAME:
             try:
@@ -2809,11 +2835,11 @@ def main():
                 repo_path = f"https://github.com/{REPO_NAME}/blob/main/"
                 yaml_html_url = f"{repo_path}proxies.yaml"
                 txt_html_url = f"{repo_path}subscription.txt"
-                
+
                 start_icon = "🚀"
                 end_icon = "🎉"
                 update_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                
+
                 msg = f"""{start_icon}<b>节点更新完成</b>{end_icon}
 
 📊 <b>统计数据:</b>
@@ -2848,7 +2874,7 @@ TXT: <a href="{txt_html_url}">{txt_html_url}</a>
             except Exception as e:
                 print(f"⚠️ Telegram推送失败：{e}")
         print("🎉 任务完成！")
-        
+
     except Exception as e:
         print(f"\n❌ 程序异常：{e}")
         import traceback
@@ -2869,8 +2895,3 @@ if __name__ == "__main__":
         import traceback
         traceback.print_exc()
         sys.exit(1)
-
-
-
-
-

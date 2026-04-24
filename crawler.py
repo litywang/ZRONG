@@ -2805,9 +2805,14 @@ def format_proxy_to_link(p):
         name_enc = urllib.parse.quote(p.get("name", "node"), safe="")
 
         if ptype == "vmess":
+            # v28.19: 修复host来源，优先从ws-opts获取
+            ws_opts = p.get("ws-opts", {})
+            host = ws_opts.get("headers", {}).get("Host", "")
+            if not host:
+                host = p.get("sni", "")
             data = {"v": "2", "ps": p["name"], "add": p["server"], "port": p["port"],
                     "id": p["uuid"], "aid": p.get("alterId", 0), "net": p.get("network", "tcp"),
-                    "type": "none", "host": p.get("sni", ""), "path": p.get("ws-opts", {}).get("path", ""),
+                    "type": "none", "host": host, "path": ws_opts.get("path", ""),
                     "tls": "tls" if p.get("tls") else ""}
             # BUGFIX: grpc 传输层信息
             if p.get("grpc-opts"):
@@ -2819,11 +2824,15 @@ def format_proxy_to_link(p):
         elif ptype == "trojan":
             pwd_enc = urllib.parse.quote(p.get('password', ''), safe='')
             sni = p.get('sni', p.get('server', ''))
-            return f"trojan://{pwd_enc}@{p['server']}:{p['port']}?sni={sni}#{name_enc}"
+            # v28.19: 添加allowInsecure参数
+            params = f"sni={sni}&allowInsecure=1"
+            return f"trojan://{pwd_enc}@{p['server']}:{p['port']}?{params}#{name_enc}"
 
         elif ptype == "vless":
             uuid = p.get('uuid', '')
-            security = "tls" if p.get('tls') or p.get('reality') else "none"
+            # v28.19: 修复reality参数丢失
+            has_reality = bool(p.get('reality-opts'))
+            security = "reality" if has_reality else ("tls" if p.get('tls') else "none")
             flow = p.get('flow', '')
             params = f"type={p.get('network', 'tcp')}&security={security}"
             # BUGFIX: grpc 传输层信息
@@ -2835,6 +2844,12 @@ def format_proxy_to_link(p):
                 params += f"&flow={flow}"
             if p.get('sni'):
                 params += f"&sni={p['sni']}"
+            # v28.19: 添加reality必要参数
+            if has_reality:
+                ro = p['reality-opts']
+                params += f"&pbk={ro.get('public-key', '')}&sid={ro.get('short-id', '')}"
+                fp = p.get('client-fingerprint', 'chrome')
+                params += f"&fp={fp}"
             return f"vless://{uuid}@{p['server']}:{p['port']}?{params}#{name_enc}"
 
         elif ptype == "ss":

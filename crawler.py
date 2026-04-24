@@ -1,19 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v28.14 - 大陆优化版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.14
+聚合订阅爬虫 v28.16 - 大陆优化版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.16
 优化：httpx连接池 + 异步HTTP抓取 + sources.yaml配置外置 + Clash分批测速 + 大陆可用性优化
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性 + 大陆高可用
-CHANGELOG v28.14:
-- 大幅扩展亚洲区域列表（22个区域）
-- 提高亚洲优先级权重（35→50）
-- 增强亚洲节点检测关键词（菲律宾、澳门、蒙古等）
-- 亚洲域名直接通过过滤（提高保留率）
-- 强制亚洲节点置顶策略（目标60%+）
-- 扩展非友好区域列表（38个）
+CHANGELOG v28.16:
+- 【关键BUG修复】亚洲前置排序后又被sort覆盖，等于白做
+- 【配额制节点选择】分亚洲/非亚洲两组排序，按60%配额合并
+- 【is_asia增强】新增IP地理位置+SNI+域名TLD三级检测
+- 【TCP测试优化】亚洲节点优先进入测试队列
+- 【延迟放宽】亚洲TCP补充1500ms，非亚洲800ms
+- 【权重提升】ASIA_PRIORITY_BONUS 50→80
+- 【Bandit修复】B110/B112全部加日志，B323/B105加nosec
 """
 
+from urllib.parse import urlparse, unquote, parse_qs
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from cn_cidr_data import CN_IP_RANGES as _CN_IP_RANGES_RAW
+import ipaddress
 import httpx
 import asyncio
 import requests
@@ -49,6 +57,7 @@ urllib3_logger.propagate = False
 _http_client = None
 _http_client_lock = threading.Lock()  # v28.8: 添加线程锁保护
 
+
 def get_http_client():
     global _http_client
     if _http_client is None:
@@ -62,9 +71,11 @@ def get_http_client():
                 )
     return _http_client
 
+
 # ========== httpx 异步客户端（v29 异步抓取）==========
 _async_http_client = None
 _async_http_client_lock = threading.Lock()  # v28.8: 添加线程锁保护
+
 
 def get_async_http_client():
     global _async_http_client  # v28.13: must declare since function assigns to it
@@ -79,16 +90,9 @@ def get_async_http_client():
                     http2=True
                 )
     return _async_http_client
-import ipaddress
-from cn_cidr_data import CN_IP_RANGES as _CN_IP_RANGES_RAW
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from pathlib import Path
-from urllib3.util.retry import Retry
-from requests.adapters import HTTPAdapter
-from urllib.parse import urlparse, unquote, parse_qs
+
 
 # threading, random, datetime 已在文件顶部导入
-
 # ==================== 配置区 ====================
 # v28.3: 可用率修复 — 恢复gstatic.com，改MAX_FINAL_NODES控制TCP补充上限
 _yaml_urls, _yaml_chans = [], []
@@ -198,15 +202,39 @@ TELEGRAM_CHANNELS = (_yaml_chans or [
     "clash_daily", "SpeedNode",
 ])
 
-HEADERS_POOL = [
-    {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36", "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8", "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8", "Accept-Encoding": "gzip, deflate, br", "Sec-Fetch-Dest": "document", "Sec-Fetch-Mode": "navigate", "Sec-Fetch-Site": "none", "Sec-Fetch-User": "?1", "Connection": "keep-alive"},
-    {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Safari/605.1.15", "Accept": "*/*", "Accept-Encoding": "gzip, deflate, br", "Accept-Language": "zh-CN,zh;q=0.9", "Sec-Fetch-Dest": "empty", "Sec-Fetch-Mode": "cors", "Sec-Fetch-Site": "same-origin"},
-    {"User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Mobile/15E148 Safari/604.1", "Accept": "*/*", "Accept-Encoding": "gzip, deflate, br", "Sec-Fetch-Dest": "empty", "Sec-Fetch-Mode": "cors"},
-]
+HEADERS_POOL = [{
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    " (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,"
+    "image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Connection": "keep-alive",
+}, {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15"
+    " (KHTML, like Gecko) Version/18.2 Safari/605.1.15",
+    "Accept": "*/*",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Accept-Language": "zh-CN,zh;q=0.9",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-origin",
+}, {
+    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_3 like Mac OS X)"
+    " AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Mobile/15E148 Safari/604.1",
+    "Accept": "*/*",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+}]
 TIMEOUT = 8
 
 MAX_FETCH_NODES = int(os.getenv("MAX_FETCH_NODES", 5000))     # v25: 扩大候选池（原3000）
-MAX_TCP_TEST_NODES = int(os.getenv("MAX_TCP_TEST_NODES", 1200)) # v25: TCP翻倍（原600，匹配README 10s阈值）
+MAX_TCP_TEST_NODES = int(os.getenv("MAX_TCP_TEST_NODES", 1200))  # v25: TCP翻倍（原600，匹配README 10s阈值）
 MAX_PROXY_TEST_NODES = int(os.getenv("MAX_PROXY_TEST_NODES", 600))  # v28.5: 分批安全上限（每批600，避免Mihomo崩溃）
 MAX_FINAL_NODES = int(os.getenv("MAX_FINAL_NODES", 150))       # v28.4: 150够用（TCP补充几乎无效，不凑数）
 MAX_LATENCY = int(os.getenv("MAX_LATENCY", 5000))              # v28.8: 放宽到5s（大陆网络环境需要更宽松阈值）
@@ -268,7 +296,7 @@ NON_PROXY_PORTS = {2377, 2376, 2375, 9200, 9300, 27017, 27018, 27019, 6379, 1121
 
 # ===== Reality 安全域名 ======
 REALITY_SAFE_DOMAINS = {'reality.dev', 'v2fly.org', 'matsuri.biz', 'poi.moe',
-                         '233boys.dev', 'ssrsub.com', 'justmysocks.net', 'flow.kkjiang.com'}
+                        '233boys.dev', 'ssrsub.com', 'justmysocks.net', 'flow.kkjiang.com'}
 
 # ===== 协议优先级评分（v25: Reality大幅提权，Hysteria2/TUIC提权 - 大陆友好）=====
 # v29 CN: Protocol scoring optimized
@@ -283,11 +311,52 @@ COMMON_PORT_PENALTY = {80: 300, 443: 200, 8080: 100, 8443: 100}
 
 # ===== 亚洲区域 ======
 # v28.14: 大幅扩展亚洲区域列表（提升亚洲节点占比）
-ASIA_REGIONS = ["HK", "TW", "JP", "SG", "KR", "TH", "VN", "MY", "ID", "PH", "MO", "MN", "KH", "LA", "MM", "BN", "TL", "NP", "LK", "BD", "BT", "MV"]  # 22个亚洲区域
+ASIA_REGIONS = ["HK", "TW", "JP", "SG", "KR", "TH", "VN", "MY", "ID", "PH", "MO",
+                "MN", "KH", "LA", "MM", "BN", "TL", "NP", "LK", "BD", "BT", "MV"]  # 22个亚洲区域
 
 # v28.14: 提高亚洲优先级权重
-ASIA_PRIORITY_BONUS = 50  # 亚洲节点额外加分（35→50）
-NON_FRIENDLY_REGIONS = ["IR", "IN", "RU", "NG", "ZA", "BR", "AR", "CL", "PE", "VE", "EC", "CO", "MX", "US", "CA", "AU", "EU", "GB", "DE", "FR", "NL", "IT", "ES", "SE", "NO", "FI", "DK", "PL", "CZ", "HU", "RO", "BG", "GR", "PT", "AT", "CH", "BE", "IE"]  # 扩展非友好区域
+ASIA_PRIORITY_BONUS = 80  # v28.16: 大幅提高亚洲优先级（50→80）
+TARGET_ASIA_RATIO = 0.6   # v28.16: 目标亚洲节点占比 60%
+ASIA_TCP_RELAX = 1500    # v28.16: 亚洲TCP补充延迟放宽到1500ms
+NON_FRIENDLY_REGIONS = [
+    "IR",
+    "IN",
+    "RU",
+    "NG",
+    "ZA",
+    "BR",
+    "AR",
+    "CL",
+    "PE",
+    "VE",
+    "EC",
+    "CO",
+    "MX",
+    "US",
+    "CA",
+    "AU",
+    "EU",
+    "GB",
+    "DE",
+    "FR",
+    "NL",
+    "IT",
+    "ES",
+    "SE",
+    "NO",
+    "FI",
+    "DK",
+    "PL",
+    "CZ",
+    "HU",
+    "RO",
+    "BG",
+    "GR",
+    "PT",
+    "AT",
+    "CH",
+    "BE",
+    "IE"]  # 扩展非友好区域
 NON_FRIENDLY_PENALTY = 40  # 非友好区域扣分（30→40）
 
 # ===== 并发配置 ======
@@ -343,7 +412,7 @@ GITHUB_BASE_REPOS = [
     "PuddinCat/BestClash",                   # BestClash 高质量
     "roosterkid/openproxylist",              # 公开代理列表
     "anaer/Sub",                             # anaer 订阅汇总
-    "MrMohebi/xray-proxy-grabber-telegram", # xray+Telegram 双驱动
+    "MrMohebi/xray-proxy-grabber-telegram",  # xray+Telegram 双驱动
     "jasonliu747/v2rayssr",                  # SSR+V2Ray混合
     "fslzhang/clash_config",                 # Clash 配置整理
     "xream/awesome-vpn",                     # VPN 资源汇总
@@ -394,24 +463,35 @@ def resolve_domain(domain, timeout=3):
         return None
 
 # ========== CN 过滤工具 ==========
+
+
 def is_pure_ip(s):
-    if not s: return False
+    if not s:
+        return False
     s = s.strip()
-    if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', s): return True
-    if ':' in s and re.match(r'^[0-9a-fA-F:]+$', s): return True
+    if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', s):
+        return True
+    if ':' in s and re.match(r'^[0-9a-fA-F:]+$', s):
+        return True
     return False
 
+
 def is_cn_proxy_domain(server):
-    if not server or is_pure_ip(server): return False
+    if not server or is_pure_ip(server):
+        return False
     sl = server.lower()
     for safe in REALITY_SAFE_DOMAINS:
-        if sl.endswith(safe) or sl == safe: return False
-    if CN_DOMAIN_BLACKLIST_RE.search(server): return True
+        if sl.endswith(safe) or sl == safe:
+            return False
+    if CN_DOMAIN_BLACKLIST_RE.search(server):
+        return True
     return False
+
 
 # ===== CN IP 快速查找表（预计算，用于4219条CIDR高效匹配）=====
 _CN_IP_SET = set()  # /8 前缀 → 快速排除非CN
 _CN_IP_NETS = []    # 精确CIDR列表
+
 
 def _init_cn_lookup():
     """初始化CN IP查找表"""
@@ -422,14 +502,18 @@ def _init_cn_lookup():
         # 记录/8前缀用于快速排除
         _CN_IP_SET.add(net.network_address.packed[:1])
 
+
 _init_cn_lookup()
+
 
 def is_cn_proxy_ip(ip_str):
     """精确CN IP判断（4219条CIDR，先/8快排再精确匹配）"""
-    if not ip_str: return None
+    if not ip_str:
+        return None
     try:
         ip = ipaddress.ip_address(ip_str)
-    except Exception: return None
+    except Exception:
+        return None
     # 快速排除：如果/8前缀不在CN集合中，肯定不是CN
     if isinstance(ip, ipaddress.IPv4Address):
         first_octet = ip.packed[:1]
@@ -437,33 +521,45 @@ def is_cn_proxy_ip(ip_str):
             return False
     # 精确匹配
     for cidr in _CN_IP_NETS:
-        if ip in cidr: return True
+        if ip in cidr:
+            return True
     return False
 
+
 def check_node_reachability(server, timeout=3.0):
-    if not server: return False, "空server"
-    if is_pure_ip(server): return True, "纯IP"
-    if is_cn_proxy_domain(server): return False, "CN域名"
+    if not server:
+        return False, "空server"
+    if is_pure_ip(server):
+        return True, "纯IP"
+    if is_cn_proxy_domain(server):
+        return False, "CN域名"
     resolved_ip = resolve_domain(server, timeout=timeout)
     if resolved_ip and is_cn_proxy_ip(resolved_ip):
         return False, f"CN IP({resolved_ip})"
     return True, "通过"
 
+
 def is_reality_friendly(p):
     t = p.get("type", "")
-    if t == "vless" and p.get("reality-opts"): return True
+    if t == "vless" and p.get("reality-opts"):
+        return True
     name = p.get("name", "").lower()
     return any(k in name for k in ["reality", "real-", "vlss", "lima", "fly", "ssrsub"])
 
+
 def record_history(server_ip, port, latency):
     key = (server_ip, port)
-    if key not in _HISTORY_SCORES: _HISTORY_SCORES[key] = []
+    if key not in _HISTORY_SCORES:
+        _HISTORY_SCORES[key] = []
     _HISTORY_SCORES[key].append(latency)
-    if len(_HISTORY_SCORES[key]) > 10: _HISTORY_SCORES[key] = _HISTORY_SCORES[key][-10:]
+    if len(_HISTORY_SCORES[key]) > 10:
+        _HISTORY_SCORES[key] = _HISTORY_SCORES[key][-10:]
+
 
 def history_stability_score(server_ip, port):
     key = (server_ip, port)
-    if key not in _HISTORY_SCORES or not _HISTORY_SCORES[key]: return 0
+    if key not in _HISTORY_SCORES or not _HISTORY_SCORES[key]:
+        return 0
     scores = _HISTORY_SCORES[key]
     n = len(scores)
     success_rate = sum(1 for s in scores if s < 9999) / n
@@ -473,6 +569,8 @@ def history_stability_score(server_ip, port):
     return max(0, int(success_rate * 500 - min(std * 2, 200)))
 
 # ========== 网络基准检测 ==========
+
+
 def check_network_baseline():
     # v28.15: global声明用于修改模块级变量
     global _NETWORK_BASELINE  # noqa: F824
@@ -484,8 +582,11 @@ def check_network_baseline():
     return _NETWORK_BASELINE["latency"]
 
 # ========== TLS 握手检测 ==========
+
+
 def tls_handshake_ok(host, port, timeout=5.0):
-    if not host: return True, "ok"
+    if not host:
+        return True, "ok"
     try:
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         ctx.check_hostname = False
@@ -493,27 +594,37 @@ def tls_handshake_ok(host, port, timeout=5.0):
         ctx.minimum_version = ssl.TLSVersion.TLSv1_2
         sock = socket.create_connection((host, port), timeout=timeout)
         try:
-            with ctx.wrap_socket(sock, server_hostname=host): pass
+            with ctx.wrap_socket(sock, server_hostname=host):
+                pass
             return True, "ok"
         except ssl.SSLError as e:
             err = str(e)
-            if 'HANDSHAKE_FAILURE' in err or 'SSLV3' in err: return False, "handshake_fail"
+            if 'HANDSHAKE_FAILURE' in err or 'SSLV3' in err:
+                return False, "handshake_fail"
             return True, "ok"
-    except Exception: return True, "ok"
+    except Exception:
+        return True, "ok"
 
 # ========== HTTP HEAD 检测 ==========
+
+
 def http_head_check(host, port, timeout=3.0):
-    if not host: return False
+    if not host:
+        return False
     try:
         import http.client
         if port in (443, 8443, 8080):
             try:
-                conn = http.client.HTTPSConnection(host, port, timeout=timeout, context=ssl._create_unverified_context())
+                conn = http.client.HTTPSConnection(
+                    host, port, timeout=timeout,
+                    context=ssl._create_unverified_context()  # nosec B323
+                )
                 conn.request("HEAD", "/", headers={"User-Agent": "curl/7.83.1"})
                 resp = conn.getresponse()
                 conn.close()
                 return resp.status < 500
-            except Exception: pass
+            except Exception:
+                logging.debug("HTTPS probe failed for %s:%s", host, port)
         if port in (80, 8080, 8888):
             try:
                 conn = http.client.HTTPConnection(host, port, timeout=timeout)
@@ -521,22 +632,30 @@ def http_head_check(host, port, timeout=3.0):
                 resp = conn.getresponse()
                 conn.close()
                 return resp.status < 500
-            except Exception: pass
+            except Exception:
+                logging.debug("HTTP probe failed for %s:%s", host, port)
         return False
-    except Exception: return False
+    except Exception:
+        return False
 
 # ========== 丢包率检测 ==========
+
+
 def packet_loss_check(host, port, timeout=2.0, attempts=3):
-    if not host: return 0, attempts, False
+    if not host:
+        return 0, attempts, False
     success = 0
     for _ in range(attempts):
         lat = _tcp_ping(host, port, timeout=timeout)
-        if lat < 9999: success += 1
+        if lat < 9999:
+            success += 1
         time.sleep(0.15)
     return success, attempts, success >= 2
 
 # ========== 二次 TCP 验证 ==========
 # ========== v28.6: 协议握手验证（TCP 层粗筛核心）==========
+
+
 def _proto_handshake_ok(host, port, ptype, proxy=None, timeout=3.0):
     """验证端口不仅在监听，而且确实在响应代理协议。
     对于 vmess/vless: 检查 TLS ClientHello 后服务器是否返回合法 ServerHello
@@ -573,7 +692,8 @@ def _proto_handshake_ok(host, port, ptype, proxy=None, timeout=3.0):
                 except (ConnectionResetError, ConnectionAbortedError):
                     s.close()
                     return False  # 立即 RST = 不是 SS
-            except Exception: return True  # 连接失败默认放过，不误杀
+            except Exception:
+                return True  # 连接失败默认放过，不误杀
         elif ptype == "hysteria" or ptype == "hysteria2":
             # Hysteria 是 QUIC/UDP 协议，TCP 探测无意义，默认放过
             return True
@@ -588,7 +708,8 @@ def _proto_handshake_ok(host, port, ptype, proxy=None, timeout=3.0):
                 s.close()
                 # HTTP 代理应返回 200/407 等 HTTP 响应
                 return b"HTTP/" in data
-            except Exception: return False
+            except Exception:
+                return False
         elif ptype == "socks5":
             # SOCKS5: 发送握手
             try:
@@ -600,7 +721,8 @@ def _proto_handshake_ok(host, port, ptype, proxy=None, timeout=3.0):
                 s.close()
                 # SOCKS5 服务器应返回 0x05 + method
                 return len(data) >= 2 and data[0] == 0x05
-            except Exception: return False
+            except Exception:
+                return False
         else:
             # 未知协议默认放过
             return True
@@ -609,7 +731,8 @@ def _proto_handshake_ok(host, port, ptype, proxy=None, timeout=3.0):
 
 
 def tcp_verify(host, port, timeout=1.5):
-    if not host: return False
+    if not host:
+        return False
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(timeout)
@@ -617,11 +740,15 @@ def tcp_verify(host, port, timeout=1.5):
         s.connect((host, port))
         s.close()
         return True
-    except Exception: return False
+    except Exception:
+        return False
 
 # ========== 内部 TCP Ping（兼容旧名 tcp_ping）==========
+
+
 def _tcp_ping(host, port, timeout=2.5):
-    if not host: return 9999
+    if not host:
+        return 9999
     try:
         start = time.time()
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -630,7 +757,8 @@ def _tcp_ping(host, port, timeout=2.5):
         s.connect((host, port))
         s.close()
         return round((time.time() - start) * 1000, 1)
-    except Exception: return 9999
+    except Exception:
+        return 9999
 
 
 def ensure_clash_dir():
@@ -638,7 +766,8 @@ def ensure_clash_dir():
     if WORK_DIR.exists() and not WORK_DIR.is_dir():
         try:
             WORK_DIR.unlink()
-        except Exception: pass
+        except Exception:
+            logging.debug("Failed to unlink %s", WORK_DIR)
     WORK_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -703,7 +832,8 @@ def discover_github_forks():
             resp = session.get(url, timeout=10, headers={"Accept": "application/vnd.github.v3+json"})
             if resp.status_code == 200:
                 return resp.json()
-        except Exception: pass
+        except Exception:
+            logging.debug("GitHub API request failed: %s", url)
         return []
 
     # 并行获取 fork 列表
@@ -745,6 +875,7 @@ def check_url_fast(u):
     """【v25】跳过 HEAD 验证，直接返回 True（零验证直拉策略）"""
     return True
 
+
 def check_url(u):
     """【v25】跳过 HEAD 验证（零验证直拉策略，统一入口）"""
     return True
@@ -752,14 +883,17 @@ def check_url(u):
 
 def strip_url(u):
     """关键修复：确保 URL 无空格"""
-    if u: return u.strip().replace("\n", "").replace(" ", "")
+    if u:
+        return u.strip().replace("\n", "").replace(" ", "")
     return ""
+
 
 def _safe_port(val, default=443):
     """BUGFIX: port 安全转换，防止 None/非法值"""
     try:
         p = int(val) if val else default
-        if p <= 0 or p > 65535: return default
+        if p <= 0 or p > 65535:
+            return default
         return p
     except (ValueError, TypeError):
         return default
@@ -768,18 +902,22 @@ def _safe_port(val, default=443):
 # ⭐ 节点解析器（保持不变）
 def parse_vmess(node):
     try:
-        if not node.startswith("vmess://"): return None
+        if not node.startswith("vmess://"):
+            return None
         payload = node[8:]
         m = len(payload) % 4
-        if m: payload += "=" * (4 - m)
+        if m:
+            payload += "=" * (4 - m)
         d = base64.b64decode(payload).decode("utf-8", errors="ignore")
-        if not d.startswith("{"): return None
+        if not d.startswith("{"):
+            return None
         c = json.loads(d)
 
         # 从 ps 字段提取原始名称
         original_name = c.get("ps", "")
         if not original_name:
-            uid = generate_unique_id({'server': c.get('add') or c.get('host'), 'port': _safe_port(c.get('port'), 443), 'uuid': c.get('id')})
+            uid = generate_unique_id({'server': c.get('add') or c.get(
+                'host'), 'port': _safe_port(c.get('port'), 443), 'uuid': c.get('id')})
             original_name = f"VM-{uid}"
 
         vmess_port = _safe_port(c.get("port"), 443)
@@ -789,36 +927,50 @@ def parse_vmess(node):
             "cipher": "auto", "udp": True, "skip-cert-verify": True
         }
         net = c.get("net", "tcp").lower()
-        if net in ["ws", "h2", "grpc"]: p["network"] = net
+        if net in ["ws", "h2", "grpc"]:
+            p["network"] = net
         if c.get("tls") == "tls" or c.get("security") == "tls":
             p["tls"] = True
             p["sni"] = c.get("sni") or c.get("host") or p["server"]
         if net == "ws":
             wo = {}
-            if c.get("path"): wo["path"] = c.get("path")
-            if c.get("host"): wo["headers"] = {"Host": c.get("host")}
-            if wo: p["ws-opts"] = wo
+            if c.get("path"):
+                wo["path"] = c.get("path")
+            if c.get("host"):
+                wo["headers"] = {"Host": c.get("host")}
+            if wo:
+                p["ws-opts"] = wo
         elif net == "grpc":
             # BUGFIX: 补充 grpc 传输层 serviceName
             if c.get("path"):
                 p["grpc-opts"] = {"grpc-service-name": c.get("path")}
         return p if p["server"] and p["uuid"] else None
-    except Exception: return None
+    except Exception:
+        return None
 
 
 def parse_vless(node):
     try:
-        if not node.startswith("vless://"): return None
+        if not node.startswith("vless://"):
+            return None
         p_url = urlparse(node)
-        if not p_url.hostname: return None
+        if not p_url.hostname:
+            return None
         uuid = p_url.username or ""
-        if not uuid: return None
+        if not uuid:
+            return None
         params = parse_qs(p_url.query)
-        gp = lambda k: params.get(k, [""])[0]
+        def gp(k): return params.get(k, [""])[0]
         sec = gp("security")
 
         # 从 URL fragment 提取原始名称
-        original_name = p_url.fragment if p_url.fragment else f"VL-{generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'uuid': uuid})}"
+        original_name = p_url.fragment if p_url.fragment else f"VL-{
+            generate_unique_id(
+                {
+                    'server': p_url.hostname,
+                    'port': _safe_port(
+                        p_url.port),
+                    'uuid': uuid})}"
 
         port_val = _safe_port(p_url.port)
         proxy = {
@@ -830,56 +982,76 @@ def parse_vless(node):
             proxy["sni"] = gp("sni") or proxy["server"]
         if sec == "reality":
             pbk, sid = gp("pbk"), gp("sid")
-            if pbk and sid: proxy["reality-opts"] = {"public-key": pbk, "short-id": sid}
-            else: return None
+            if pbk and sid:
+                proxy["reality-opts"] = {"public-key": pbk, "short-id": sid}
+            else:
+                return None
         fp = gp("fp")
         proxy["client-fingerprint"] = fp if fp else "chrome"
         flow = gp("flow")
-        if flow: proxy["flow"] = flow
+        if flow:
+            proxy["flow"] = flow
         tp = gp("type")
         if tp == "ws":
             proxy["network"] = "ws"
             wo = {}
-            if gp("path"): wo["path"] = gp("path")
-            if gp("host"): wo["headers"] = {"Host": gp("host")}
-            if wo: proxy["ws-opts"] = wo
+            if gp("path"):
+                wo["path"] = gp("path")
+            if gp("host"):
+                wo["headers"] = {"Host": gp("host")}
+            if wo:
+                proxy["ws-opts"] = wo
         elif tp == "grpc":
             # BUGFIX: 补充 grpc 传输层支持
             proxy["network"] = "grpc"
             if gp("serviceName"):
                 proxy["grpc-opts"] = {"grpc-service-name": gp("serviceName")}
         return proxy
-    except Exception: return None
+    except Exception:
+        return None
 
 
 def parse_trojan(node):
     try:
-        if not node.startswith("trojan://"): return None
+        if not node.startswith("trojan://"):
+            return None
         p_url = urlparse(node)
-        if not p_url.hostname: return None
+        if not p_url.hostname:
+            return None
         pwd = p_url.username or unquote(p_url.path.strip("/"))
-        if not pwd: return None
+        if not pwd:
+            return None
         params = parse_qs(p_url.query)
-        gp = lambda k: params.get(k, [""])[0]
+        def gp(k): return params.get(k, [""])[0]
 
         # 从 URL fragment 提取原始名称
-        original_name = p_url.fragment if p_url.fragment else f"TJ-{generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'password': pwd})}"
+        original_name = p_url.fragment if p_url.fragment else f"TJ-{
+            generate_unique_id(
+                {
+                    'server': p_url.hostname,
+                    'port': _safe_port(
+                        p_url.port),
+                    'password': pwd})}"
 
         proxy = {
             "name": original_name, "type": "trojan", "server": p_url.hostname, "port": _safe_port(p_url.port),
             "password": pwd, "udp": True, "skip-cert-verify": True, "sni": gp("sni") or p_url.hostname
         }
         alpn = gp("alpn")
-        if alpn: proxy["alpn"] = [a.strip() for a in alpn.split(",")]
+        if alpn:
+            proxy["alpn"] = [a.strip() for a in alpn.split(",")]
         fp = gp("fp")
-        if fp: proxy["client-fingerprint"] = fp
+        if fp:
+            proxy["client-fingerprint"] = fp
         return proxy
-    except Exception: return None
+    except Exception:
+        return None
 
 
 def parse_ss(node):
     try:
-        if not node.startswith("ss://"): return None
+        if not node.startswith("ss://"):
+            return None
         parts = node[5:].split("#")
         info = parts[0]
         # 从 URL fragment 提取原始名称
@@ -897,48 +1069,67 @@ def parse_ss(node):
         if not original_name:
             original_name = f"SS-{generate_unique_id({'server': server, 'port': _safe_port(port), 'password': pwd})}"
 
-        return {"name": original_name, "type": "ss", "server": server, "port": _safe_port(port), "cipher": method, "password": pwd, "udp": True}
-    except Exception: return None
+        return {
+            "name": original_name,
+            "type": "ss",
+            "server": server,
+            "port": _safe_port(port),
+            "cipher": method,
+            "password": pwd,
+            "udp": True}
+    except Exception:
+        return None
 
 
 def parse_hysteria2(node):
     """解析 hysteria2:// 链接"""
     try:
-        if not node.startswith("hysteria2://") and not node.startswith("hy2://"): return None
+        if not node.startswith("hysteria2://") and not node.startswith("hy2://"):
+            return None
         p_url = urlparse(node)
-        if not p_url.hostname: return None
+        if not p_url.hostname:
+            return None
         pwd = unquote(p_url.username or "")
         params = parse_qs(p_url.query)
-        gp = lambda k: params.get(k, [""])[0]
+        def gp(k): return params.get(k, [""])[0]
         uid = generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'password': pwd})
         proxy = {
             "name": f"H2-{uid}", "type": "hysteria2", "server": p_url.hostname,
             "port": _safe_port(p_url.port), "password": pwd, "udp": True, "skip-cert-verify": True
         }
         sni = gp("sni")
-        if sni: proxy["sni"] = sni
-        elif p_url.hostname: proxy["sni"] = p_url.hostname
+        if sni:
+            proxy["sni"] = sni
+        elif p_url.hostname:
+            proxy["sni"] = p_url.hostname
         obfs = gp("obfs")
-        if obfs: proxy["obfs"] = obfs
+        if obfs:
+            proxy["obfs"] = obfs
         obfs_password = gp("obfs-password")
-        if obfs_password: proxy["obfs-password"] = obfs_password
+        if obfs_password:
+            proxy["obfs-password"] = obfs_password
         insecure = gp("insecure")
-        if insecure == "1": proxy["skip-cert-verify"] = True
+        if insecure == "1":
+            proxy["skip-cert-verify"] = True
         fp = gp("fp")
-        if fp: proxy["client-fingerprint"] = fp
+        if fp:
+            proxy["client-fingerprint"] = fp
         return proxy if proxy["server"] else None
-    except Exception: return None
+    except Exception:
+        return None
 
 
 def parse_tuic(node):
     """解析 tuic:// 链接"""
     try:
-        if not node.startswith("tuic://"): return None
+        if not node.startswith("tuic://"):
+            return None
         p_url = urlparse(node)
-        if not p_url.hostname: return None
+        if not p_url.hostname:
+            return None
         uuid_val = p_url.username or ""
         params = parse_qs(p_url.query)
-        gp = lambda k: params.get(k, [""])[0]
+        def gp(k): return params.get(k, [""])[0]
         uid = generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'password': uuid_val})
         proxy = {
             "name": f"TU-{uid}", "type": "tuic", "server": p_url.hostname,
@@ -946,24 +1137,30 @@ def parse_tuic(node):
             "udp": True, "skip-cert-verify": True
         }
         sni = gp("sni")
-        if sni: proxy["sni"] = sni
+        if sni:
+            proxy["sni"] = sni
         fp = gp("fp")
-        if fp: proxy["client-fingerprint"] = fp
+        if fp:
+            proxy["client-fingerprint"] = fp
         alpn = gp("alpn")
-        if alpn: proxy["alpn"] = [a.strip() for a in alpn.split(",")]
+        if alpn:
+            proxy["alpn"] = [a.strip() for a in alpn.split(",")]
         return proxy if proxy["server"] else None
-    except Exception: return None
+    except Exception:
+        return None
 
 
 def parse_hysteria(node):
     """解析 hysteria:// 链接（v1）"""
     try:
-        if not node.startswith("hysteria://"): return None
+        if not node.startswith("hysteria://"):
+            return None
         p_url = urlparse(node)
-        if not p_url.hostname: return None
+        if not p_url.hostname:
+            return None
         pwd = unquote(p_url.username or "")
         params = parse_qs(p_url.query)
-        gp = lambda k: params.get(k, [""])[0]
+        def gp(k): return params.get(k, [""])[0]
         uid = generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'password': pwd})
         proxy = {
             "name": f"HY-{uid}", "type": "hysteria", "server": p_url.hostname,
@@ -971,23 +1168,30 @@ def parse_hysteria(node):
             "skip-cert-verify": True, "protocol": "udp"
         }
         sni = gp("sni")
-        if sni: proxy["sni"] = sni
+        if sni:
+            proxy["sni"] = sni
         obfs = gp("obfs")
-        if obfs: proxy["obfs"] = obfs
+        if obfs:
+            proxy["obfs"] = obfs
         auth_str = gp("auth")
-        if auth_str: proxy["auth_str"] = auth_str
+        if auth_str:
+            proxy["auth_str"] = auth_str
         alpn = gp("alpn")
-        if alpn: proxy["alpn"] = [a.strip() for a in alpn.split(",")]
+        if alpn:
+            proxy["alpn"] = [a.strip() for a in alpn.split(",")]
         insecure = gp("insecure")
-        if insecure == "1": proxy["skip-cert-verify"] = True
+        if insecure == "1":
+            proxy["skip-cert-verify"] = True
         return proxy if proxy["server"] else None
-    except Exception: return None
+    except Exception:
+        return None
 
 
 def parse_ssr(node):
     """解析 SSR:// 链接（v25: 修复 split 逻辑，兼容 IPv6 和含冒号密码）"""
     try:
-        if not node.startswith("ssr://"): return None
+        if not node.startswith("ssr://"):
+            return None
         raw = base64.b64decode(node[6:] + "=" * (4 - len(node[6:]) % 4)).decode("utf-8", errors="ignore")
         # SSR 格式: server:port:protocol:method:obfs:base64pass/?obfsparam=xxx&remark=xxx
         # BUGFIX: 先用 /? 分割（maxsplit=1），避免 base64 密码含 /? 时被错误分割
@@ -1003,7 +1207,8 @@ def parse_ssr(node):
         # 修复: 用 rsplit 从右边拆分，避免 server 含 IPv6 冒号时错位
         # 格式固定为 6 段: server:port:protocol:method:obfs:base64pass
         segments = main.split(":")
-        if len(segments) < 6: return None
+        if len(segments) < 6:
+            return None
         b64pass = segments[-1]
         obfs = segments[-2]
         method = segments[-3]
@@ -1013,7 +1218,8 @@ def parse_ssr(node):
 
         try:
             port = int(port_str)
-            if port <= 0 or port > 65535: return None
+            if port <= 0 or port > 65535:
+                return None
         except ValueError:
             return None
         password = base64.b64decode(b64pass + "=" * (4 - len(b64pass) % 4)).decode("utf-8", errors="ignore")
@@ -1037,97 +1243,140 @@ def parse_ssr(node):
             params = parse_qs(params_str)
             obfs_param_b64 = params.get("obfsparam", [""])[0]
             if obfs_param_b64:
-                obfs_param = base64.b64decode(obfs_param_b64 + "=" * (4 - len(obfs_param_b64) % 4)).decode("utf-8", errors="ignore")
+                obfs_param = base64.b64decode(obfs_param_b64 + "=" * (4 - len(obfs_param_b64) %
+                                              4)).decode("utf-8", errors="ignore")
             proto_param_b64 = params.get("protoparam", [""])[0]
             if proto_param_b64:
-                proto_param = base64.b64decode(proto_param_b64 + "=" * (4 - len(proto_param_b64) % 4)).decode("utf-8", errors="ignore")
+                proto_param = base64.b64decode(proto_param_b64 + "=" *
+                                               (4 - len(proto_param_b64) % 4)).decode("utf-8", errors="ignore")
 
         proxy = {
             "name": name, "type": "ssr", "server": server, "port": port,
             "protocol": protocol, "method": method, "obfs": obfs,
             "password": password, "udp": True,
         }
-        if obfs_param: proxy["obfs-param"] = obfs_param
-        if proto_param: proxy["protocol-param"] = proto_param
+        if obfs_param:
+            proxy["obfs-param"] = obfs_param
+        if proto_param:
+            proxy["protocol-param"] = proto_param
         return proxy
-    except Exception: return None
+    except Exception:
+        return None
 
 
 def parse_http_proxy(node):
     """解析 http:// / https:// 代理链接"""
     try:
-        if not node.startswith("http://") and not node.startswith("https://"): return None
+        if not node.startswith("http://") and not node.startswith("https://"):
+            return None
         p_url = urlparse(node)
-        if not p_url.hostname: return None
+        if not p_url.hostname:
+            return None
         # 格式: http://user:pass@server:port#name 或 http://server:port
         username = unquote(p_url.username or "")
         password = unquote(p_url.password or "")
         ptype = "https" if node.startswith("https://") else "http"
-        name = p_url.fragment if p_url.fragment else f"HT-{generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port, 443 if ptype == 'https' else 80)})}"
+        name = p_url.fragment if p_url.fragment else f"HT-{
+            generate_unique_id(
+                {
+                    'server': p_url.hostname,
+                    'port': _safe_port(
+                        p_url.port,
+                        443 if ptype == 'https' else 80)})}"
         proxy = {
             "name": name, "type": ptype, "server": p_url.hostname,
             "port": _safe_port(p_url.port, 443 if ptype == "https" else 80),
         }
-        if username: proxy["username"] = username
-        if password: proxy["password"] = password
+        if username:
+            proxy["username"] = username
+        if password:
+            proxy["password"] = password
         return proxy
-    except Exception: return None
+    except Exception:
+        return None
 
 
 def parse_socks(node):
     """解析 socks5:// 链接"""
     try:
-        if not node.startswith("socks5://") and not node.startswith("socks4://"): return None
+        if not node.startswith("socks5://") and not node.startswith("socks4://"):
+            return None
         p_url = urlparse(node)
-        if not p_url.hostname: return None
+        if not p_url.hostname:
+            return None
         username = unquote(p_url.username or "")
         password = unquote(p_url.password or "")
         ptype = "socks5" if node.startswith("socks5://") else "socks4"
-        name = p_url.fragment if p_url.fragment else f"SK-{generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port, 1080)})}"
+        name = p_url.fragment if p_url.fragment else f"SK-{
+            generate_unique_id(
+                {
+                    'server': p_url.hostname,
+                    'port': _safe_port(
+                        p_url.port,
+                        1080)})}"
         proxy = {
             "name": name, "type": ptype, "server": p_url.hostname,
             "port": _safe_port(p_url.port, 1080),
         }
-        if username: proxy["username"] = username
-        if password: proxy["password"] = password
+        if username:
+            proxy["username"] = username
+        if password:
+            proxy["password"] = password
         return proxy
-    except Exception: return None
+    except Exception:
+        return None
 
 
 def parse_anytls(node):
     """解析 anytls:// 链接 (AnyTLS协议)"""
     try:
-        if not node.startswith("anytls://"): return None
+        if not node.startswith("anytls://"):
+            return None
         p_url = urlparse(node)
-        if not p_url.hostname: return None
-        name = p_url.fragment if p_url.fragment else "AT-" + generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port)})
+        if not p_url.hostname:
+            return None
+        name = p_url.fragment if p_url.fragment else "AT-" + \
+            generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port)})
         params = parse_qs(p_url.query)
-        gp = lambda k: params.get(k, [""])[0]
+        def gp(k): return params.get(k, [""])[0]
         proxy = {
             "name": name, "type": "anytls", "server": p_url.hostname,
             "port": _safe_port(p_url.port), "udp": True, "skip-cert-verify": True,
         }
         sni = gp("sni")
-        if sni: proxy["sni"] = sni
-        elif p_url.hostname: proxy["sni"] = p_url.hostname
+        if sni:
+            proxy["sni"] = sni
+        elif p_url.hostname:
+            proxy["sni"] = p_url.hostname
         fp = gp("fp")
-        if fp: proxy["client-fingerprint"] = fp
+        if fp:
+            proxy["client-fingerprint"] = fp
         return proxy if proxy["server"] else None
-    except Exception: return None
+    except Exception:
+        return None
 
 
 def parse_trojan_go(node):
     """解析 trojan-go:// 链接（trojan-go 扩展协议）"""
     try:
-        if not node.startswith("trojan-go://"): return None
+        if not node.startswith("trojan-go://"):
+            return None
         # trojan-go://password@server:port?sni=xxx&type=ws&path=xxx#name
         p_url = urlparse(node)
-        if not p_url.hostname: return None
+        if not p_url.hostname:
+            return None
         pwd = unquote(p_url.username or "")
-        if not pwd: return None
+        if not pwd:
+            return None
         params = parse_qs(p_url.query)
-        gp = lambda k: params.get(k, [""])[0]
-        original_name = p_url.fragment if p_url.fragment else f"TG-{generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'password': pwd})}"
+        def gp(k): return params.get(k, [""])[0]
+        original_name = p_url.fragment if p_url.fragment else f"TG-{
+            generate_unique_id(
+                {
+                    'server': p_url.hostname,
+                    'port': _safe_port(
+                        p_url.port),
+                    'password': pwd})}"
         proxy = {
             "name": original_name, "type": "trojan", "server": p_url.hostname,
             "port": _safe_port(p_url.port), "password": pwd, "udp": True,
@@ -1138,53 +1387,82 @@ def parse_trojan_go(node):
         if ttype == "ws":
             proxy["network"] = "ws"
             wo = {}
-            if gp("path"): wo["path"] = gp("path")
-            if gp("host"): wo["headers"] = {"Host": gp("host")}
-            if wo: proxy["ws-opts"] = wo
+            if gp("path"):
+                wo["path"] = gp("path")
+            if gp("host"):
+                wo["headers"] = {"Host": gp("host")}
+            if wo:
+                proxy["ws-opts"] = wo
         fp = gp("fp")
-        if fp: proxy["client-fingerprint"] = fp
+        if fp:
+            proxy["client-fingerprint"] = fp
         return proxy
-    except Exception: return None
+    except Exception:
+        return None
 
 
 def parse_snell(node):
     """解析 snell:// 链接"""
     try:
-        if not node.startswith("snell://"): return None
+        if not node.startswith("snell://"):
+            return None
         p_url = urlparse(node)
-        if not p_url.hostname: return None
+        if not p_url.hostname:
+            return None
         pwd = unquote(p_url.username or "")
         params = parse_qs(p_url.query)
-        gp = lambda k: params.get(k, [""])[0]
-        name = p_url.fragment if p_url.fragment else f"SN-{generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port)})}"
+        def gp(k): return params.get(k, [""])[0]
+        name = p_url.fragment if p_url.fragment else f"SN-{
+            generate_unique_id(
+                {
+                    'server': p_url.hostname,
+                    'port': _safe_port(
+                        p_url.port)})}"
         proxy = {
             "name": name, "type": "snell", "server": p_url.hostname,
             "port": _safe_port(p_url.port), "psk": pwd, "udp": True
         }
         obfs = gp("obfs")
-        if obfs: proxy["obfs-opts"] = {"mode": obfs}
+        if obfs:
+            proxy["obfs-opts"] = {"mode": obfs}
         version = gp("version")
-        if version: proxy["version"] = int(version)
+        if version:
+            proxy["version"] = int(version)
         return proxy if proxy["server"] else None
-    except Exception: return None
+    except Exception:
+        return None
 
 
 def parse_node(node):
     node = node.strip()
-    if not node or node.startswith("#"): return None
-    if node.startswith("vmess://"): return parse_vmess(node)
-    elif node.startswith("vless://"): return parse_vless(node)
-    elif node.startswith("trojan://"): return parse_trojan(node)
-    elif node.startswith("ss://"): return parse_ss(node)
-    elif node.startswith("ssr://"): return parse_ssr(node)
-    elif node.startswith("hysteria2://") or node.startswith("hy2://"): return parse_hysteria2(node)
-    elif node.startswith("hysteria://"): return parse_hysteria(node)
-    elif node.startswith("tuic://"): return parse_tuic(node)
-    elif node.startswith("snell://"): return parse_snell(node)
-    elif node.startswith("socks5://") or node.startswith("socks4://"): return parse_socks(node)
-    elif node.startswith("http://") or node.startswith("https://"): return parse_http_proxy(node)
-    elif node.startswith("anytls://"): return parse_anytls(node)
-    elif node.startswith("trojan-go://"): return parse_trojan_go(node)
+    if not node or node.startswith("#"):
+        return None
+    if node.startswith("vmess://"):
+        return parse_vmess(node)
+    elif node.startswith("vless://"):
+        return parse_vless(node)
+    elif node.startswith("trojan://"):
+        return parse_trojan(node)
+    elif node.startswith("ss://"):
+        return parse_ss(node)
+    elif node.startswith("ssr://"):
+        return parse_ssr(node)
+    elif node.startswith("hysteria2://") or node.startswith("hy2://"):
+        return parse_hysteria2(node)
+    elif node.startswith("hysteria://"):
+        return parse_hysteria(node)
+    elif node.startswith("tuic://"):
+        return parse_tuic(node)
+    elif node.startswith("snell://"):
+        return parse_snell(node)
+    elif node.startswith("socks5://") or node.startswith("socks4://"):
+        return parse_socks(node)
+    elif node.startswith("http://") or node.startswith("https://"):
+        return parse_http_proxy(node)
+    elif node.startswith("anytls://"):
+        return parse_anytls(node)
+    elif node.startswith("trojan-go://"):
+        return parse_trojan_go(node)
     return None
 
 
@@ -1220,9 +1498,9 @@ def parse_yaml_proxies(content):
             if not original_name:
                 key = f"{p['server']}:{port}:{p.get('uuid', p.get('password', ''))}"
                 h = hashlib.md5(key.encode(), usedforsecurity=False).hexdigest()[:8].upper()
-                ptype_tag = {"vmess":"VM","vless":"VL","trojan":"TJ","ss":"SS","ssr":"SR",
-                             "hysteria":"HY","hysteria2":"H2","tuic":"TU","wireguard":"WG","shadowtls":"ST"}
-                original_name = f"{ptype_tag.get(ptype,'XX')}-{h}"
+                ptype_tag = {"vmess": "VM", "vless": "VL", "trojan": "TJ", "ss": "SS", "ssr": "SR",
+                             "hysteria": "HY", "hysteria2": "H2", "tuic": "TU", "wireguard": "WG", "shadowtls": "ST"}
+                original_name = f"{ptype_tag.get(ptype, 'XX')}-{h}"
             p["name"] = original_name
             results.append(p)
         return results
@@ -1277,7 +1555,8 @@ def get_region(name, server=None, sni=None):
     elif match(["kr", "korea", "韩", "🇰🇷", "韩国", "韓", "首尔", "春川", "seoul"]):
         return "🇰🇷", "KR"
     # 美国检测
-    elif match(["us", "usa", "🇺🇸", "美国", "美利坚", "洛杉矶", "硅谷", "纽约", "united states", "america", "los angeles", "new york"]):
+    elif match(["us", "usa", "🇺🇸", "美国", "美利坚", "洛杉矶", "硅谷", "纽约",
+                "united states", "america", "los angeles", "new york"]):
         return "🇺🇸", "US"
     # 英国检测
     elif match(["uk", "britain", "🇬🇧", "英国", "伦敦", "united kingdom", "london", "england"]):
@@ -1422,7 +1701,7 @@ def get_region(name, server=None, sni=None):
     for srv in hosts_to_check:
         # 从右向左取最后两个部分做模糊匹配
         parts = srv.split(".")
-        for i in range(max(0, len(parts)-2), len(parts)):
+        for i in range(max(0, len(parts) - 2), len(parts)):
             seg = ".".join(parts[i:])
             # TLD/常见域名后缀 → 国家/地区
             if seg.endswith(".kr") or ".co.kr" in srv:
@@ -1562,11 +1841,14 @@ def get_region(name, server=None, sni=None):
 # ========== IP 地理位置缓存 (ip-api.com 批量查询) ==========
 _ip_geo_cache = {}
 
+
 def _cc_to_flag(cc):
     """国家代码转 emoji flag，如 'US' → '🇺🇸'"""
     try:
         return ''.join(chr(0x1F1E6 + ord(c) - ord('A')) for c in cc.upper()[:2])
-    except Exception: return "🌐"
+    except Exception:
+        return "🌐"
+
 
 def _ip_geo_batch(ips):
     """批量查询 IP 地理位置，使用 ip-api.com（免费，100条/批）"""
@@ -1581,7 +1863,7 @@ def _ip_geo_batch(ips):
     # ip-api.com 批量接口，每批最多 100 个
     BATCH = 100
     for i in range(0, len(to_query), BATCH):
-        batch = to_query[i:i+BATCH]
+        batch = to_query[i:i + BATCH]
         try:
             c = get_http_client()
             r = c.post("http://ip-api.com/batch?fields=status,countryCode,query",
@@ -1596,27 +1878,57 @@ def _ip_geo_batch(ips):
 
 
 def is_asia(p):
-    """v28.14: 增强亚洲节点检测（扩展关键词和区域覆盖）"""
+    """v28.16: 增强亚洲节点检测（关键词+IP地理位置+SNI+域名TLD）"""
     t = f"{p.get('name', '')} {p.get('server', '')}".lower()
-    # v28.14: 扩展二字母代码，增加菲律宾/澳门/蒙古等
+    # 二字母代码精确匹配
     tokens = set(re.split(r'[\s\-_|,.:;/()（）【】\[\]{}]+', t))
-    asia_2letter = {"hk", "tw", "jp", "sg", "kr", "th", "vn", "my", "id", "ph", "mo", "mn", "kh", "la"}
-    # v28.14: 扩展长关键词列表
-    asia_long = ["hongkong", "港", "taiwan", "台", "japan", "日",
-                 "singapore", "新加坡", "korea", "韩", "asia", "hkt",
-                 "thailand", "泰", "vietnam", "越", "malaysia", "马",
-                 "indonesia", "印尼", "philippines", "菲律宾", "phillipines",
-                 "macau", "澳门", "macao", "mongolia", "蒙古",
-                 "cambodia", "柬埔寨", "laos", "老挝", "myanmar", "缅甸",
-                 "brunei", "文莱", "nepal", "尼泊尔", "sri lanka", "斯里兰卡",
-                 "bangladesh", "孟加拉", "bhutan", "不丹", "maldives", "马尔代夫",
-                 "east asia", "southeast asia", "south asia", "东亚", "东南亚", "南亚",
-                 "asia pacific", "apac", "亚太"]
-    # 二字母精确匹配token
+    asia_2letter = {
+        "hk", "tw", "jp", "sg", "kr", "th", "vn", "my",
+        "id", "ph", "mo", "mn", "kh", "la", "mm", "bn",
+        "tl", "np", "lk", "bd", "bt", "mv",
+    }
     if tokens & asia_2letter:
         return True
     # 长关键词子串匹配
-    return any(k in t for k in asia_long)
+    asia_long = [
+        "hongkong", "港", "taiwan", "台", "japan", "日",
+        "singapore", "新加坡", "狮城", "korea", "韩", "asia",
+        "hkt", "thailand", "泰", "vietnam", "越", "malaysia", "马",
+        "indonesia", "印尼", "philippines", "菲律宾", "phillipines",
+        "macau", "澳门", "macao", "mongolia", "蒙古",
+        "cambodia", "柬埔寨", "laos", "老挝", "myanmar", "缅甸",
+        "brunei", "文莱", "nepal", "尼泊尔", "sri lanka", "斯里兰卡",
+        "bangladesh", "孟加拉", "bhutan", "不丹", "maldives", "马尔代夫",
+        "east asia", "southeast asia", "south asia", "东亚", "东南亚", "南亚",
+        "asia pacific", "apac", "亚太", "tokyo", "osaka", "seoul",
+        "bangkok", "hanoi", "jakarta", "manila", "kuala", "taipei",
+    ]
+    if any(k in t for k in asia_long):
+        return True
+    # v28.16: IP地理位置判断
+    server = p.get("server", "")
+    if is_pure_ip(server):
+        geo = _ip_geo_cache.get(server)
+        if geo:
+            cc = geo.get("countryCode", "").upper()
+            if cc in ASIA_REGIONS:
+                return True
+    # v28.16: SNI/域名TLD判断
+    sni = (p.get("sni", "") or p.get("servername", "")).lower()
+    ws_opts = p.get("ws-opts", {})
+    ws_host = (
+        ws_opts.get("headers", {}).get("Host", "")
+        if isinstance(ws_opts, dict) else ""
+    )
+    check_domains = f"{sni} {ws_host} {server}".lower()
+    asia_tlds = [
+        ".hk", ".tw", ".jp", ".sg", ".kr", ".th", ".vn",
+        ".my", ".id", ".ph", ".mo", ".mn", ".kh", ".la",
+    ]
+    for tld in asia_tlds:
+        if tld in check_domains:
+            return True
+    return False
 
 
 def is_china_mainland(p):
@@ -1689,17 +2001,20 @@ def is_base64(s):
             return False
         base64.b64decode(s + "=" * (4 - len(s) % 4), validate=True)
         return True
-    except Exception: return False
+    except Exception:
+        return False
 
 
 def decode_b64(c):
     try:
         c = c.strip()
         m = len(c) % 4
-        if m: c += "=" * (4 - m)
+        if m:
+            c += "=" * (4 - m)
         d = base64.b64decode(c).decode("utf-8", errors="ignore")
         return d if "://" in d else c
-    except Exception: return c
+    except Exception:
+        return c
 
 
 def fetch(url):
@@ -1752,6 +2067,7 @@ def fetch(url):
 # ========== v29 异步抓取函数（保留同步逻辑，仅将 HTTP 层异步化）==========
 _async_fetch_sem = None
 
+
 def _get_async_sem():
     global _async_fetch_sem
     if _async_fetch_sem is None:
@@ -1771,7 +2087,7 @@ async def async_fetch_and_parse(client: httpx.AsyncClient, url: str) -> Tuple[Di
     if is_yaml_content(content):
         yaml_nodes = parse_yaml_proxies(content)
         for p in yaml_nodes:
-            k = f"{p['server']}:{p.get('port',0)}:{p.get('uuid', p.get('password', ''))}"
+            k = f"{p['server']}:{p.get('port', 0)}:{p.get('uuid', p.get('password', ''))}"
             h = hashlib.md5(k.encode(), usedforsecurity=False).hexdigest()
             if h not in local_nodes:
                 local_nodes[h] = p
@@ -1924,7 +2240,8 @@ async def async_fetch_urls(urls: List[str], mirror_pool: List[str] = None) -> Di
 
 def tcp_ping(host, port, to=1.5):
     """【v24】TCP Ping，支持丢包检测历史记录"""
-    if not host: return 9999.0
+    if not host:
+        return 9999.0
     try:
         st = time.time()
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -1938,6 +2255,7 @@ def tcp_ping(host, port, to=1.5):
     except Exception:
         record_history(host, port, 9999)
         return 9999.0
+
 
 def is_valid_url(url):
     """⭐ 新增：URL 有效性检查（核心优化）"""
@@ -2056,13 +2374,16 @@ def crawl_telegram_page(url, limits=25):
         # ⭐ wzdnzd 核心：多级正则匹配（完整移植）
         patterns = [
             # 模式 1: 标准订阅链接
-            r'https?://[a-zA-Z0-9\u4e00-\u9fa5\-]+\.[a-zA-Z0-9\u4e00-\u9fa5\-]+(?::\d+)?(?:/.*)?(?:sub|subscribe|token)[^\s<>]*',
+            r'https?://[a-zA-Z0-9\u4e00-\u9fa5\-]+\.[a-zA-Z0-9\u4e00-\u9fa5\-]+'
+            r'(?::\d+)?(?:/.*)?(?:sub|subscribe|token)[^\s<>]*',
 
             # 模式 2: GitHub Raw 链接
-            r'https?://raw\.githubusercontent\.com/[a-zA-Z0-9\-]+/[a-zA-Z0-9\-]+/[a-zA-Z0-9\-]+/(.*\.txt|.*\.yaml|.*\.yml)',
+            r'https?://raw\.githubusercontent\.com/[a-zA-Z0-9\-]+'
+            r'/[a-zA-Z0-9\-]+/[a-zA-Z0-9\-]+/(.*\.txt|.*\.yaml|.*\.yml)',
 
             # 模式 3: 通用域名 + 路径
-            r'https?://(?:[a-zA-Z0-9\-]+\.)+[a-zA-Z0-9\-]+/(?:(?:sub|subscribe)/|link/[a-zA-Z0-9]+|api/v[0-9]/client/subscribe)',
+            r'https?://(?:[a-zA-Z0-9\-]+\.)+[a-zA-Z0-9\-]+/'
+            r'(?:(?:sub|subscribe)/|link/[a-zA-Z0-9]+|api/v[0-9]/client/subscribe)',
         ]
 
         all_links = []
@@ -2163,21 +2484,28 @@ class ClashManager:
         ensure_clash_dir()
 
     def download_clash(self):
-        if CLASH_PATH.exists(): return True
-        url = f"https://github.com/MetaCubeX/mihomo/releases/download/{CLASH_VERSION}/mihomo-linux-amd64-compatible-{CLASH_VERSION}.gz"
+        if CLASH_PATH.exists():
+            return True
+        url = (
+            f"https://github.com/MetaCubeX/mihomo/releases/download/{CLASH_VERSION}/"
+            f"mihomo-linux-amd64-compatible-{CLASH_VERSION}.gz"
+        )
         try:
             resp = requests.get(url, timeout=120, stream=True)
-            if resp.status_code != 200: return False
+            if resp.status_code != 200:
+                return False
             temp = WORK_DIR / "mihomo.gz"
             with open(temp, "wb") as f:
-                for chunk in resp.iter_content(chunk_size=8192): f.write(chunk)
+                for chunk in resp.iter_content(chunk_size=8192):
+                    f.write(chunk)
             with gzip.open(temp, "rb") as f_in:
                 with open(CLASH_PATH, "wb") as f_out:
                     shutil.copyfileobj(f_in, f_out)
             os.chmod(CLASH_PATH, 0o755)
             temp.unlink(missing_ok=True)
             return CLASH_PATH.exists()
-        except Exception: return False
+        except Exception:
+            return False
 
     def create_config(self, proxies):
         ensure_clash_dir()
@@ -2187,14 +2515,16 @@ class ClashManager:
         seen = set()
         for i, p in enumerate(proxies):
             name = p["name"]
-            if name in seen: name = f"{name}-{i}"
+            if name in seen:
+                name = f"{name}-{i}"
             seen.add(name)
             names.append(name)
             p["name"] = name
         config = {
             "port": CLASH_PORT, "socks-port": CLASH_PORT + 1, "allow-lan": False, "mode": "rule",
             "log-level": "error", "external-controller": f"127.0.0.1:{CLASH_API_PORT}",
-            "secret": "", "ipv6": False, "unified-delay": True, "tcp-concurrent": True,
+            "secret": "",  # nosec B105: Clash API local only
+            "ipv6": False, "unified-delay": True, "tcp-concurrent": True,
             "proxies": proxies,
             "proxy-groups": [{"name": "TEST", "type": "select", "proxies": names}],
             "rules": ["MATCH,TEST"]
@@ -2205,12 +2535,18 @@ class ClashManager:
 
     def start(self):
         ensure_clash_dir()
-        if not CLASH_PATH.exists() and not self.download_clash(): return False
+        if not CLASH_PATH.exists() and not self.download_clash():
+            return False
         LOG_FILE.touch()
         try:
             cmd = [str(CLASH_PATH.absolute()), "-d", str(WORK_DIR.absolute()), "-f", str(CONFIG_FILE.absolute())]
             # BUGFIX v28.15: preexec_fn=os.setsid 仅 Linux 可用，Windows 不支持
-            popen_kwargs = {"stdout": subprocess.PIPE, "stderr": subprocess.STDOUT, "text": True, "cwd": str(WORK_DIR.absolute())}
+            popen_kwargs = {
+                "stdout": subprocess.PIPE,
+                "stderr": subprocess.STDOUT,
+                "text": True,
+                "cwd": str(
+                    WORK_DIR.absolute())}
             if os.name != "nt":
                 # pylint: disable=no-member
                 popen_kwargs["preexec_fn"] = os.setsid  # type: ignore[attr-defined]
@@ -2221,13 +2557,15 @@ class ClashManager:
                     try:
                         out, _ = self.process.communicate(timeout=2)
                         print(f"   ❌ Clash 崩溃:\n{out[:300]}")
-                    except Exception: print("   ❌ Clash 崩溃")
+                    except Exception:
+                        print("   ❌ Clash 崩溃")
                     return False
                 try:
                     if requests.get(f"http://127.0.0.1:{CLASH_API_PORT}/version", timeout=2).status_code == 200:
                         print("   ✅ Clash API 就绪")
                         return True
-                except Exception: pass
+                except Exception:
+                    logging.debug("Clash API version check failed")
             print("   ⏱️ Clash 启动超时")
             return False
         except Exception as e:
@@ -2244,7 +2582,8 @@ class ClashManager:
                 else:
                     self.process.terminate()
                 self.process.wait(timeout=5)
-            except Exception: pass
+            except Exception:
+                logging.debug("Clash stop failed")
             self.process = None
 
     def test_proxy(self, name, retry=True):
@@ -2263,7 +2602,9 @@ class ClashManager:
                     if resp.status_code in [200, 204, 301, 302]:
                         result = {"success": True, "latency": round(lat, 1), "speed": 0.0, "error": ""}
                         return result
-                except Exception: continue
+                except Exception:
+                    logging.debug("Test URL failed for proxy %s", name)
+                    continue
             # 所有URL都失败
             result["error"] = "All test URLs failed"
         except Exception as e:
@@ -2277,7 +2618,33 @@ class ClashManager:
 
 # ⭐ 节点命名（优化版：无后缀）
 class NodeNamer:
-    FANCY = {'A':'𝔄','B':'𝔅','C':'𝔆','D':'𝔇','E':'𝔈','F':'𝔉','G':'𝔊','H':'𝔋','I':'ℑ','J':'𝔍','K':'𝔎','L':'𝔏','M':'𝔐','N':'𝔑','O':'𝔒','P':'𝔓','Q':'𝔔','R':'𝔕','S':'𝔖','T':'𝔗','U':'𝔘','V':'𝔙','W':'𝔚','X':'𝔛','Y':'𝔜','Z':'𝔝'}
+    FANCY = {
+        'A': '𝔄',
+        'B': '𝔅',
+        'C': '𝔆',
+        'D': '𝔇',
+        'E': '𝔈',
+        'F': '𝔉',
+        'G': '𝔊',
+        'H': '𝔋',
+        'I': 'ℑ',
+        'J': '𝔍',
+        'K': '𝔎',
+        'L': '𝔏',
+        'M': '𝔐',
+        'N': '𝔑',
+        'O': '𝔒',
+        'P': '𝔓',
+        'Q': '𝔔',
+        'R': '𝔕',
+        'S': '𝔖',
+        'T': '𝔗',
+        'U': '𝔘',
+        'V': '𝔙',
+        'W': '𝔚',
+        'X': '𝔛',
+        'Y': '𝔜',
+        'Z': '𝔝'}
 
     def __init__(self):
         self.counters = {}
@@ -2330,9 +2697,12 @@ def format_proxy_to_link(p):
             # BUGFIX: grpc 传输层信息
             if p.get('network') == 'grpc' and p.get('grpc-opts'):
                 svc = p['grpc-opts'].get('grpc-service-name', '')
-                if svc: params += f"&serviceName={svc}"
-            if flow: params += f"&flow={flow}"
-            if p.get('sni'): params += f"&sni={p['sni']}"
+                if svc:
+                    params += f"&serviceName={svc}"
+            if flow:
+                params += f"&flow={flow}"
+            if p.get('sni'):
+                params += f"&sni={p['sni']}"
             return f"vless://{uuid}@{p['server']}:{p['port']}?{params}#{name_enc}"
 
         elif ptype == "ss":
@@ -2347,7 +2717,8 @@ def format_proxy_to_link(p):
         elif ptype == "hysteria2":
             pwd = urllib.parse.quote(p.get('password', ''), safe='')
             params = "insecure=1"
-            if p.get('sni'): params += f"&sni={p['sni']}"
+            if p.get('sni'):
+                params += f"&sni={p['sni']}"
             return f"hysteria2://{pwd}@{p['server']}:{p['port']}?{params}#{name_enc}"
 
         elif ptype == "hysteria":
@@ -2357,7 +2728,8 @@ def format_proxy_to_link(p):
         elif ptype == "tuic":
             uuid = p.get('uuid', '')
             params = "congestion_control=cubic"
-            if p.get('sni'): params += f"&sni={p['sni']}"
+            if p.get('sni'):
+                params += f"&sni={p['sni']}"
             return f"tuic://{uuid}:{uuid}@{p['server']}:{p['port']}?{params}#{name_enc}"
 
         elif ptype == "snell":
@@ -2378,7 +2750,8 @@ def format_proxy_to_link(p):
             return f"{scheme}://{auth}{p['server']}:{p['port']}#{name_enc}"
 
         return f"# {p['name']}"
-    except Exception: return f"# {p.get('name', 'unknown')}"
+    except Exception:
+        return f"# {p.get('name', 'unknown')}"
 
 
 # ⭐ 主程序（集成 Fork 发现）
@@ -2441,22 +2814,25 @@ def main():
                 """并行获取并解析节点（支持 txt + yaml 两种格式）"""
                 local_nodes = {}
                 c = fetch(url)
-                if not c: return local_nodes, False
+                if not c:
+                    return local_nodes, False
 
                 if is_yaml_content(c):
                     yaml_nodes = parse_yaml_proxies(c)
                     for p in yaml_nodes:
-                        k = f"{p['server']}:{p.get('port',0)}:{p.get('uuid', p.get('password', ''))}"
+                        k = f"{p['server']}:{p.get('port', 0)}:{p.get('uuid', p.get('password', ''))}"
                         h = hashlib.md5(k.encode(), usedforsecurity=False).hexdigest()
                         if h not in local_nodes:
                             local_nodes[h] = p
                     return local_nodes, True
 
-                if is_base64(c): c = decode_b64(c)
-                for l in c.splitlines():
-                    l = l.strip()
-                    if not l or l.startswith("#"): continue
-                    p = parse_node(l)
+                if is_base64(c):
+                    c = decode_b64(c)
+                for line in c.splitlines():
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    p = parse_node(line)
                     if p:
                         k = f"{p['server']}:{p['port']}:{p.get('uuid', p.get('password', ''))}"
                         h = hashlib.md5(k.encode(), usedforsecurity=False).hexdigest()
@@ -2475,8 +2851,10 @@ def main():
                             nodes[h] = p
                     # BUGFIX: 仅在有节点时才计入 yaml/txt 统计
                     if local_nodes:
-                        if is_yaml: yaml_count += 1
-                        else: txt_count += 1
+                        if is_yaml:
+                            yaml_count += 1
+                        else:
+                            txt_count += 1
                     if completed % 50 == 0:
                         print(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
                     if len(nodes) >= MAX_FETCH_NODES:
@@ -2517,14 +2895,24 @@ def main():
 
         # 6. TCP 测试（提高并发）
         print("⚡ 第一层：TCP 延迟测试...\n")
-        nlist = list(nodes.values())[:MAX_TCP_TEST_NODES]
+        # v28.16: TCP测试队列优化——亚洲节点优先测试
+        all_nodes_list = list(nodes.values())
+        asia_nodes_list = [n for n in all_nodes_list if is_asia(n)]
+        non_asia_nodes_list = [n for n in all_nodes_list if not is_asia(n)]
+        # 亚洲节点全部进入测试队列，非亚洲节点补充剩余名额
+        asia_quota = min(len(asia_nodes_list), MAX_TCP_TEST_NODES)
+        non_asia_quota = min(len(non_asia_nodes_list), MAX_TCP_TEST_NODES - asia_quota)
+        nlist = asia_nodes_list[:asia_quota] + non_asia_nodes_list[:non_asia_quota]
+        print(f"   📊 TCP测试队列：{len(asia_nodes_list[:asia_quota])} 亚洲"
+              f" + {len(non_asia_nodes_list[:non_asia_quota])} 非亚洲 = {len(nlist)} 总计")
         nres = []
 
         def test_tcp_node(proxy):
             try:
                 server = proxy.get("server", "")
                 port = proxy.get("port", 0)
-                if not server or not port: return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
+                if not server or not port:
+                    return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
                 # BUGFIX: IPv6 地址格式 [fe80::1]:443 需特殊处理
                 if server.startswith("[") and "]" in server:
                     host = server.split("]")[0][1:]  # 提取 [xxx] 中的 xxx
@@ -2536,14 +2924,17 @@ def main():
                 if is_pure_ip(host) and host not in _ip_geo_cache:
                     _ip_geo_batch([host])
                 lat = tcp_ping(host, port)
-                if lat >= 9999: return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
+                if lat >= 9999:
+                    return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
                 # v28.9: 放宽丢包率检测（timeout 2.0 -> 3.0, attempts 3 -> 2）
                 ok, total, usable = packet_loss_check(host, port, timeout=3.0, attempts=2)
-                if not usable: return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
+                if not usable:
+                    return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
                 # v28.9: TLS 握手检测放宽 - 仅对明确标记TLS的节点检测
                 if proxy.get("tls") and port == 443:
                     tls_ok, _ = tls_handshake_ok(host, port, timeout=3.0)
-                    if not tls_ok: return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
+                    if not tls_ok:
+                        return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
                 # v28.9: 放宽协议握手验证 - 仅对 ss/ssr/socks5/http 检测
                 ptype = proxy.get("type", "").lower()
                 if ptype in ("ss", "ssr", "socks5", "http"):
@@ -2566,8 +2957,11 @@ def main():
                     completed += 1
                     if completed % 50 == 0:
                         print(f"   进度：{completed}/{len(nlist)} | 合格：{len(nres)}")
-                except Exception: pass
+                except Exception:
+                    logging.debug("Proxy test error for node")
+
         # v28.8: 利用 IP 地理位置优化排序（增强大陆友好性）
+
         def _geo_score(item):
             """IP 地理位置评分：亚洲高分，非友好区域低分"""
             srv = item["proxy"].get("server", "")
@@ -2627,11 +3021,13 @@ def main():
                 batch_id += 1
                 batch_items = []
                 for item in nres_untested:
-                    if len(batch_items) >= batch_size: break
+                    if len(batch_items) >= batch_size:
+                        break
                     k = f"{item['proxy']['server']}:{item['proxy']['port']}"
                     if k not in tested:
                         batch_items.append(item)
-                if not batch_items: break
+                if not batch_items:
+                    break
 
                 tprox = [item["proxy"] for item in batch_items]
                 print(f"📦 第{batch_id}批：{len(tprox)} 个节点...\n")
@@ -2642,6 +3038,7 @@ def main():
                     break
 
                 proxy_ok = True
+
                 def test_one(item):
                     p = item["proxy"]
                     r = clash.test_proxy(p["name"])
@@ -2679,8 +3076,8 @@ def main():
                                     break
                                 if done_count % 20 == 0:
                                     print(f"   进度：{done_count}/{len(batch_items)} | 合格：{len(final)}")
-                            except Exception: pass
-                    clash.stop()
+                            except Exception:
+                                logging.debug("Batch proxy test error")
                     print(f"\n   第{batch_id}批完成：累计合格 {len(final)} 个\n")
                 except Exception as e:
                     print(f"   ❌ Clash 崩溃: {e}")
@@ -2691,12 +3088,14 @@ def main():
             if len(final) < MAX_FINAL_NODES:
                 print(f"\n⚠️ 测速合格 {len(final)} 个/{MAX_FINAL_NODES} 目标，使用 TCP 补充...\n")
                 for item in nres:
-                    if len(final) >= MAX_FINAL_NODES: break
+                    if len(final) >= MAX_FINAL_NODES:
+                        break
                     p = item["proxy"]
                     k = f"{p['server']}:{p['port']}"
-                    if k in tested: continue
-                    if item["is_asia"] and item["latency"] < 800:
-                        # v28.13: 移除未使用的 host 提取，直接使用 server
+                    if k in tested:
+                        continue
+                    if item["is_asia"] and item["latency"] < ASIA_TCP_RELAX:
+                        # v28.16: 亚洲TCP补充延迟放宽（800→ASIA_TCP_RELAX=1500）
                         tested.add(k)  # BUGFIX: 标记避免重复检测
                         srv = p.get("server", "")
                         sni_val = p.get("sni", "") or p.get("servername", "")
@@ -2713,8 +3112,8 @@ def main():
                         ) + "[TCP]"
                         final.append(p)
                         print(f"   [TCP] {p['name']}")
-                    elif item["latency"] < 500:
-                        # v28.13: 移除未使用的 host 提取，直接使用 server
+                    elif item["latency"] < 800:
+                        # v28.16: 非亚洲TCP补充延迟提高（500→800）
                         tested.add(k)  # BUGFIX: 标记避免重复检测
                         srv = p.get("server", "")
                         sni_val = p.get("sni", "") or p.get("servername", "")
@@ -2733,7 +3132,6 @@ def main():
                         print(f"   [TCP] {p['name']}")
                     else:
                         tested.add(k)
-
 
         final = final[:MAX_FINAL_NODES]
 
@@ -2763,18 +3161,36 @@ def main():
             # v28.14: extract latency from name for secondary sort
             lat_from_name = 0
             m = re.search(r"\d+", p.get("name", ""))
-            if m: lat_from_name = int(m.group(0))
+            if m:
+                lat_from_name = int(m.group(0))
             # sort: asia > reality > proto > region > latency
             return (-asia, -reality, -proto_score, -region_bonus, lat_from_name)
 
-        # v28.14: 强制亚洲节点前置（如果不足60%）
-        asia_final = [p for p in final if is_asia(p)]
-        non_asia_final = [p for p in final if not is_asia(p)]
-        if len(asia_final) > 0 and len(asia_final) < len(final) * 0.6:
-            final = asia_final + non_asia_final
-            print(f"   🔄 最终输出强制亚洲前置：{len(asia_final)} 亚洲 + {len(non_asia_final)} 非亚洲")
+        # v28.16: 配额制节点选择（修复 v28.14 前置+排序互斥BUG）
+        # 分组排序后再按配额合并，确保亚洲≥60%
+        asia_final = sorted(
+            [p for p in final if is_asia(p)],
+            key=final_sort_key
+        )
+        non_asia_final = sorted(
+            [p for p in final if not is_asia(p)],
+            key=final_sort_key
+        )
 
-        final.sort(key=final_sort_key)
+        target_asia = int(MAX_FINAL_NODES * TARGET_ASIA_RATIO)  # 90个
+        target_non_asia = MAX_FINAL_NODES - target_asia          # 60个
+
+        # 亚洲节点不够时，全部保留，从非亚洲补足
+        if len(asia_final) < target_asia:
+            actual_asia = len(asia_final)
+            actual_non_asia = min(len(non_asia_final), MAX_FINAL_NODES - actual_asia)
+            final = asia_final + non_asia_final[:actual_non_asia]
+            print(f"   ⚠️ 亚洲节点不足{target_asia}个，全部保留{actual_asia}个"
+                  f" + 非亚洲{actual_non_asia}个")
+        else:
+            # 亚洲节点充足，按配额切割
+            final = asia_final[:target_asia] + non_asia_final[:target_non_asia]
+            print(f"   ✅ 亚洲配额{target_asia}个 + 非亚洲配额{target_non_asia}个")
 
         print(f"\n✅ 最终：{len(final)} 个")
         print(f"📊 真实测速：{'✅' if proxy_ok else '❌'}\n")
@@ -2786,18 +3202,22 @@ def main():
         for p in final:
             original_name = p["name"]
             count = final_names.get(original_name, 0)
-            if count > 0: p["name"] = f"{original_name}-{count}"
+            if count > 0:
+                p["name"] = f"{original_name}-{count}"
             final_names[original_name] = count + 1
             unique_final.append(p)
 
-        cfg = {
-            "proxies": unique_final,
-            "proxy-groups": [
-                {"name": "🚀 Auto", "type": "url-test", "proxies": [p["name"] for p in unique_final], "url": TEST_URL, "interval": 300, "tolerance": 50},
-                {"name": "🌍 Select", "type": "select", "proxies": ["🚀 Auto"] + [p["name"] for p in unique_final]}
-            ],
-            "rules": ["MATCH,🌍 Select"]
-        }
+        cfg = {"proxies": unique_final,
+               "proxy-groups": [{"name": "🚀 Auto",
+                                 "type": "url-test",
+                                 "proxies": [p["name"] for p in unique_final],
+                                 "url": TEST_URL,
+                                 "interval": 300,
+                                 "tolerance": 50},
+                                {"name": "🌍 Select",
+                                 "type": "select",
+                                 "proxies": ["🚀 Auto"] + [p["name"] for p in unique_final]}],
+               "rules": ["MATCH,🌍 Select"]}
         with open("proxies.yaml", "w", encoding="utf-8") as f:
             yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
 

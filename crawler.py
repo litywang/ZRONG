@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v28.12 - 大陆优化版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.12
+聚合订阅爬虫 v28.13 - 大陆优化版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.13
 优化：httpx连接池 + 异步HTTP抓取 + sources.yaml配置外置 + Clash分批测速 + 大陆可用性优化
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性 + 大陆高可用
-CHANGELOG v28.12:
-- 合并 v28.8 国内测速URL + v28.10 国际测速URL（最大覆盖）
-- 修复三处 namer.generate 长行超134字符警告
-- TCP补充缩进修复（if/elif/else在for循环内）
-- 移除重复 tested.add(k)
+CHANGELOG v28.13:
+- 修复 async_fetch_nodes 双重客户端创建导致 NoneType 错误
+- 修复 TCP补充逻辑中 host 变量未使用警告
+- 修复 get_region 中 .cl/.co TLD 误匹配（智利/哥伦比亚）
+- 新增 trojan-go:// 协议解析支持
+- 优化 IP 地理位置查询优先级（TCP测试前预查）
+- 优化亚洲节点占比计算逻辑
 """
 
 import httpx
@@ -1090,6 +1092,37 @@ def parse_anytls(node):
     except Exception: return None
 
 
+def parse_trojan_go(node):
+    """解析 trojan-go:// 链接（trojan-go 扩展协议）"""
+    try:
+        if not node.startswith("trojan-go://"): return None
+        # trojan-go://password@server:port?sni=xxx&type=ws&path=xxx#name
+        p_url = urlparse(node)
+        if not p_url.hostname: return None
+        pwd = unquote(p_url.username or "")
+        if not pwd: return None
+        params = parse_qs(p_url.query)
+        gp = lambda k: params.get(k, [""])[0]
+        original_name = p_url.fragment if p_url.fragment else f"TG-{generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'password': pwd})}"
+        proxy = {
+            "name": original_name, "type": "trojan", "server": p_url.hostname,
+            "port": _safe_port(p_url.port), "password": pwd, "udp": True,
+            "skip-cert-verify": True, "sni": gp("sni") or p_url.hostname
+        }
+        # trojan-go ws 扩展
+        ttype = gp("type")
+        if ttype == "ws":
+            proxy["network"] = "ws"
+            wo = {}
+            if gp("path"): wo["path"] = gp("path")
+            if gp("host"): wo["headers"] = {"Host": gp("host")}
+            if wo: proxy["ws-opts"] = wo
+        fp = gp("fp")
+        if fp: proxy["client-fingerprint"] = fp
+        return proxy
+    except Exception: return None
+
+
 def parse_snell(node):
     """解析 snell:// 链接"""
     try:
@@ -1127,6 +1160,7 @@ def parse_node(node):
     elif node.startswith("socks5://") or node.startswith("socks4://"): return parse_socks(node)
     elif node.startswith("http://") or node.startswith("https://"): return parse_http_proxy(node)
     elif node.startswith("anytls://"): return parse_anytls(node)
+    elif node.startswith("trojan-go://"): return parse_trojan_go(node)
     return None
 
 
@@ -1419,8 +1453,13 @@ def get_region(name, server=None, sni=None):
                 return "🇨🇿", "CZ"
             if seg.endswith(".ar") or ".com.ar" in srv:
                 return "🇦🇷", "AR"
-            if srv.endswith(".cl") or srv.endswith(".co.cl"):
+            # BUGFIX v28.13: 严格限制 .cl 匹配，避免与 .co 混淆
+            # 智利 ccTLD: .cl, .co.cl
+            if srv.endswith(".cl") and not srv.endswith(".co.cl"):
                 return "🇨🇱", "CL"
+            # 哥伦比亚 ccTLD: .com.co, .org.co, .net.co
+            if srv.endswith(".com.co") or srv.endswith(".org.co") or srv.endswith(".net.co"):
+                return "🇨🇴", "CO"
             if seg.endswith(".mx") or ".com.mx" in srv:
                 return "🇲🇽", "MX"
             if seg.endswith(".ae") or ".co.ae" in srv:
@@ -1474,10 +1513,7 @@ def get_region(name, server=None, sni=None):
                 return "🇪🇬", "EG"
             if seg.endswith(".ke") or ".co.ke" in srv:
                 return "🇰🇪", "KE"
-            # BUGFIX: .co 是哥伦比亚 ccTLD 但也是流行短域名(如 xxx.co)，
-            # 仅在 .com.co 二级域时判定为哥伦比亚，避免误匹配
-            if srv.endswith(".com.co") or srv.endswith(".org.co") or srv.endswith(".net.co"):
-                return "🇨🇴", "CO"
+            # v28.13: 哥伦比亚检测已移至上方 .cl 检测之后
             if seg.endswith(".pe") or ".com.pe" in srv:
                 return "🇵🇪", "PE"
             if seg.endswith(".ve") or ".com.ve" in srv:
@@ -1720,11 +1756,12 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
     异步批量抓取并解析所有节点的入口
     返回: (nodes_dict, yaml_count, txt_count)
     """
-    global _async_http_client  # v28.12: 必须声明，因为 finally 块中有赋值
-    client = get_async_http_client()
+    global _async_http_client
     
     # 限制并发数
     sem = asyncio.Semaphore(80)
+    
+    client = get_async_http_client()
     
     async def fetch_with_limit(url: str):
         async with sem:
@@ -1741,11 +1778,7 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
     txt_count = 0
     completed = 0
     
-    # BUGFIX v28.8: 确保异步客户端在异常时也关闭（修复资源泄漏）
-    client = None
     try:
-        client = get_async_http_client()  # 在try块内创建客户端
-        
         for coro in asyncio.as_completed(tasks):
             local_nodes, is_yaml = await coro
             completed += 1
@@ -1766,8 +1799,7 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
                 print(f"   ✅ 已达上限 {max_nodes}，提前结束")
                 break
     finally:
-        # BUGFIX v28.8: 安全关闭客户端，避免资源泄漏
-        # v28.12: global removed to allow client rebuild
+        # BUGFIX v28.13: 安全关闭客户端，避免资源泄漏
         if _async_http_client:
             try:
                 await _async_http_client.aclose()
@@ -2316,8 +2348,8 @@ def main():
     USE_ASYNC_FETCH = os.getenv("USE_ASYNC_FETCH", "0") == "1"
     
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v28.8 - 大陆优化版")
-    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.8")
+    print("🚀 聚合订阅爬虫 v28.13 - 大陆优化版")
+    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.13")
     print(f"异步抓取: {'✅ 启用' if USE_ASYNC_FETCH else '❌ 禁用（同步模式）'}")
     print("=" * 50)
     
@@ -2456,6 +2488,9 @@ def main():
                     host = server.split(":")[0]  # IPv4:port 格式
                 else:
                     host = server
+                # v28.13: 预查询 IP 地理位置（用于后续排序优化）
+                if is_pure_ip(host) and host not in _ip_geo_cache:
+                    _ip_geo_batch([host])
                 lat = tcp_ping(host, port)
                 if lat >= 9999: return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
                 # v28.9: 放宽丢包率检测（timeout 2.0 -> 3.0, attempts 3 -> 2）
@@ -2521,7 +2556,9 @@ def main():
             x["latency"]
         ))
         asia_count = sum(1 for n in nres if n["is_asia"])
-        print(f"✅ 第一层合格：{len(nres)} 个（亚洲：{asia_count}，占比：{asia_count*100//max(len(nres),1)}%）\n")
+        # v28.13: 修复占比计算精度
+        tcp_asia_pct = round(asia_count * 100 / max(len(nres), 1), 1)
+        print(f"✅ 第一层合格：{len(nres)} 个（亚洲：{asia_count}，占比：{tcp_asia_pct}%）\n")
         
         # 7. 真实测速 + TCP 保底（保留）
         print("🚀 真实代理测速（分批）...\n")
@@ -2607,15 +2644,7 @@ def main():
                     k = f"{p['server']}:{p['port']}"
                     if k in tested: continue
                     if item["is_asia"] and item["latency"] < 800:
-                        server = p.get("server", "")
-                        # BUGFIX: IPv6 安全提取 host
-                        if server.startswith("[") and "]" in server:
-                            host = server.split("]")[0][1:]
-                        elif ":" in server:
-                            host = server.split(":")[0]
-                        else:
-                            host = server
-                        # v28.11: 不再检查reachability（TCP已验证）
+                        # v28.13: 移除未使用的 host 提取，直接使用 server
                         tested.add(k)  # BUGFIX: 标记避免重复检测
                         srv = p.get("server", "")
                         sni_val = p.get("sni", "") or p.get("servername", "")
@@ -2633,14 +2662,7 @@ def main():
                         final.append(p)
                         print(f"   [TCP] {p['name']}")
                     elif item["latency"] < 500:
-                        server = p.get("server", "")
-                        if server.startswith("[") and "]" in server:
-                            host = server.split("]")[0][1:]
-                        elif ":" in server:
-                            host = server.split(":")[0]
-                        else:
-                            host = server
-                        # v28.11: 不再检查reachability
+                        # v28.13: 移除未使用的 host 提取，直接使用 server
                         tested.add(k)  # BUGFIX: 标记避免重复检测
                         srv = p.get("server", "")
                         sni_val = p.get("sni", "") or p.get("servername", "")
@@ -2738,7 +2760,9 @@ def main():
         print(f"• Fork 来源：{len(fork_subs)}")
         print(f"• Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总：{len(all_urls)}")
         print(f"• 原始：{len(nodes)} | TCP: {len(nres)} | 最终：{len(unique_final)}")
-        print(f"• 亚洲：{asia_ct} 个 ({asia_ct * 100 // max(len(unique_final), 1)}%)")
+        # v28.13: 修复亚洲占比计算（避免除零，使用更精确的计算）
+        asia_pct = round(asia_ct * 100 / max(len(unique_final), 1), 1)
+        print(f"• 亚洲：{asia_ct} 个 ({asia_pct}%)")
         print(f"• 最低延迟：{min_lat:.1f} ms")
         print(f"• 耗时：{tt:.1f} 秒")
         print("=" * 180 + "\n")
@@ -2763,7 +2787,7 @@ def main():
 • Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总订阅：{len(all_urls)}
 • Fork 来源：{len(fork_subs)}
 • 原始：{len(nodes)} | TCP: {len(nres)} | 最终：<code>{len(unique_final)}</code> 个
-• 亚洲：{asia_ct} 个 ({asia_ct * 100 // max(len(unique_final), 1)}%)
+• 亚洲：{asia_ct} 个 ({asia_pct}%)
 • 最低延迟：{min_lat:.1f} ms
 • 平均耗时：{tt:.1f} 秒
 ━━━━━━━━━━━━━━━━━━━━━━━

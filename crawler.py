@@ -2897,30 +2897,29 @@ def main():
     all_urls = []
 
     try:
-        # 1. GitHub Fork 发现（同步，GitHub API 限制）
+        # 1. Telegram 频道爬取（最高优先级）
+        print("\n📱 爬取 Telegram 频道（优先）...\n")
+        tg_subs = crawl_telegram_channels(TELEGRAM_CHANNELS, pages=1, limits=20)
+        tg_urls = list(set([strip_url(u) for u in tg_subs.keys()]))
+        print(f"✅ Telegram 订阅：{len(tg_urls)} 个\n")
+
+        # 2. GitHub Fork 发现（中等优先级）
         print("\n🔍 GitHub Fork 发现...\n")
         fork_subs = discover_github_forks()
         all_urls.extend(fork_subs)
         print(f"✅ Fork 来源：{len(fork_subs)} 个\n")
 
-        # 2. Telegram 频道爬取（同步，需要保持会话）
-        print("📱 爬取 Telegram 频道...\n")
-        tg_subs = crawl_telegram_channels(TELEGRAM_CHANNELS, pages=1, limits=20)
-        tg_urls = list(set([strip_url(u) for u in tg_subs.keys()]))
-        all_urls.extend(tg_urls)
-        print(f"✅ Telegram 订阅：{len(tg_urls)} 个\n")
-
-        # 3. 固定订阅源
-        print("📥 加载固定订阅源...\n")
+        # 3. 固定订阅源（最低优先级，放最后）
+        print("\n📥 加载固定订阅源（补充）...\n")
         fixed_urls = [strip_url(u) for u in CANDIDATE_URLS if strip_url(u)]
         all_urls.extend(fixed_urls)
-        print(f"✅ 固定订阅源：{len(fixed_urls)} 个（跳过验证，直接拉取）\n")
+        print(f"✅ 固定订阅源：{len(fixed_urls)} 个（跳过验证）\n")
 
         # 4. 去重
         all_urls = list(set(all_urls))
         print(f"📊 总订阅源：{len(all_urls)} 个\n")
 
-        # 5. 抓取节点（可选异步模式）
+        # 5. 抓取节点（按all_urls顺序，Telegram已在前面）
         print("📥 抓取节点...\n")
         nodes = {}
         yaml_count = 0

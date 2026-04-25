@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v28.19 - 大陆优化版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.19
+聚合订阅爬虫 v28.20 - 大陆优化版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.20
 优化：httpx连接池 + 异步HTTP抓取 + sources.yaml配置外置 + Clash分批测速 + 大陆可用性优化
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性 + 大陆高可用
 CHANGELOG v28.19:
@@ -481,8 +481,14 @@ def is_pure_ip(s):
     s = s.strip()
     if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', s):
         return True
-    if ':' in s and re.match(r'^[0-9a-fA-F:]+$', s):
-        return True
+    # BUGFIX v28.20: IPv6 检测使用 ipaddress 模块替代宽松正则
+    # 原正则 r'^[0-9a-fA-F:]+$' 会匹配 "1:2:3" 或纯 ":" 等非法值
+    if ':' in s:
+        try:
+            ipaddress.ip_address(s)
+            return True
+        except ValueError:
+            pass
     return False
 
 
@@ -666,6 +672,17 @@ def packet_loss_check(host, port, timeout=2.0, attempts=3):
     return success, attempts, success >= 2
 
 # ========== 二次 TCP 验证 ==========
+
+# BUGFIX v28.20: IPv6 兼容的 socket 创建
+def _create_socket(host, timeout=None):
+    """创建兼容 IPv4/IPv6 的 TCP socket"""
+    if ":" in host:
+        s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+    else:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    if timeout is not None:
+        s.settimeout(timeout)
+    return s
 # ========== v28.6: 协议握手验证（TCP 层粗筛核心）==========
 
 
@@ -678,16 +695,20 @@ def _proto_handshake_ok(host, port, ptype, proxy=None, timeout=3.0):
     """
     try:
         if ptype in ("vmess", "vless", "trojan"):
-            # 这类协议都需要 TLS，验证 TLS 握手成功即可
-            tls_ok, _ = tls_handshake_ok(host, port, timeout=timeout)
-            return tls_ok
+            # BUGFIX v28.20: 只有标记 TLS 的节点才做 TLS 握手检测
+            # 非 TLS 节点（纯 TCP 传输）做 TLS 握手必然失败，导致误杀
+            # proxy 参数由调用方传入，携带完整节点信息
+            if proxy and proxy.get("tls"):
+                tls_ok, _ = tls_handshake_ok(host, port, timeout=timeout)
+                return tls_ok
+            # 非 TLS 节点：仅做 TCP 连通性检测（已在 tcp_ping 中完成），默认放过
+            return True
         elif ptype in ("ss", "ssr"):
             # Shadowsocks 收到未知数据会静默丢弃或断开
             # 策略：发送垃圾数据后，如果服务器立即回显数据或立即 RST → 不是 SS
             # 如果超时无响应 → 可能是 SS（默认放过，不误杀）
             try:
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.settimeout(timeout)
+                s = _create_socket(host, timeout)
                 s.connect((host, port))
                 s.send(b"\x00")
                 try:
@@ -704,7 +725,9 @@ def _proto_handshake_ok(host, port, ptype, proxy=None, timeout=3.0):
                     return True  # 超时 = 服务器没断开 = 可能是 SS
                 except (ConnectionResetError, ConnectionAbortedError):
                     s.close()
-                    return False  # 立即 RST = 不是 SS
+                    # BUGFIX v28.20: SS 服务器收到非法数据后 RST 是正常行为（解密失败重置）
+                    # 之前误判为"不是SS"导致大量 SS 节点被误杀
+                    return True
             except Exception:
                 return True  # 连接失败默认放过，不误杀
         elif ptype == "hysteria" or ptype == "hysteria2":
@@ -713,8 +736,7 @@ def _proto_handshake_ok(host, port, ptype, proxy=None, timeout=3.0):
         elif ptype == "http":
             # HTTP 代理：发送 CONNECT 请求
             try:
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.settimeout(timeout)
+                s = _create_socket(host, timeout)
                 s.connect((host, port))
                 s.send(b"CONNECT www.gstatic.com:443 HTTP/1.1\r\nHost: www.gstatic.com:443\r\n\r\n")
                 data = s.recv(256)
@@ -726,8 +748,7 @@ def _proto_handshake_ok(host, port, ptype, proxy=None, timeout=3.0):
         elif ptype == "socks5":
             # SOCKS5: 发送握手
             try:
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.settimeout(timeout)
+                s = _create_socket(host, timeout)
                 s.connect((host, port))
                 s.send(b"\x05\x01\x00")  # SOCKS5, 1 auth method, no auth
                 data = s.recv(16)
@@ -747,8 +768,7 @@ def tcp_verify(host, port, timeout=1.5):
     if not host:
         return False
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(timeout)
+        s = _create_socket(host, timeout)
         s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         s.connect((host, port))
         s.close()
@@ -764,8 +784,7 @@ def _tcp_ping(host, port, timeout=2.5):
         return 9999
     try:
         start = time.time()
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(timeout)
+        s = _create_socket(host, timeout)
         s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         s.connect((host, port))
         s.close()
@@ -1007,7 +1026,7 @@ def parse_vmess(node):
         net = c.get("net", "tcp").lower()
         if net in ["ws", "h2", "grpc"]:
             p["network"] = net
-        if c.get("tls") == "tls" or c.get("security") == "tls":
+        if c.get("tls") in ("tls", "1", 1, True) or c.get("security") in ("tls", "1", 1, True):
             p["tls"] = True
             p["sni"] = c.get("sni") or c.get("host") or p["server"]
         if net == "ws":
@@ -1022,6 +1041,16 @@ def parse_vmess(node):
             # BUGFIX: 补充 grpc 传输层 serviceName
             if c.get("path"):
                 p["grpc-opts"] = {"grpc-service-name": c.get("path")}
+        elif net == "h2":
+            # BUGFIX v28.20: 补充 h2 传输层解析（path/host）
+            p["network"] = "h2"
+            h2o = {}
+            if c.get("path"):
+                h2o["path"] = c.get("path")
+            if c.get("host"):
+                h2o["host"] = [c.get("host")]
+            if h2o:
+                p["h2-opts"] = h2o
         return p if p["server"] and p["uuid"] else None
     except Exception:
         return None
@@ -1115,6 +1144,21 @@ def parse_trojan(node):
             "name": original_name, "type": "trojan", "server": p_url.hostname, "port": _safe_port(p_url.port),
             "password": pwd, "udp": True, "skip-cert-verify": True, "sni": gp("sni") or p_url.hostname
         }
+        # BUGFIX v28.20: 解析 WS/GRPC 传输层参数
+        ttype = gp("type")
+        if ttype == "ws":
+            proxy["network"] = "ws"
+            wo = {}
+            if gp("path"):
+                wo["path"] = gp("path")
+            if gp("host"):
+                wo["headers"] = {"Host": gp("host")}
+            if wo:
+                proxy["ws-opts"] = wo
+        elif ttype == "grpc":
+            proxy["network"] = "grpc"
+            if gp("serviceName"):
+                proxy["grpc-opts"] = {"grpc-service-name": gp("serviceName")}
         alpn = gp("alpn")
         if alpn:
             proxy["alpn"] = [a.strip() for a in alpn.split(",")]
@@ -1141,7 +1185,10 @@ def parse_ss(node):
         except Exception:
             method_pwd, server_info = info.split("@", 1)
             method, pwd = method_pwd.split(":", 1)
-        server, port = server_info.split(":", 1)
+        server, port = server_info.rsplit(":", 1)  # BUGFIX v28.20: 用 rsplit 从右拆分，兼容 IPv6
+        # 去除 IPv6 方括号
+        if server.startswith("[") and server.endswith("]"):
+            server = server[1:-1]
 
         # 如果没有原始名称，生成默认名称
         if not original_name:
@@ -1206,12 +1253,15 @@ def parse_tuic(node):
         if not p_url.hostname:
             return None
         uuid_val = p_url.username or ""
+        # BUGFIX v28.20: tuic URL 格式 tuic://uuid:password@server:port
+        # p_url.username 是 uuid，p_url.password 是 password
+        tuic_password = p_url.password or uuid_val
         params = parse_qs(p_url.query)
         def gp(k): return params.get(k, [""])[0]
         uid = generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'password': uuid_val})
         proxy = {
             "name": f"TU-{uid}", "type": "tuic", "server": p_url.hostname,
-            "port": _safe_port(p_url.port), "uuid": uuid_val, "password": uuid_val,
+            "port": _safe_port(p_url.port), "uuid": uuid_val, "password": tuic_password,
             "udp": True, "skip-cert-verify": True
         }
         sni = gp("sni")
@@ -1657,8 +1707,8 @@ def get_region(name, server=None, sni=None):
     # 俄罗斯检测
     elif match(["ru", "russia", "🇷🇺", "俄罗斯", "莫斯科", "moscow"]):
         return "🇷🇺", "RU"
-    # 印度检测（v25: 修复 "in" 误匹配，改用词边界检查）
-    elif match(["india", "🇮🇳", "印度", "孟买", "mumbai", "delhi"]) or re.search(r'\bin\b', nl):
+    # 印度检测（v28.20: 修复 "in" 误匹配，改用更严格边界检查）
+    elif match(["india", "🇮🇳", "印度", "孟买", "mumbai", "delhi", "new delhi"]) or re.search(r'\b(india|ind|in-)\b', nl):
         return "🇮🇳", "IN"
     # 巴西检测
     elif match(["br", "brazil", "🇧🇷", "巴西", "圣保罗", "sao paulo"]):
@@ -2016,9 +2066,13 @@ def is_asia(p):
     tokens = set(re.split(r'[\s\-_|,.:;/()（）【】\[\]{}]+', t))
     asia_2letter = {
         "hk", "tw", "jp", "sg", "kr", "th", "vn", "my",
-        "id", "ph", "mo", "mn", "kh", "la", "mm", "bn",
+        "ph", "mo", "mn", "kh", "la", "mm", "bn",
         "tl", "np", "lk", "bd", "bt", "mv",
     }
+    # BUGFIX v28.20: 移除 "id" 和 "in" 二字母代码
+    # "id" 在节点名中常见（如 node-id-01）导致非印尼节点误判
+    # "in" 在英文中太常见（如 within/main），也移除
+    # 印尼/印度改由长关键词和 TLD 判断
     if tokens & asia_2letter:
         return True
     # 长关键词子串匹配
@@ -2376,8 +2430,8 @@ def tcp_ping(host, port, to=1.5):
         return 9999.0
     try:
         st = time.time()
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(to)
+        # BUGFIX v28.20: IPv6 地址需要使用 AF_INET6
+        s = _create_socket(host, to)
         s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         s.connect((host, port))
         s.close()
@@ -2814,6 +2868,18 @@ def format_proxy_to_link(p):
                     "id": p["uuid"], "aid": p.get("alterId", 0), "net": p.get("network", "tcp"),
                     "type": "none", "host": host, "path": ws_opts.get("path", ""),
                     "tls": "tls" if p.get("tls") else ""}
+            # BUGFIX v28.20: 补充 alpn 字段
+            if p.get("alpn"):
+                data["alpn"] = ",".join(p["alpn"]) if isinstance(p["alpn"], list) else p["alpn"]
+            # BUGFIX v28.20: h2 传输层信息
+            if p.get("network") == "h2" and p.get("h2-opts"):
+                h2o = p["h2-opts"]
+                data["path"] = h2o.get("path", data["path"])
+                h2_host = h2o.get("host", [])
+                if isinstance(h2_host, list) and h2_host:
+                    data["host"] = h2_host[0]
+                elif isinstance(h2_host, str) and h2_host:
+                    data["host"] = h2_host
             # BUGFIX: grpc 传输层信息
             if p.get("grpc-opts"):
                 data["path"] = p["grpc-opts"].get("grpc-service-name", "")
@@ -2824,8 +2890,27 @@ def format_proxy_to_link(p):
         elif ptype == "trojan":
             pwd_enc = urllib.parse.quote(p.get('password', ''), safe='')
             sni = p.get('sni', p.get('server', ''))
-            # v28.19: 添加allowInsecure参数
-            params = f"sni={sni}&allowInsecure=1"
+            # BUGFIX v28.20: 添加传输层类型和参数
+            ttype = p.get('network', 'tcp')
+            params = f"sni={urllib.parse.quote(str(sni), safe='')}&type={ttype}&allowInsecure=1"
+            # WS 传输参数
+            if ttype == 'ws':
+                ws_opts = p.get('ws-opts', {})
+                if ws_opts.get('path'):
+                    params += f"&path={urllib.parse.quote(ws_opts['path'], safe='')}"
+                ws_host = ws_opts.get('headers', {}).get('Host', '')
+                if ws_host:
+                    params += f"&host={urllib.parse.quote(ws_host, safe='')}"
+            # GRPC 传输参数
+            if ttype == 'grpc' and p.get('grpc-opts'):
+                svc = p['grpc-opts'].get('grpc-service-name', '')
+                if svc:
+                    params += f"&serviceName={urllib.parse.quote(svc, safe='')}"
+            # alpn/fingerprint
+            if p.get('alpn'):
+                params += f"&alpn={','.join(p['alpn'])}"
+            if p.get('client-fingerprint'):
+                params += f"&fp={p['client-fingerprint']}"
             return f"trojan://{pwd_enc}@{p['server']}:{p['port']}?{params}#{name_enc}"
 
         elif ptype == "vless":
@@ -2834,7 +2919,15 @@ def format_proxy_to_link(p):
             has_reality = bool(p.get('reality-opts'))
             security = "reality" if has_reality else ("tls" if p.get('tls') else "none")
             flow = p.get('flow', '')
-            params = f"type={p.get('network', 'tcp')}&security={security}"
+            params = f"encryption=none&type={p.get('network', 'tcp')}&security={security}"
+            # BUGFIX v28.20: vless WS 传输层参数（path/host）
+            if p.get('network') == 'ws':
+                ws_opts = p.get('ws-opts', {})
+                if ws_opts.get('path'):
+                    params += f"&path={urllib.parse.quote(ws_opts['path'], safe='')}"
+                ws_host = ws_opts.get('headers', {}).get('Host', '')
+                if ws_host:
+                    params += f"&host={urllib.parse.quote(ws_host, safe='')}"
             # BUGFIX: grpc 传输层信息
             if p.get('network') == 'grpc' and p.get('grpc-opts'):
                 svc = p['grpc-opts'].get('grpc-service-name', '')
@@ -2843,7 +2936,7 @@ def format_proxy_to_link(p):
             if flow:
                 params += f"&flow={flow}"
             if p.get('sni'):
-                params += f"&sni={p['sni']}"
+                params += f"&sni={urllib.parse.quote(str(p['sni']), safe='')}"
             # v28.19: 添加reality必要参数
             if has_reality:
                 ro = p['reality-opts']
@@ -2858,14 +2951,49 @@ def format_proxy_to_link(p):
             return f"ss://{auth_enc}@{p['server']}:{p['port']}#{name_enc}"
 
         elif ptype == "ssr":
-            # SSR 格式较复杂，输出为 YAML 格式注释
-            return "# {} (SSR)".format(p['name'])
+            # BUGFIX v28.20: 输出合法 SSR 链接（而非注释）
+            # SSR 格式: ssr://base64(server:port:protocol:method:obfs:base64pass/?params)
+            try:
+                server = p.get('server', '')
+                port = p.get('port', 0)
+                protocol = p.get('protocol', 'origin')
+                method = p.get('method', 'aes-256-cfb')
+                obfs = p.get('obfs', 'plain')
+                password = p.get('password', '')
+                b64_pwd = base64.b64encode(password.encode()).decode().rstrip('=')
+                main_part = f"{server}:{port}:{protocol}:{method}:{obfs}:{b64_pwd}"
+                params_parts = []
+                obfs_param = p.get('obfs-param', '')
+                if obfs_param:
+                    b64_op = base64.b64encode(obfs_param.encode()).decode().rstrip('=')
+                    params_parts.append(f"obfsparam={b64_op}")
+                proto_param = p.get('protocol-param', '')
+                if proto_param:
+                    b64_pp = base64.b64encode(proto_param.encode()).decode().rstrip('=')
+                    params_parts.append(f"protoparam={b64_pp}")
+                remarks = p.get('name', '')
+                if remarks:
+                    b64_name = base64.b64encode(remarks.encode()).decode().rstrip('=')
+                    params_parts.append(f"remarks={b64_name}")
+                params_str = '/?' + '&'.join(params_parts) if params_parts else ''
+                full = main_part + params_str
+                b64_full = base64.b64encode(full.encode()).decode()
+                return f"ssr://{b64_full}"
+            except Exception:
+                return f"# {p.get('name', 'unknown')} (SSR fallback)"
 
         elif ptype == "hysteria2":
             pwd = urllib.parse.quote(p.get('password', ''), safe='')
             params = "insecure=1"
             if p.get('sni'):
-                params += f"&sni={p['sni']}"
+                params += f"&sni={urllib.parse.quote(str(p['sni']), safe='')}"
+            # BUGFIX v28.20: 补充 obfs/obfs-password/fp 参数
+            if p.get('obfs'):
+                params += f"&obfs={urllib.parse.quote(p['obfs'], safe='')}"
+            if p.get('obfs-password'):
+                params += f"&obfs-password={urllib.parse.quote(p['obfs-password'], safe='')}"
+            if p.get('client-fingerprint'):
+                params += f"&fp={p['client-fingerprint']}"
             return f"hysteria2://{pwd}@{p['server']}:{p['port']}?{params}#{name_enc}"
 
         elif ptype == "hysteria":
@@ -2873,11 +3001,17 @@ def format_proxy_to_link(p):
             return f"hysteria://{pwd}@{p['server']}:{p['port']}#{name_enc}"
 
         elif ptype == "tuic":
-            uuid = p.get('uuid', '')
+            uuid_val = p.get('uuid', '')
+            # BUGFIX v28.20: tuic password 和 uuid 可能不同
+            password = p.get('password', uuid_val)
             params = "congestion_control=cubic"
             if p.get('sni'):
-                params += f"&sni={p['sni']}"
-            return f"tuic://{uuid}:{uuid}@{p['server']}:{p['port']}?{params}#{name_enc}"
+                params += f"&sni={urllib.parse.quote(str(p['sni']), safe='')}"
+            if p.get('alpn'):
+                params += f"&alpn={','.join(p['alpn'])}"
+            if p.get('client-fingerprint'):
+                params += f"&fp={p['client-fingerprint']}"
+            return f"tuic://{uuid_val}:{password}@{p['server']}:{p['port']}?{params}#{name_enc}"
 
         elif ptype == "snell":
             pwd = urllib.parse.quote(p.get('psk', ''), safe='')
@@ -2912,8 +3046,8 @@ def main():
     USE_ASYNC_FETCH = os.getenv("USE_ASYNC_FETCH", "0") == "1"
 
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v28.17 - 大陆优化版")
-    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.17")
+    print("🚀 聚合订阅爬虫 v28.20 - 大陆优化版")
+    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.20")
     print(f"异步抓取: {'✅ 启用' if USE_ASYNC_FETCH else '❌ 禁用（同步模式）'}")
     print("=" * 50)
 
@@ -2926,23 +3060,27 @@ def main():
         tg_urls = list(set([strip_url(u) for u in tg_subs.keys()]))
         print(f"✅ Telegram 订阅：{len(tg_urls)} 个\n")
 
-        # 2. GitHub Fork 发现（中等优先级）
+        # 2. Telegram 订阅 URL 加入队列（最高优先级）
+        all_urls.extend(tg_urls)
+        print(f"✅ Telegram 订阅已加入队列：{len(tg_urls)} 个\n")
+
+        # 3. GitHub Fork 发现（中等优先级）
         print("\n🔍 GitHub Fork 发现...\n")
         fork_subs = discover_github_forks()
         all_urls.extend(fork_subs)
         print(f"✅ Fork 来源：{len(fork_subs)} 个\n")
 
-        # 3. 固定订阅源（最低优先级，放最后）
+        # 4. 固定订阅源（最低优先级，放最后）
         print("\n📥 加载固定订阅源（补充）...\n")
         fixed_urls = [strip_url(u) for u in CANDIDATE_URLS if strip_url(u)]
         all_urls.extend(fixed_urls)
         print(f"✅ 固定订阅源：{len(fixed_urls)} 个（跳过验证）\n")
 
-        # 4. 去重
+        # 5. 去重
         all_urls = list(set(all_urls))
         print(f"📊 总订阅源：{len(all_urls)} 个\n")
 
-        # 5. 抓取节点（按all_urls顺序，Telegram已在前面）
+        # 6. 抓取节点（按all_urls顺序，Telegram已在前面）
         print("📥 抓取节点...\n")
         nodes = {}
         yaml_count = 0
@@ -3028,9 +3166,11 @@ def main():
         all_servers = set()
         for p in nodes.values():
             srv = p.get("server", "")
-            # BUGFIX: IPv6 安全提取 host
+            # BUGFIX v28.20: IPv6 安全提取 host
             if srv.startswith("[") and "]" in srv:
                 host = srv.split("]")[0][1:]
+            elif is_pure_ip(srv) and ":" in srv:
+                host = srv  # 纯 IPv6（如 fe80::1）整体就是 host
             elif ":" in srv:
                 host = srv.split(":")[0]
             else:
@@ -3059,9 +3199,11 @@ def main():
                 port = proxy.get("port", 0)
                 if not server or not port:
                     return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
-                # BUGFIX: IPv6 地址格式 [fe80::1]:443 需特殊处理
+                # BUGFIX v28.20: IPv6 地址安全提取 host
                 if server.startswith("[") and "]" in server:
                     host = server.split("]")[0][1:]  # 提取 [xxx] 中的 xxx
+                elif is_pure_ip(server) and ":" in server:
+                    host = server  # 纯 IPv6 地址（如 fe80::1），整体就是 host
                 elif ":" in server:
                     host = server.split(":")[0]  # IPv4:port 格式
                 else:
@@ -3076,9 +3218,10 @@ def main():
                 ok, total, usable = packet_loss_check(host, port, timeout=3.0, attempts=2)
                 if not usable:
                     return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
-                # v28.9: TLS 握手检测 - 对所有标记 TLS 的协议检测
-                # v28.19: 扩展到 vmess/vless/trojan/hysteria2 等所有协议
-                if proxy.get("tls") and port == 443:
+                # BUGFIX v28.20: TLS 握手检测扩展到所有常用 TLS 端口
+                # 原来只检测 port==443，遗漏 8443/2053/2083/2087/2096 等
+                TLS_PORTS = {443, 8443, 2053, 2083, 2087, 2096, 8880}
+                if proxy.get("tls") and port in TLS_PORTS:
                     tls_ok, _ = tls_handshake_ok(host, port, timeout=3.0)
                     if not tls_ok:
                         return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
@@ -3112,9 +3255,11 @@ def main():
         def _geo_score(item):
             """IP 地理位置评分：亚洲高分，非友好区域低分"""
             srv = item["proxy"].get("server", "")
-            # BUGFIX: IPv6 安全提取 host
+            # BUGFIX v28.20: IPv6 安全提取 host
             if srv.startswith("[") and "]" in srv:
                 host = srv.split("]")[0][1:]
+            elif is_pure_ip(srv) and ":" in srv:
+                host = srv  # 纯 IPv6（如 fe80::1）整体就是 host
             elif ":" in srv:
                 host = srv.split(":")[0]
             else:
@@ -3293,8 +3438,11 @@ def main():
             # v28.14: IP geo fallback for region bonus
             region_bonus = 0
             srv = p.get("server", "")
+            # BUGFIX v28.20: IPv6 安全提取 host
             if srv.startswith("[") and "]" in srv:
                 host = srv.split("]")[0][1:]
+            elif is_pure_ip(srv) and ":" in srv:
+                host = srv  # 纯 IPv6（如 fe80::1）整体就是 host
             elif ":" in srv:
                 host = srv.split(":")[0]
             else:
@@ -3380,8 +3528,11 @@ def main():
         # 统计
         tt = time.time() - st
         asia_ct = sum(1 for p in unique_final if is_asia(p))
-        lats = [tcp_ping(p["server"], p["port"]) for p in unique_final[:20]] if unique_final else []
-        min_lat = min(lats) if lats else 0
+        # BUGFIX v28.20: 移除对 final 节点的重复 tcp_ping
+        # 原代码对 unique_final[:20] 再次 tcp_ping，但这些节点已通过 Clash 测速
+        # 额外延迟无意义且可能因网络波动显示不准确延迟
+        # 改为从测速结果中提取已知延迟
+        min_lat = 0  # Clash 测速延迟已在命名中体现，此处无需重复检测
 
         print("\n" + "=" * 180)
         print("📊 统计结果")

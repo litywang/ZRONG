@@ -38,7 +38,7 @@ jobs:
       - name: 更新中国 CIDR 数据
         run: python gen_cn_cidr.py
 
-      - name: Run Crawler v28.16
+      - name: Run Crawler v28.20
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
@@ -47,7 +47,7 @@ jobs:
           MAX_LATENCY: 5000
           MAX_PROXY_LATENCY: 5000
           MAX_TCP_TEST_NODES: 1200
-          MAX_PROXY_TEST_NODES: 600
+          MAX_PROXY_TEST_NODES: 800
           MAX_FETCH_NODES: 5000
           MAX_FORK_REPOS: 60
         run: python crawler.py
@@ -69,7 +69,7 @@ jobs:
           git add proxies.yaml subscription.txt cn_cidr_data.py
           git status
           git diff --staged --stat
-          git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M') [v28.16]" || echo "Nothing to commit"
+          git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M') [v28.20]" || echo "Nothing to commit"
           git push https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}.git HEAD:main
 
       - name: Upload Logs on Failure

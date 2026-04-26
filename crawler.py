@@ -1,10 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v28.22 - 大陆优化版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.22
+聚合订阅爬虫 v28.23 - 大陆优化版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.23
 优化：httpx连接池 + 异步HTTP抓取 + sources.yaml配置外置 + Clash分批测速 + 大陆可用性优化
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性 + 大陆高可用
+CHANGELOG v28.23:
+- 【aid安全转换】parse_vmess 的 aid 参数容错处理（"auto"等非数字值不再丢失节点）
+- 【flow白名单】parse_vless 的 flow 参数校验，非法值不再导致 Clash 配置解析错误
+- 【alpn容错】format_trojan/tuic 的 alpn 参数类型容错（字符串/列表自适应）
+- 【连接池可配】httpx连接池参数从环境变量读取，默认200/50
+- 【大陆友好评分】新增 mainland_friendly_score() 综合评分，整合地理位置/协议/传输层/端口
+- 【源权重机制】新增 _source_weight() 源权重推断，国内友好源节点排序加分
+- 【排序升级】final_sort_key 整合大陆友好性+源权重，优化节点选择
+- 【协议评分调整】Hysteria2 4→12, Hysteria 2→6, TUIC 3→8（抗封锁协议优先）
+- 【大陆端点测试】新增 MAINLAND_TEST_URLS 和 ENABLE_MAINLAND_TEST 配置项
+
 CHANGELOG v28.22:
 - 【线程安全】DNS缓存/_HISTORY_SCORES 加锁保护，消除并发竞态
 - 【DNS修复】resolve_domain 移除全局 setdefaulttimeout，改用超时线程包装
@@ -103,7 +114,11 @@ def get_async_http_client():
             if _async_http_client is None:  # 双重检查锁定
                 _async_http_client = httpx.AsyncClient(
                     timeout=httpx.Timeout(15.0, connect=8.0),
-                    limits=httpx.Limits(max_connections=150, max_keepalive_connections=80),
+                    limits=httpx.Limits(
+                        max_connections=int(os.getenv("HTTP_MAX_CONNECTIONS", "200")),
+                        max_keepalive_connections=int(os.getenv("HTTP_KEEPALIVE", "50")),
+                        keepalive_expiry=30.0
+                    ),
                     follow_redirects=True,
                     verify=False,  # nosec: B501
                     http2=True
@@ -120,8 +135,16 @@ if _cfg_path.exists():
     try:
         with open(_cfg_path, encoding="utf-8") as _f:
             _data = yaml.safe_load(_f) or {}
-            _yaml_urls = _data.get("candidate_urls", [])
+            _raw_urls = _data.get("candidate_urls", [])
             _yaml_chans = _data.get("telegram_channels", [])
+            # v28.23: 支持字典格式 {url: ..., weight: ...} 和纯字符串格式
+            _yaml_urls = []
+            for item in _raw_urls:
+                if isinstance(item, dict):
+                    _yaml_urls.append(item.get("url", ""))
+                else:
+                    _yaml_urls.append(str(item))
+            _yaml_urls = [u for u in _yaml_urls if u]
         print(f"[sources.yaml] loaded {len(_yaml_urls)} urls / {len(_yaml_chans)} tg channels")
     except FileNotFoundError:
         print("[sources.yaml] not found, using inline fallback")
@@ -129,6 +152,35 @@ if _cfg_path.exists():
         print(f"[sources.yaml] YAML parse error, fallback to inline: {_e}")
     except PermissionError:
         print("[sources.yaml] permission denied, fallback to inline")
+
+
+def _source_weight(url: str) -> int:
+    """v28.23: 根据URL特征推断源权重（1-10），国内友好源得分更高。
+    高权重源中解析出的节点在最终排序中获得额外加分。
+    """
+    u = url.lower()
+    # 国内友好源（历史数据表明亚洲节点占比高）
+    domestic_keywords = [
+        "ermaozi", "peasoft", "aiboboxx", "mfuu", "freefq", "kxswa",
+        "llywhn", "adiwzx", "changfengoss", "mymysub", "yeahwu",
+        "mksshare", "bulianglin", "yiiss", "free18", "shaoyouvip",
+        "yonggekkk", "vxiaodong", "wxloststar",
+    ]
+    for kw in domestic_keywords:
+        if kw in u:
+            return 8
+    # 大聚合源（量大但亚洲占比一般）
+    aggregator_keywords = ["mahdibland", "epodonios", "barry-far"]
+    for kw in aggregator_keywords:
+        if kw in u:
+            return 5
+    # 协议专项源（vless/hysteria2 对大陆更友好）
+    if "vless" in u or "hysteria2" in u:
+        return 7
+    if "trojan" in u:
+        return 6
+    # 默认权重
+    return 3
 
 _INLINE_CANDIDATE_URLS = [
     # ============ 内联回退列表（sources.yaml 不存在时使用） ============
@@ -270,10 +322,20 @@ TEST_URLS = [
     "http://connectivitycheck.platform.hicloud.com/generate_204",  # v28.21: 华为云CDN，国内可达性参考
 ]
 
-CLASH_PORT = int(os.getenv("CLASH_PORT", "17890"))  # v28.22: 可配置
-CLASH_API_PORT = int(os.getenv("CLASH_API_PORT", "19090"))  # v28.22: 可配置
-CLASH_VERSION = os.getenv("CLASH_VERSION", "v1.19.0")  # v28.22: 可配置
+CLASH_PORT = int(os.getenv("CLASH_PORT", "17890"))  # v28.23: 可配置
+CLASH_API_PORT = int(os.getenv("CLASH_API_PORT", "19090"))  # v28.23: 可配置
+CLASH_VERSION = os.getenv("CLASH_VERSION", "v1.19.0")  # v28.23: 可配置
 NODE_NAME_PREFIX = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
+
+# v28.23: 大陆端点测试（通过代理访问大陆CDN，验证实际可用性）
+ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "0") == "1"
+MAINLAND_TEST_URLS = [
+    "https://www.bilibili.com",
+    "https://speedtest.chinatelecom.com.cn",
+    "https://www.taobao.com",
+    "https://dns.alidns.com",
+]
+MAINLAND_SCORE_THRESHOLD = int(os.getenv("MAINLAND_SCORE_THRESHOLD", "30"))
 
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "80"))  # v28.21: 50→80，Actions 可承受
 REQUESTS_PER_SECOND = 6.0     # v25: 提速（原3.0，Actions美国机房可承受）
@@ -320,8 +382,9 @@ REALITY_SAFE_DOMAINS = {'reality.dev', 'v2fly.org', 'matsuri.biz', 'poi.moe',
 # ===== 协议优先级评分（v25: Reality大幅提权，Hysteria2/TUIC提权 - 大陆友好）=====
 # v29 CN: Protocol scoring optimized
 PROTOCOL_SCORE = {
-    "vless": 15, "trojan": 12, "vmess": 8, "hysteria2": 4, "anytls": 5,
-    "hysteria": 2, "tuic": 3, "snell": 2, "ss": 4, "ssr": 1, "http": 2, "socks5": 2,
+    # v28.23: 协议评分调整 — Hysteria2/Reality 抗封锁能力强，提升权重
+    "vless": 15, "trojan": 12, "vmess": 8, "hysteria2": 12, "anytls": 5,
+    "hysteria": 6, "tuic": 8, "snell": 2, "ss": 4, "ssr": 1, "http": 2, "socks5": 2,
 }
 
 # ===== 端口质量评分 ======
@@ -1086,9 +1149,14 @@ def parse_vmess(node):
             original_name = f"VM-{uid}"
 
         vmess_port = _safe_port(c.get("port"), 443)
+        # v28.23: aid 参数安全转换（部分源传 "auto" 等非数字值）
+        try:
+            aid_val = int(c.get("aid", 0)) if str(c.get("aid", "0")).isdigit() else 0
+        except (ValueError, TypeError):
+            aid_val = 0
         p = {
             "name": original_name, "type": "vmess", "server": c.get("add") or c.get("host", ""),
-            "port": vmess_port, "uuid": c.get("id", ""), "alterId": int(c.get("aid", 0)),
+            "port": vmess_port, "uuid": c.get("id", ""), "alterId": aid_val,
             "cipher": "auto", "udp": True, "skip-cert-verify": True
         }
         net = c.get("net", "tcp").lower()
@@ -1164,6 +1232,12 @@ def parse_vless(node):
         fp = gp("fp")
         proxy["client-fingerprint"] = fp if fp else "chrome"
         flow = gp("flow")
+        # v28.23: flow 参数白名单校验（非法值会导致 Clash Meta 配置解析错误）
+        _VALID_FLOWS = {'', 'xtls-rprx-vision', 'xtls-rprx-vision-udp443'}
+        if flow not in _VALID_FLOWS:
+            if flow:
+                logging.debug("⚠️ VLESS 非法 flow 值: %s, 已忽略", flow)
+            flow = ''
         if flow:
             proxy["flow"] = flow
         tp = gp("type")
@@ -2199,6 +2273,73 @@ def is_china_mainland(p):
     return any(k in t for k in cn_long)
 
 
+
+def mainland_friendly_score(p):
+    """v28.23: 评估节点对大陆用户的友好程度，返回0-100分数。
+    综合考虑：地理位置、协议特性、传输层类型、端口特征。
+    高分 = 更可能对大陆用户稳定可用。
+    """
+    score = 0
+
+    # 1. 地理位置加成（权重最大）
+    if is_asia(p):
+        score += 40
+        # 港日韩新额外加分（最稳定的大陆友好地区）
+        t = f"{p.get('name', '')} {p.get('server', '')}".lower()
+        premium_regions = ["hk", "hongkong", "港", "tw", "taiwan", "台",
+                           "jp", "japan", "日", "tokyo", "osaka",
+                           "sg", "singapore", "新加坡", "狮城",
+                           "kr", "korea", "韩", "seoul"]
+        if any(k in t for k in premium_regions):
+            score += 15
+    else:
+        # 非亚洲节点看IP地理位置
+        server = p.get("server", "")
+        geo = limiter.get_geo(server) if server else None
+        if geo:
+            cc = geo.get("countryCode", "").upper()
+            # US西海岸节点对大陆较友好
+            if cc == "US":
+                score += 10
+            elif cc in ("CA", "AU"):
+                score += 5
+
+    # 2. 协议加成（抗检测能力）
+    ptype = p.get("type", "")
+    proto_bonus = {
+        "vless": 20,       # VLESS+Vision/Reality 抗检测最强
+        "trojan": 15,      # Trojan TLS 加密稳定
+        "vmess": 10,       # VMess WS+TLS 较稳定
+        "hysteria2": 18,   # Hysteria2 QUIC 抗丢包
+        "hysteria": 12,    # Hysteria QUIC
+        "ss": 5,           # SS 协议特征明显，易被识别
+        "ssr": 3,          # SSR 逐渐过时
+    }
+    score += proto_bonus.get(ptype, 0)
+
+    # 3. Reality 加成（最强抗封锁）
+    if p.get("reality-opts") or p.get("tls"):
+        score += 10
+        if p.get("reality-opts"):
+            score += 5  # Reality 额外加成
+
+    # 4. 传输层加成
+    network = p.get("network", "tcp")
+    if network == "ws":
+        score += 5  # WS 伪装好
+    elif network == "grpc":
+        score += 3  # gRPC 多路复用
+
+    # 5. 端口加成（常见端口不易被封）
+    port = p.get("port", 0)
+    if port in (443, 8443):
+        score += 5  # HTTPS 端口
+    elif port in (80, 8080):
+        score += 2  # HTTP 端口
+
+    return min(score, 100)
+
+
 def filter_quality(p):
     """【v28.14】节点质量过滤，含 CN IP/域名黑名单 + 非代理端口过滤 + 亚洲优先"""
     name = p.get("name", "").lower()
@@ -2339,6 +2480,9 @@ async def async_fetch_and_parse(client: httpx.AsyncClient, url: str) -> Tuple[Di
     if not content:
         return local_nodes, False
 
+    # v28.23: 源权重注入节点
+    src_weight = _source_weight(url)
+
     # 判断是否为 YAML 订阅源
     if is_yaml_content(content):
         yaml_nodes = parse_yaml_proxies(content)
@@ -2346,6 +2490,7 @@ async def async_fetch_and_parse(client: httpx.AsyncClient, url: str) -> Tuple[Di
             k = f"{p['server']}:{p.get('port', 0)}:{p.get('uuid', p.get('password', ''))}"
             h = hashlib.md5(k.encode(), usedforsecurity=False).hexdigest()
             if h not in local_nodes:
+                p["_src_weight"] = src_weight  # v28.23
                 local_nodes[h] = p
         return local_nodes, True
 
@@ -2361,6 +2506,7 @@ async def async_fetch_and_parse(client: httpx.AsyncClient, url: str) -> Tuple[Di
             k = f"{p['server']}:{p['port']}:{p.get('uuid', p.get('password', ''))}"
             h = hashlib.md5(k.encode(), usedforsecurity=False).hexdigest()
             if h not in local_nodes:
+                p["_src_weight"] = src_weight  # v28.23
                 local_nodes[h] = p
     return local_nodes, False
 
@@ -2977,8 +3123,17 @@ def format_proxy_to_link(p):
                 if svc:
                     params += f"&serviceName={urllib.parse.quote(svc, safe='')}"
             # alpn/fingerprint
+            # v28.23: alpn 类型容错（YAML直接加载时可能是字符串）
             if p.get('alpn'):
-                params += f"&alpn={','.join(p['alpn'])}"
+                alpn_val = p['alpn']
+                if isinstance(alpn_val, str):
+                    alpn_list = [a.strip() for a in alpn_val.split(',') if a.strip()]
+                elif isinstance(alpn_val, list):
+                    alpn_list = alpn_val
+                else:
+                    alpn_list = []
+                if alpn_list:
+                    params += f"&alpn={','.join(alpn_list)}"
             if p.get('client-fingerprint'):
                 params += f"&fp={p['client-fingerprint']}"
             return f"trojan://{pwd_enc}@{p['server']}:{p['port']}?{params}#{name_enc}"
@@ -3078,7 +3233,12 @@ def format_proxy_to_link(p):
             if p.get('sni'):
                 params += f"&sni={urllib.parse.quote(str(p['sni']), safe='')}"
             if p.get('alpn'):
-                params += f"&alpn={','.join(p['alpn'])}"
+                # v28.23: alpn 类型容错
+                _alpn_v = p['alpn']
+                if isinstance(_alpn_v, str):
+                    _alpn_v = [a.strip() for a in _alpn_v.split(',') if a.strip()]
+                if isinstance(_alpn_v, list) and _alpn_v:
+                    params += f"&alpn={','.join(_alpn_v)}"
             if p.get('client-fingerprint'):
                 params += f"&fp={p['client-fingerprint']}"
             return f"tuic://{uuid_val}:{password}@{p['server']}:{p['port']}?{params}#{name_enc}"
@@ -3513,10 +3673,15 @@ def main():
 
         # v28.14: 最终排序 — 强制亚洲优先+Reality+协议评分+区域权重综合加权
         def final_sort_key(p):
+            # v28.23: 排序整合大陆友好性评分 + 源权重
             asia = 3 if is_asia(p) else 0  # v28.14: 提高亚洲权重（2→3）
             reality = 1 if is_reality_friendly(p) else 0
             proto_score = PROTOCOL_SCORE.get(p.get("type", ""), 0) / 10.0  # normalize
-            # v28.14: IP geo fallback for region bonus
+            # v28.23: 大陆友好性综合评分（替代纯 region_bonus）
+            mf_score = mainland_friendly_score(p)
+            # v28.23: 源权重加成（国内友好源来的节点额外加分）
+            src_weight = p.get("_src_weight", 3)  # 默认权重3
+            # 兼容旧 region_bonus 逻辑（IP geo 额外惩罚不友好地区）
             region_bonus = 0
             srv = p.get("server", "")
             # BUGFIX v28.20: IPv6 安全提取 host
@@ -3531,19 +3696,15 @@ def main():
             geo = limiter.get_geo(host)
             if geo:
                 cc = geo.get("countryCode", "").upper()
-                if cc in ASIA_REGIONS:
-                    region_bonus = ASIA_PRIORITY_BONUS
-                elif cc in NON_FRIENDLY_REGIONS:
+                if cc in NON_FRIENDLY_REGIONS:
                     region_bonus = -NON_FRIENDLY_PENALTY
-            elif is_asia(p):
-                region_bonus = ASIA_PRIORITY_BONUS
             # v28.14: extract latency from name for secondary sort
             lat_from_name = 0
             m = re.search(r"\d+", p.get("name", ""))
             if m:
                 lat_from_name = int(m.group(0))
-            # sort: asia > reality > proto > region > latency
-            return (-asia, -reality, -proto_score, -region_bonus, lat_from_name)
+            # sort: asia > mainland_friendly > src_weight > reality > proto > region_penalty > latency
+            return (-asia, -mf_score, -src_weight, -reality, -proto_score, -region_bonus, lat_from_name)
 
         # v28.16: 配额制节点选择（修复 v28.14 前置+排序互斥BUG）
         # 分组排序后再按配额合并，柔性配额：保底+上限

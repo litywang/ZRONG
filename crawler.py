@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v28.26 - 大陆优化版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.26
+聚合订阅爬虫 v28.27 - 大陆优化版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.27
 优化：httpx连接池 + 异步HTTP抓取 + sources.yaml配置外置 + Clash分批测速 + 大陆可用性优化 + ProxyNode数据模型
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性 + 大陆高可用
+CHANGELOG v28.27:
+- 【ProxyNode迁移】parse_ss()/parse_vmess() 内部使用 ProxyNode 结构化存储
+- 【向后兼容】返回 to_dict() 保持 dict 格式，现有代码无需修改
+- 【代码质量】统一使用 ProxyNode 数据模型，减少 dict 散乱访问
+
 CHANGELOG v28.25:
 - 【数据模型】新增 ProxyNode dataclass（结构化节点存储，逐步替代 dict）
 - 【去重改进】新增 dedup_key() 方法（基于协议/服务器/端口/认证信息的 MD5）
@@ -1310,6 +1315,7 @@ def _safe_port(val, default=443):
 
 # ⭐ 节点解析器（保持不变）
 def parse_vmess(node):
+    """解析 vmess:// 链接，返回 dict（兼容层）。内部使用 ProxyNode 结构化存储。"""
     try:
         if not node.startswith("vmess://"):
             return None
@@ -1335,17 +1341,13 @@ def parse_vmess(node):
             aid_val = int(c.get("aid", 0)) if str(c.get("aid", "0")).isdigit() else 0
         except (ValueError, TypeError):
             aid_val = 0
-        p = {
-            "name": original_name, "type": "vmess", "server": c.get("add") or c.get("host", ""),
-            "port": vmess_port, "uuid": c.get("id", ""), "alterId": aid_val,
-            "cipher": "auto", "udp": True, "skip-cert-verify": True
-        }
+
+        # v28.26: 使用 ProxyNode 结构化存储
         net = c.get("net", "tcp").lower()
-        if net in ["ws", "h2", "grpc"]:
-            p["network"] = net
-        if c.get("tls") in ("tls", "1", 1, True) or c.get("security") in ("tls", "1", 1, True):
-            p["tls"] = True
-            p["sni"] = c.get("sni") or c.get("host") or p["server"]
+        ws_opts = None
+        grpc_opts = None
+        h2_opts = None
+
         if net == "ws":
             wo = {}
             if c.get("path"):
@@ -1353,22 +1355,41 @@ def parse_vmess(node):
             if c.get("host"):
                 wo["headers"] = {"Host": c.get("host")}
             if wo:
-                p["ws-opts"] = wo
+                ws_opts = wo
         elif net == "grpc":
-            # BUGFIX: 补充 grpc 传输层 serviceName
             if c.get("path"):
-                p["grpc-opts"] = {"grpc-service-name": c.get("path")}
+                grpc_opts = {"grpc-service-name": c.get("path")}
         elif net == "h2":
-            # BUGFIX v28.20: 补充 h2 传输层解析（path/host）
-            p["network"] = "h2"
             h2o = {}
             if c.get("path"):
                 h2o["path"] = c.get("path")
             if c.get("host"):
                 h2o["host"] = [c.get("host")]
             if h2o:
-                p["h2-opts"] = h2o
-        return p if p["server"] and p["uuid"] else None
+                h2_opts = h2o
+
+        tls = c.get("tls") in ("tls", "1", 1, True) or c.get("security") in ("tls", "1", 1, True)
+        sni_val = c.get("sni") or c.get("host") or c.get("add", "")
+
+        node_obj = ProxyNode(
+            protocol="vmess",
+            server=c.get("add") or c.get("host", ""),
+            port=vmess_port,
+            name=original_name,
+            uuid=c.get("id", ""),
+            alterId=aid_val,
+            network=net,
+            tls=tls,
+            sni=sni_val,
+            ws_opts=ws_opts,
+            grpc_opts=grpc_opts,
+            h2_opts=h2_opts,
+            udp=True,
+            skip_cert_verify=True
+        )
+
+        # 向后兼容：返回 dict
+        return node_obj.to_dict() if node_obj.server and node_obj.uuid else None
     except Exception:
         return None
 
@@ -1494,6 +1515,7 @@ def parse_trojan(node):
 
 
 def parse_ss(node):
+    """解析 ss:// 链接，返回 ProxyNode 对象（兼容层返回 dict）。"""
     try:
         if not node.startswith("ss://"):
             return None
@@ -1519,14 +1541,18 @@ def parse_ss(node):
         if not original_name:
             original_name = f"SS-{generate_unique_id({'server': server, 'port': _safe_port(port), 'password': pwd})}"
 
-        return {
-            "name": original_name,
-            "type": "ss",
-            "server": server,
-            "port": _safe_port(port),
-            "cipher": method,
-            "password": pwd,
-            "udp": True}
+        # v28.26: 使用 ProxyNode 结构化存储
+        node_obj = ProxyNode(
+            protocol="ss",
+            server=server,
+            port=_safe_port(port),
+            name=original_name,
+            cipher=method,
+            password=pwd,
+            udp=True
+        )
+        # 向后兼容：返回 dict（现有代码无需修改）
+        return node_obj.to_dict()
     except Exception:
         return None
 

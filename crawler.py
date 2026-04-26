@@ -2484,7 +2484,7 @@ def _ip_geo_batch(ips):
     if not ips:
         return
     # 过滤已缓存和无效的
-    to_query = [ip for ip in ips if ip not in limiter.ip_geo_cache and is_pure_ip(ip)]
+    to_query = [ip for ip in ips if limiter.get_geo(ip) is None and is_pure_ip(ip)]
     if not to_query:
         return
     # ip-api.com 批量接口，每批最多 100 个
@@ -2947,19 +2947,26 @@ def tcp_ping(host, port, to=1.5):
     """【v24】TCP Ping，支持丢包检测历史记录"""
     if not host:
         return 9999.0
+    s = None
     try:
         st = time.time()
         # BUGFIX v28.20: IPv6 地址需要使用 AF_INET6
         s = _create_socket(host, to)
         s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         s.connect((host, port))
-        s.close()
         lat = round((time.time() - st) * 1000, 1)
         record_history(host, port, lat)
         return lat
     except Exception:
         record_history(host, port, 9999)
         return 9999.0
+    finally:
+        # BUG[4-04] 修复：确保socket始终关闭
+        if s:
+            try:
+                s.close()
+            except Exception:
+                pass
 
 
 def is_valid_url(url):
@@ -3263,7 +3270,30 @@ class ClashManager:
         names = []
         seen = set()
         cleaned_proxies = [self._clean_proxy_for_clash(p) for p in filtered]
-        for i, p in enumerate(cleaned_proxies):
+        
+        # BUG[4-02] 修复：必填字段验证
+        required_fields = {"name", "type", "server", "port"}
+        valid_proxies = []
+        for p in cleaned_proxies:
+            missing = required_fields - set(p.keys())
+            if missing:
+                logging.warning("Clash: 跳过缺少必填字段 %s 的节点 %s", missing, p.get("name", "?"))
+                continue
+            # port 必须是有效数字
+            try:
+                port = int(p["port"])
+                if not (1 <= port <= 65535):
+                    raise ValueError
+            except (ValueError, TypeError):
+                logging.warning("Clash: 跳过端口无效 %s 的节点 %s", p.get("port"), p.get("name", "?"))
+                continue
+            valid_proxies.append(p)
+        
+        if not valid_proxies:
+            print("   ⚠️ 所有节点均缺少必填字段或端口无效，无法生成 Clash 配置")
+            return False
+        
+        for i, p in enumerate(valid_proxies):
             name = p["name"]
             if name in seen:
                 name = f"{name}-{i}"
@@ -3280,7 +3310,7 @@ class ClashManager:
             "rules": ["MATCH,TEST"]
         }
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            yaml.dump(config, f, allow_unicode=True)
+            yaml.dump(config, f, allow_unicode=True, Dumper=yaml.SafeDumper)
         return True
 
     def start(self):
@@ -3814,7 +3844,7 @@ def main():
                 else:
                     host = server
                 # v28.13: 预查询 IP 地理位置（用于后续排序优化）
-                if is_pure_ip(host) and host not in limiter.ip_geo_cache:
+                if is_pure_ip(host) and limiter.get_geo(host) is None:
                     _ip_geo_batch([host])
                 lat = tcp_ping(host, port)
                 if lat >= 9999:
@@ -4159,7 +4189,7 @@ def main():
                                  "proxies": ["🚀 Auto"] + [p["name"] for p in cleaned_final]}],
                "rules": ["MATCH,🌍 Select"]}
         with open("proxies.yaml", "w", encoding="utf-8") as f:
-            yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
+            yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False, Dumper=yaml.SafeDumper)
 
         # BUGFIX: 标准订阅格式 = 整块 base64 编码（大部分客户端要求此格式）
         plain_lines = '\n'.join(link for p in unique_final if (link := format_proxy_to_link(p)) is not None)  # v28.22: 过滤None

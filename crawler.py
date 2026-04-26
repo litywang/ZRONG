@@ -1587,7 +1587,8 @@ def parse_ss(node):
         )
         # 向后兼容：返回 dict（现有代码无需修改）
         return node_obj.to_dict()
-    except Exception:
+    except Exception as e:
+        logging.debug(f"[parse_ss] 解析失败: {e}", exc_info=True)
         return None
 
 
@@ -1638,7 +1639,8 @@ def parse_hysteria2(node):
         
         # 向后兼容：返回 dict（现有代码无需修改）
         return node_obj.to_dict() if node_obj.server else None
-    except Exception:
+    except Exception as e:
+        logging.debug(f"[parse_hysteria2] 解析失败: {e}", exc_info=True)
         return None
 
 
@@ -1681,7 +1683,8 @@ def parse_tuic(node):
         
         # 向后兼容：返回 dict（现有代码无需修改）
         return node_obj.to_dict() if node_obj.server else None
-    except Exception:
+    except Exception as e:
+        logging.debug(f"[parse_tuic] 解析失败: {e}", exc_info=True)
         return None
 
 
@@ -1730,7 +1733,8 @@ def parse_hysteria(node):
         
         # 向后兼容：返回 dict（现有代码无需修改）
         return node_obj.to_dict() if node_obj.server else None
-    except Exception:
+    except Exception as e:
+        logging.debug(f"[parse_hysteria] 解析失败: {e}", exc_info=True)
         return None
 
 
@@ -1820,7 +1824,8 @@ def parse_ssr(node):
         
         # 向后兼容：返回 dict（现有代码无需修改）
         return node_obj.to_dict()
-    except Exception:
+    except Exception as e:
+        logging.debug(f"[parse_ssr] 解析失败: {e}", exc_info=True)
         return None
 
 
@@ -1856,7 +1861,8 @@ def parse_http_proxy(node):
         if password:
             d["password"] = password
         return d
-    except Exception:
+    except Exception as e:
+        logging.debug(f"[parse_http_proxy] 解析失败: {e}", exc_info=True)
         return None
 
 
@@ -1892,7 +1898,8 @@ def parse_socks(node):
         if password:
             d["password"] = password
         return d
-    except Exception:
+    except Exception as e:
+        logging.debug(f"[parse_socks] 解析失败: {e}", exc_info=True)
         return None
 
 
@@ -1930,7 +1937,8 @@ def parse_anytls(node):
         
         # 向后兼容：返回 dict（现有代码无需修改）
         return node_obj.to_dict() if node_obj.server else None
-    except Exception:
+    except Exception as e:
+        logging.debug(f"[parse_anytls] 解析失败: {e}", exc_info=True)
         return None
 
 
@@ -1977,7 +1985,8 @@ def parse_trojan_go(node):
         
         # 向后兼容：返回 dict（现有代码无需修改）
         return node_obj.to_dict()
-    except Exception:
+    except Exception as e:
+        logging.debug(f"[parse_trojan_go] 解析失败: {e}", exc_info=True)
         return None
 
 
@@ -2015,7 +2024,8 @@ def parse_snell(node):
         
         # 向后兼容：返回 dict（现有代码无需修改）
         return node_obj.to_dict() if node_obj.server else None
-    except Exception:
+    except Exception as e:
+        logging.debug(f"[parse_snell] 解析失败: {e}", exc_info=True)
         return None
 
 

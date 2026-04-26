@@ -5,8 +5,6 @@
 # Total: 4182 CIDR blocks | Generated: 2026-04-26 01:58:56.396180
 
 import ipaddress
-import datetime
-import logging  # v28.22: 数据有效期校验
 
 CN_IP_RANGES = [
     ipaddress.ip_network("1.1.8.0/24"),
@@ -4192,12 +4190,3 @@ CN_IP_RANGES = [
     ipaddress.ip_network("223.255.236.0/22"),
     ipaddress.ip_network("223.255.252.0/23"),
 ]
-
-# v28.22: 数据有效期校验
-DATA_GENERATED = datetime.datetime.fromisoformat("2026-04-25T23:49:00.868282")
-DATA_EXPIRY_DAYS = 30
-
-
-def is_cidr_data_fresh():
-    """检查CIDR数据是否在有效期内"""
-    return (datetime.datetime.now() - DATA_GENERATED).days < DATA_EXPIRY_DAYS

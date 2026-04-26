@@ -38,7 +38,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from cn_cidr_data import CN_IP_RANGES as _CN_IP_RANGES_RAW, is_cidr_data_fresh  # v28.22: 导入有效期校验
+from cn_cidr_data import CN_IP_RANGES as _CN_IP_RANGES_RAW  # cn_cidr_data.py 由 gen_cn_cidr.py 自动生成，不可添加自定义函数
 import ipaddress
 import httpx
 import asyncio
@@ -3109,9 +3109,15 @@ def format_proxy_to_link(p):
 def main():
     st = time.time()
 
-    # v28.22: CN CIDR 数据有效期校验
-    if not is_cidr_data_fresh():
-        logging.warning("⚠️ CN_CIDR 数据已过期，建议运行 gen_cn_cidr.py 更新")
+    # v28.22: CN CIDR 数据有效期校验（gen_cn_cidr.py 每次运行会重新生成 cn_cidr_data.py，所以不能在那里加函数）
+    try:
+        _cidr_file = Path(__file__).parent / "cn_cidr_data.py"
+        if _cidr_file.exists():
+            _cidr_age_days = (time.time() - _cidr_file.stat().st_mtime) / 86400
+            if _cidr_age_days > 30:
+                logging.warning("⚠️ CN_CIDR 数据已过期 (%.0f 天)，建议运行 gen_cn_cidr.py 更新", _cidr_age_days)
+    except Exception:
+        pass  # 校验失败不影响主流程
 
     clash = ClashManager()
     namer = NodeNamer()

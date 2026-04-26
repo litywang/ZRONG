@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v28.28 - 大陆优化版
+聚合订阅爬虫 v28.29 - 大陆优化版
 作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.27
 优化：httpx连接池 + 异步HTTP抓取 + sources.yaml配置外置 + Clash分批测速 + 大陆可用性优化 + ProxyNode数据模型
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性 + 大陆高可用
@@ -178,6 +178,23 @@ class ProxyNode:
             p.update({"cipher": self.cipher, "password": self.password})
             if self._extra:
                 p.update(self._extra)
+        elif self.protocol in ("socks5", "socks4"):
+            p["type"] = self.protocol
+            if self._extra.get("username"):
+                p["username"] = self._extra["username"]
+            if self._extra.get("password"):
+                p["password"] = self._extra["password"]
+        elif self.protocol in ("http", "https"):
+            p["type"] = self.protocol
+            if self._extra.get("username"):
+                p["username"] = self._extra["username"]
+            if self._extra.get("password"):
+                p["password"] = self._extra["password"]
+        elif self.protocol == "anytls":
+            p["type"] = "anytls"
+            p.update({"password": self.password or "", "tls": True, "sni": self.sni or self.server})
+            if self._extra.get("client-fingerprint"):
+                p["client-fingerprint"] = self._extra["client-fingerprint"]
         elif self.protocol == "snell":
             p.update({"password": self.password or ""})
         
@@ -3658,7 +3675,7 @@ def main():
     USE_ASYNC_FETCH = os.getenv("USE_ASYNC_FETCH", "0") == "1"
 
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v28.22 - 大陆优化版")
+    print("🚀 聚合订阅爬虫 v28.29 - 大陆优化版")
     print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.22")
     print(f"异步抓取: {'✅ 启用' if USE_ASYNC_FETCH else '❌ 禁用（同步模式）'}")
     print("=" * 50)

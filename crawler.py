@@ -1476,7 +1476,7 @@ def parse_hysteria(node):
         proxy = {
             "name": f"HY-{uid}", "type": "hysteria", "server": p_url.hostname,
             "port": _safe_port(p_url.port), "password": pwd, "udp": True,
-            "skip-cert-verify": True, "protocol": "udp"
+            "skip-cert-verify": True
         }
         sni = gp("sni")
         if sni:
@@ -2960,13 +2960,44 @@ class ClashManager:
         except Exception:
             return False
 
+    def _clean_proxy_for_clash(self, p):
+        """清洗代理字典，移除内部字段和 Clash 不支持的字段"""
+        # 白名单：Clash Meta 支持的字段
+        CLASH_FIELDS = {
+            'name','type','server','port','udp','tfo','mptcp',
+            'skip-cert-verify','sni','servername','tls','alpn','ca','cert','key',
+            'client-fingerprint','obfs','obfs-password',
+            'network','ws-opts','grpc-opts','h2-opts','http-opts',
+            'reality-opts','flow','pinned-sha256','dialer-proxy',
+            'cipher','password','plugin','plugin-opts',
+            'uuid','alterId','aid',
+            'protocol','protocol-param','obfs','obfs-param',
+            'auth-str','up','down',
+            'congestion-controller',
+            # hysteria2
+            'password','obfs','obfs-password','sni',
+            # anytls
+            'password','client-fingerprint',
+        }
+        cleaned = {}
+        for k, v in p.items():
+            if k.startswith('_'):  # 内部字段（_src_weight 等）
+                continue
+            if k not in CLASH_FIELDS:
+                logging.debug("Clash: 移除不支持字段 %s from %s", k, p.get('name','?'))
+                continue
+            # None 值保留（yaml.dump 会写成 null，Clash 可处理）
+            cleaned[k] = v
+        return cleaned
+
     def create_config(self, proxies):
         ensure_clash_dir()
         # BUGFIX: 移除内部双重截断，调用方已用 batch_size 限制了 proxies 数量
         # 原代码 proxies[:MAX_PROXY_TEST_NODES] 出现两次，与外层 batch_size 职责重叠
         names = []
         seen = set()
-        for i, p in enumerate(proxies):
+        cleaned_proxies = [self._clean_proxy_for_clash(p) for p in proxies]
+        for i, p in enumerate(cleaned_proxies):
             name = p["name"]
             if name in seen:
                 name = f"{name}-{i}"
@@ -2978,7 +3009,7 @@ class ClashManager:
             "log-level": "error", "external-controller": f"127.0.0.1:{CLASH_API_PORT}",
             "secret": "",  # nosec B105: Clash API local only
             "ipv6": False, "unified-delay": True, "tcp-concurrent": True,
-            "proxies": proxies,
+            "proxies": cleaned_proxies,
             "proxy-groups": [{"name": "TEST", "type": "select", "proxies": names}],
             "rules": ["MATCH,TEST"]
         }
@@ -3008,8 +3039,10 @@ class ClashManager:
                 time.sleep(1)
                 if self.process.poll() is not None:
                     try:
-                        out, _ = self.process.communicate(timeout=2)
-                        print(f"   ❌ Clash 崩溃:\n{out[:300]}")
+                        out, _ = self.process.communicate(timeout=5)
+                        # 打印首尾各 500 字符，YAML 错误通常在末尾
+                        out_short = out[:500] + "\n...\n" + out[-500:] if len(out) > 1000 else out
+                        print(f"   ❌ Clash 崩溃:\n{out_short}")
                     except Exception:
                         print("   ❌ Clash 崩溃")
                     return False
@@ -3831,16 +3864,34 @@ def main():
             final_names[original_name] = count + 1
             unique_final.append(p)
 
-        cfg = {"proxies": unique_final,
+        # BUGFIX v28.24: 输出前清洗内部字段，防止 _src_weight 等字段写入 YAML
+        CLASH_FIELDS = {
+            'name','type','server','port','udp','tfo','mptcp',
+            'skip-cert-verify','sni','servername','tls','alpn','ca','cert','key',
+            'client-fingerprint','obfs','obfs-password',
+            'network','ws-opts','grpc-opts','h2-opts','http-opts',
+            'reality-opts','flow','pinned-sha256','dialer-proxy',
+            'cipher','password','plugin','plugin-opts',
+            'uuid','alterId','aid',
+            'protocol','protocol-param','obfs','obfs-param',
+            'auth-str','up','down',
+            'congestion-controller',
+        }
+        cleaned_final = []
+        for p in unique_final:
+            cleaned = {k: v for k, v in p.items() if not k.startswith('_') and k in CLASH_FIELDS}
+            cleaned_final.append(cleaned)
+
+        cfg = {"proxies": cleaned_final,
                "proxy-groups": [{"name": "🚀 Auto",
                                  "type": "url-test",
-                                 "proxies": [p["name"] for p in unique_final],
+                                 "proxies": [p["name"] for p in cleaned_final],
                                  "url": TEST_URL,
                                  "interval": 300,
                                  "tolerance": 50},
                                 {"name": "🌍 Select",
                                  "type": "select",
-                                 "proxies": ["🚀 Auto"] + [p["name"] for p in unique_final]}],
+                                 "proxies": ["🚀 Auto"] + [p["name"] for p in cleaned_final]}],
                "rules": ["MATCH,🌍 Select"]}
         with open("proxies.yaml", "w", encoding="utf-8") as f:
             yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)

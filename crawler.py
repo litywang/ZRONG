@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v28.27 - 大陆优化版
+聚合订阅爬虫 v28.28 - 大陆优化版
 作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.27
 优化：httpx连接池 + 异步HTTP抓取 + sources.yaml配置外置 + Clash分批测速 + 大陆可用性优化 + ProxyNode数据模型
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性 + 大陆高可用
@@ -219,6 +219,20 @@ class ProxyNode:
             _mainland_reachable=d.get("_mainland_reachable", False),
             _extra={k: v for k, v in d.items() if k.startswith("_") or k in ("protocol", "obfs", "obfs-param", "protocol-param", "group")}
         )
+
+
+
+def dedup_key_from_dict(d: dict) -> str:
+    """从 dict（现有 parse_* 函数返回值）计算去重键（兼容 ProxyNode.dedup_key()）。"""
+    protocol = d.get("type", "unknown")
+    server = d.get("server", "")
+    port = str(d.get("port", 0))
+    uid = d.get("uuid", "") or d.get("password", "")
+    path = d.get("path", "")
+    sni = d.get("sni", "")
+    return hashlib.md5(
+        f"{protocol}|{server}|{port}|{uid}|{path}|{sni}".encode()
+    ).hexdigest()
 
 
 def _proxy_getattr(obj, key, default=None):
@@ -1395,6 +1409,7 @@ def parse_vmess(node):
 
 
 def parse_vless(node):
+    """解析 vless:// 链接，返回 ProxyNode 对象（兼容层返回 dict）。"""
     try:
         if not node.startswith("vless://"):
             return None
@@ -1409,60 +1424,69 @@ def parse_vless(node):
         sec = gp("security")
 
         # 从 URL fragment 提取原始名称
-        original_name = p_url.fragment if p_url.fragment else f"VL-{
-            generate_unique_id(
-                {
-                    'server': p_url.hostname,
-                    'port': _safe_port(
-                        p_url.port),
-                    'uuid': uuid})}"
+        original_name = p_url.fragment if p_url.fragment else f"VL-{generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'uuid': uuid})}"
 
         port_val = _safe_port(p_url.port)
-        proxy = {
-            "name": original_name, "type": "vless", "server": p_url.hostname, "port": port_val,
-            "uuid": uuid, "udp": True, "skip-cert-verify": True
-        }
+        # v28.27: 使用 ProxyNode 结构化存储
+        node_obj = ProxyNode(
+            protocol="vless",
+            server=p_url.hostname,
+            port=port_val,
+            name=original_name,
+            uuid=uuid,
+            skip_cert_verify=True
+        )
+        
         if sec in ["tls", "reality"]:
-            proxy["tls"] = True
-            proxy["sni"] = gp("sni") or proxy["server"]
+            node_obj.tls = True
+            node_obj.sni = gp("sni") or node_obj.server
         if sec == "reality":
             pbk, sid = gp("pbk"), gp("sid")
             if pbk and sid:
-                proxy["reality-opts"] = {"public-key": pbk, "short-id": sid}
+                node_obj.vless_opts = {"reality-opts": {"public-key": pbk, "short-id": sid}}
             else:
                 return None
         fp = gp("fp")
-        proxy["client-fingerprint"] = fp if fp else "chrome"
+        if fp:
+            node_obj.vless_opts = node_obj.vless_opts or {}
+            node_obj.vless_opts["client-fingerprint"] = fp
+        else:
+            node_obj.vless_opts = node_obj.vless_opts or {}
+            node_obj.vless_opts["client-fingerprint"] = "chrome"
+        
         flow = gp("flow")
-        # v28.23: flow 参数白名单校验（非法值会导致 Clash Meta 配置解析错误）
         _VALID_FLOWS = {'', 'xtls-rprx-vision', 'xtls-rprx-vision-udp443'}
         if flow not in _VALID_FLOWS:
             if flow:
-                logging.debug("⚠️ VLESS 非法 flow 值: %s, 已忽略", flow)
+                logging.debug("VLESS illegal flow value: %s, ignored", flow)
             flow = ''
         if flow:
-            proxy["flow"] = flow
+            node_obj.vless_opts = node_obj.vless_opts or {}
+            node_obj.vless_opts["flow"] = flow
+        
         tp = gp("type")
         if tp == "ws":
-            proxy["network"] = "ws"
+            node_obj.network = "ws"
             wo = {}
             if gp("path"):
                 wo["path"] = gp("path")
             if gp("host"):
                 wo["headers"] = {"Host": gp("host")}
             if wo:
-                proxy["ws-opts"] = wo
+                node_obj.ws_opts = wo
         elif tp == "grpc":
-            # BUGFIX: 补充 grpc 传输层支持
-            proxy["network"] = "grpc"
+            node_obj.network = "grpc"
             if gp("serviceName"):
-                proxy["grpc-opts"] = {"grpc-service-name": gp("serviceName")}
-        return proxy
+                node_obj.grpc_opts = {"grpc-service-name": gp("serviceName")}
+        
+        # 向后兼容：返回 dict（现有代码无需修改）
+        return node_obj.to_dict()
     except Exception:
         return None
 
 
 def parse_trojan(node):
+    """解析 trojan:// 链接，返回 ProxyNode 对象（兼容层返回 dict）。"""
     try:
         if not node.startswith("trojan://"):
             return None
@@ -1476,40 +1500,45 @@ def parse_trojan(node):
         def gp(k): return params.get(k, [""])[0]
 
         # 从 URL fragment 提取原始名称
-        original_name = p_url.fragment if p_url.fragment else f"TJ-{
-            generate_unique_id(
-                {
-                    'server': p_url.hostname,
-                    'port': _safe_port(
-                        p_url.port),
-                    'password': pwd})}"
+        original_name = p_url.fragment if p_url.fragment else f"TJ-{generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'password': pwd})}"
 
-        proxy = {
-            "name": original_name, "type": "trojan", "server": p_url.hostname, "port": _safe_port(p_url.port),
-            "password": pwd, "udp": True, "skip-cert-verify": True, "sni": gp("sni") or p_url.hostname
-        }
+        # v28.27: 使用 ProxyNode 结构化存储
+        node_obj = ProxyNode(
+            protocol="trojan",
+            server=p_url.hostname,
+            port=_safe_port(p_url.port),
+            name=original_name,
+            password=pwd,
+            skip_cert_verify=True
+        )
+        node_obj.sni = gp("sni") or node_obj.server
+        
         # BUGFIX v28.20: 解析 WS/GRPC 传输层参数
         ttype = gp("type")
         if ttype == "ws":
-            proxy["network"] = "ws"
+            node_obj.network = "ws"
             wo = {}
             if gp("path"):
                 wo["path"] = gp("path")
             if gp("host"):
                 wo["headers"] = {"Host": gp("host")}
             if wo:
-                proxy["ws-opts"] = wo
+                node_obj.ws_opts = wo
         elif ttype == "grpc":
-            proxy["network"] = "grpc"
+            node_obj.network = "grpc"
             if gp("serviceName"):
-                proxy["grpc-opts"] = {"grpc-service-name": gp("serviceName")}
+                node_obj.grpc_opts = {"grpc-service-name": gp("serviceName")}
+        
         alpn = gp("alpn")
         if alpn:
-            proxy["alpn"] = [a.strip() for a in alpn.split(",")]
+            node_obj._extra["alpn"] = [a.strip() for a in alpn.split(",")]
+        
         fp = gp("fp")
         if fp:
-            proxy["client-fingerprint"] = fp
-        return proxy
+            node_obj._extra["client-fingerprint"] = fp
+        
+        # 向后兼容：返回 dict（现有代码无需修改）
+        return node_obj.to_dict()
     except Exception:
         return None
 
@@ -1558,7 +1587,7 @@ def parse_ss(node):
 
 
 def parse_hysteria2(node):
-    """解析 hysteria2:// 链接"""
+    """解析 hysteria2:// 链接，返回 ProxyNode 对象（兼容层返回 dict）。"""
     try:
         if not node.startswith("hysteria2://") and not node.startswith("hy2://"):
             return None
@@ -1568,35 +1597,48 @@ def parse_hysteria2(node):
         pwd = unquote(p_url.username or "")
         params = parse_qs(p_url.query)
         def gp(k): return params.get(k, [""])[0]
-        uid = generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'password': pwd})
-        proxy = {
-            "name": f"H2-{uid}", "type": "hysteria2", "server": p_url.hostname,
-            "port": _safe_port(p_url.port), "password": pwd, "udp": True, "skip-cert-verify": True
-        }
+
+        # v28.27: 使用 ProxyNode 结构化存储
+        node_obj = ProxyNode(
+            protocol="hysteria2",
+            server=p_url.hostname,
+            port=_safe_port(p_url.port),
+            password=pwd,
+            skip_cert_verify=True
+        )
+        
         sni = gp("sni")
         if sni:
-            proxy["sni"] = sni
+            node_obj.sni = sni
         elif p_url.hostname:
-            proxy["sni"] = p_url.hostname
+            node_obj.sni = p_url.hostname
+        
         obfs = gp("obfs")
         if obfs:
-            proxy["obfs"] = obfs
+            node_obj.hysteria_opts = node_obj.hysteria_opts or {}
+            node_obj.hysteria_opts["obfs"] = obfs
+        
         obfs_password = gp("obfs-password")
         if obfs_password:
-            proxy["obfs-password"] = obfs_password
+            node_obj.hysteria_opts = node_obj.hysteria_opts or {}
+            node_obj.hysteria_opts["obfs-password"] = obfs_password
+        
         insecure = gp("insecure")
         if insecure == "1":
-            proxy["skip-cert-verify"] = True
+            node_obj.skip_cert_verify = True
+        
         fp = gp("fp")
         if fp:
-            proxy["client-fingerprint"] = fp
-        return proxy if proxy["server"] else None
+            node_obj._extra["client-fingerprint"] = fp
+        
+        # 向后兼容：返回 dict（现有代码无需修改）
+        return node_obj.to_dict() if node_obj.server else None
     except Exception:
         return None
 
 
 def parse_tuic(node):
-    """解析 tuic:// 链接"""
+    """解析 tuic:// 链接，返回 ProxyNode 对象（兼容层返回 dict）。"""
     try:
         if not node.startswith("tuic://"):
             return None
@@ -1609,28 +1651,37 @@ def parse_tuic(node):
         tuic_password = p_url.password or uuid_val
         params = parse_qs(p_url.query)
         def gp(k): return params.get(k, [""])[0]
-        uid = generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'password': uuid_val})
-        proxy = {
-            "name": f"TU-{uid}", "type": "tuic", "server": p_url.hostname,
-            "port": _safe_port(p_url.port), "uuid": uuid_val, "password": tuic_password,
-            "udp": True, "skip-cert-verify": True
-        }
+
+        # v28.27: 使用 ProxyNode 结构化存储
+        node_obj = ProxyNode(
+            protocol="tuic",
+            server=p_url.hostname,
+            port=_safe_port(p_url.port),
+            uuid=uuid_val,
+            password=tuic_password,
+            skip_cert_verify=True
+        )
+        
         sni = gp("sni")
         if sni:
-            proxy["sni"] = sni
+            node_obj.sni = sni
+        
         fp = gp("fp")
         if fp:
-            proxy["client-fingerprint"] = fp
+            node_obj._extra["client-fingerprint"] = fp
+        
         alpn = gp("alpn")
         if alpn:
-            proxy["alpn"] = [a.strip() for a in alpn.split(",")]
-        return proxy if proxy["server"] else None
+            node_obj._extra["alpn"] = [a.strip() for a in alpn.split(",")]
+        
+        # 向后兼容：返回 dict（现有代码无需修改）
+        return node_obj.to_dict() if node_obj.server else None
     except Exception:
         return None
 
 
 def parse_hysteria(node):
-    """解析 hysteria:// 链接（v1）"""
+    """解析 hysteria:// 链接（v1），返回 ProxyNode 对象（兼容层返回 dict）。"""
     try:
         if not node.startswith("hysteria://"):
             return None
@@ -1640,34 +1691,46 @@ def parse_hysteria(node):
         pwd = unquote(p_url.username or "")
         params = parse_qs(p_url.query)
         def gp(k): return params.get(k, [""])[0]
-        uid = generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'password': pwd})
-        proxy = {
-            "name": f"HY-{uid}", "type": "hysteria", "server": p_url.hostname,
-            "port": _safe_port(p_url.port), "password": pwd, "udp": True,
-            "skip-cert-verify": True
-        }
+
+        # v28.27: 使用 ProxyNode 结构化存储
+        node_obj = ProxyNode(
+            protocol="hysteria",
+            server=p_url.hostname,
+            port=_safe_port(p_url.port),
+            password=pwd,
+            skip_cert_verify=True
+        )
+        
         sni = gp("sni")
         if sni:
-            proxy["sni"] = sni
+            node_obj.sni = sni
+        
         obfs = gp("obfs")
         if obfs:
-            proxy["obfs"] = obfs
+            node_obj.hysteria_opts = node_obj.hysteria_opts or {}
+            node_obj.hysteria_opts["obfs"] = obfs
+        
         auth_str = gp("auth")
         if auth_str:
-            proxy["auth_str"] = auth_str
+            node_obj.hysteria_opts = node_obj.hysteria_opts or {}
+            node_obj.hysteria_opts["auth_str"] = auth_str
+        
         alpn = gp("alpn")
         if alpn:
-            proxy["alpn"] = [a.strip() for a in alpn.split(",")]
+            node_obj._extra["alpn"] = [a.strip() for a in alpn.split(",")]
+        
         insecure = gp("insecure")
         if insecure == "1":
-            proxy["skip-cert-verify"] = True
-        return proxy if proxy["server"] else None
+            node_obj.skip_cert_verify = True
+        
+        # 向后兼容：返回 dict（现有代码无需修改）
+        return node_obj.to_dict() if node_obj.server else None
     except Exception:
         return None
 
 
 def parse_ssr(node):
-    """解析 SSR:// 链接（v25: 修复 split 逻辑，兼容 IPv6 和含冒号密码）"""
+    """解析 SSR:// 链接（v25: 修复 split 逻辑，兼容 IPv6 和含冒号密码），返回 ProxyNode 对象。"""
     try:
         if not node.startswith("ssr://"):
             return None
@@ -1676,18 +1739,14 @@ def parse_ssr(node):
         raw_padded = raw_b64 + "=" * (4 - m_raw) if m_raw else raw_b64
         raw = base64.b64decode(raw_padded).decode("utf-8", errors="ignore")
         # SSR 格式: server:port:protocol:method:obfs:base64pass/?obfsparam=xxx&remark=xxx
-        # BUGFIX: 先用 /? 分割（maxsplit=1），避免 base64 密码含 /? 时被错误分割
-        # SSR 标准格式: main_part/?params
         qmark_pos = raw.find("/?")
         if qmark_pos != -1:
             main = raw[:qmark_pos]
-            params_str = raw[qmark_pos + 2:]  # 跳过 /?
+            params_str = raw[qmark_pos + 2:]
         else:
             main = raw
             params_str = ""
 
-        # 修复: 用 rsplit 从右边拆分，避免 server 含 IPv6 冒号时错位
-        # 格式固定为 6 段: server:port:protocol:method:obfs:base64pass
         segments = main.split(":")
         if len(segments) < 6:
             return None
@@ -1696,7 +1755,7 @@ def parse_ssr(node):
         method = segments[-3]
         protocol = segments[-4]
         port_str = segments[-5]
-        server = ":".join(segments[:-5])  # 剩余部分为 server（兼容 IPv6）
+        server = ":".join(segments[:-5])
 
         try:
             port = int(port_str)
@@ -1707,9 +1766,6 @@ def parse_ssr(node):
             password = base64.b64decode(pass_padded).decode("utf-8", errors="ignore")
         except ValueError:
             return None
-        m_pass = len(b64pass) % 4
-        pass_padded = b64pass + "=" * (4 - m_pass) if m_pass else b64pass
-        password = base64.b64decode(pass_padded).decode("utf-8", errors="ignore")
 
         # 从参数提取备注名称
         name = ""
@@ -1722,7 +1778,7 @@ def parse_ssr(node):
                 name = base64.b64decode(rem_padded).decode("utf-8", errors="ignore")
 
         if not name:
-            uid = generate_unique_id({'server': server, 'port': port})
+            uid = generate_unique_id({"server": server, "port": port})
             name = f"SR-{uid}"
 
         # 提取 obfsparam 和 protoparam
@@ -1741,54 +1797,66 @@ def parse_ssr(node):
                 proto_padded = proto_param_b64 + "=" * (4 - m_proto) if m_proto else proto_param_b64
                 proto_param = base64.b64decode(proto_padded).decode("utf-8", errors="ignore")
 
-        proxy = {
-            "name": name, "type": "ssr", "server": server, "port": port,
-            "protocol": protocol, "method": method, "obfs": obfs,
-            "password": password, "udp": True,
-        }
+        # v28.27: 使用 ProxyNode 结构化存储
+        node_obj = ProxyNode(
+            protocol="ssr",
+            server=server,
+            port=port,
+            name=name,
+            cipher=method,
+            password=password
+        )
+        node_obj._extra["protocol"] = protocol
+        node_obj._extra["obfs"] = obfs
         if obfs_param:
-            proxy["obfs-param"] = obfs_param
+            node_obj._extra["obfs-param"] = obfs_param
         if proto_param:
-            proxy["protocol-param"] = proto_param
-        return proxy
+            node_obj._extra["protocol-param"] = proto_param
+        
+        # 向后兼容：返回 dict（现有代码无需修改）
+        return node_obj.to_dict()
     except Exception:
         return None
 
 
 def parse_http_proxy(node):
-    """解析 http:// / https:// 代理链接"""
+    """解析 http:// / https:// 代理链接，返回 ProxyNode 对象（兼容层返回 dict）。"""
     try:
         if not node.startswith("http://") and not node.startswith("https://"):
             return None
         p_url = urlparse(node)
         if not p_url.hostname:
             return None
-        # 格式: http://user:pass@server:port#name 或 http://server:port
         username = unquote(p_url.username or "")
         password = unquote(p_url.password or "")
         ptype = "https" if node.startswith("https://") else "http"
-        name = p_url.fragment if p_url.fragment else f"HT-{
-            generate_unique_id(
-                {
-                    'server': p_url.hostname,
-                    'port': _safe_port(
-                        p_url.port,
-                        443 if ptype == 'https' else 80)})}"
-        proxy = {
-            "name": name, "type": ptype, "server": p_url.hostname,
-            "port": _safe_port(p_url.port, 443 if ptype == "https" else 80),
-        }
+
+        # v28.27: 使用 ProxyNode 结构化存储
+        node_obj = ProxyNode(
+            protocol=ptype,
+            server=p_url.hostname,
+            port=_safe_port(p_url.port, 443 if ptype == "https" else 80),
+        )
+        node_obj.name = p_url.fragment if p_url.fragment else f"HT-{generate_unique_id({'server': p_url.hostname, 'port': node_obj.port})}"
+        
         if username:
-            proxy["username"] = username
+            node_obj._extra["username"] = username
         if password:
-            proxy["password"] = password
-        return proxy
+            node_obj._extra["password"] = password
+        
+        # 向后兼容：返回 dict（现有代码无需修改）
+        d = node_obj.to_dict()
+        if username:
+            d["username"] = username
+        if password:
+            d["password"] = password
+        return d
     except Exception:
         return None
 
 
 def parse_socks(node):
-    """解析 socks5:// 链接"""
+    """解析 socks5:// 链接，返回 ProxyNode 对象（兼容层返回 dict）。"""
     try:
         if not node.startswith("socks5://") and not node.startswith("socks4://"):
             return None
@@ -1798,61 +1866,74 @@ def parse_socks(node):
         username = unquote(p_url.username or "")
         password = unquote(p_url.password or "")
         ptype = "socks5" if node.startswith("socks5://") else "socks4"
-        name = p_url.fragment if p_url.fragment else f"SK-{
-            generate_unique_id(
-                {
-                    'server': p_url.hostname,
-                    'port': _safe_port(
-                        p_url.port,
-                        1080)})}"
-        proxy = {
-            "name": name, "type": ptype, "server": p_url.hostname,
-            "port": _safe_port(p_url.port, 1080),
-        }
+
+        # v28.27: 使用 ProxyNode 结构化存储
+        node_obj = ProxyNode(
+            protocol=ptype,
+            server=p_url.hostname,
+            port=_safe_port(p_url.port, 1080),
+        )
+        node_obj.name = p_url.fragment if p_url.fragment else f"SK-{generate_unique_id({'server': p_url.hostname, 'port': node_obj.port})}"
+        
         if username:
-            proxy["username"] = username
+            node_obj._extra["username"] = username
         if password:
-            proxy["password"] = password
-        return proxy
+            node_obj._extra["password"] = password
+        
+        # 向后兼容：返回 dict（现有代码无需修改）
+        d = node_obj.to_dict()
+        if username:
+            d["username"] = username
+        if password:
+            d["password"] = password
+        return d
     except Exception:
         return None
 
 
 def parse_anytls(node):
-    """解析 anytls:// 链接 (AnyTLS协议)"""
+    """解析 anytls:// 链接 (AnyTLS协议)，返回 ProxyNode 对象（兼容层返回 dict）。"""
     try:
         if not node.startswith("anytls://"):
             return None
         p_url = urlparse(node)
         if not p_url.hostname:
             return None
-        name = p_url.fragment if p_url.fragment else "AT-" + \
-            generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port)})
+
+        # v28.27: 使用 ProxyNode 结构化存储
+        node_obj = ProxyNode(
+            protocol="anytls",
+            server=p_url.hostname,
+            port=_safe_port(p_url.port),
+            skip_cert_verify=True
+        )
+        
+        node_obj.name = p_url.fragment if p_url.fragment else f"AT-{generate_unique_id({'server': p_url.hostname, 'port': node_obj.port})}"
+        
         params = parse_qs(p_url.query)
         def gp(k): return params.get(k, [""])[0]
-        proxy = {
-            "name": name, "type": "anytls", "server": p_url.hostname,
-            "port": _safe_port(p_url.port), "udp": True, "skip-cert-verify": True,
-        }
+        
         sni = gp("sni")
         if sni:
-            proxy["sni"] = sni
+            node_obj.sni = sni
         elif p_url.hostname:
-            proxy["sni"] = p_url.hostname
+            node_obj.sni = p_url.hostname
+        
         fp = gp("fp")
         if fp:
-            proxy["client-fingerprint"] = fp
-        return proxy if proxy["server"] else None
+            node_obj._extra["client-fingerprint"] = fp
+        
+        # 向后兼容：返回 dict（现有代码无需修改）
+        return node_obj.to_dict() if node_obj.server else None
     except Exception:
         return None
 
 
 def parse_trojan_go(node):
-    """解析 trojan-go:// 链接（trojan-go 扩展协议）"""
+    """解析 trojan-go:// 链接（trojan-go 扩展协议），返回 ProxyNode 对象（兼容层返回 dict）。"""
     try:
         if not node.startswith("trojan-go://"):
             return None
-        # trojan-go://password@server:port?sni=xxx&type=ws&path=xxx#name
         p_url = urlparse(node)
         if not p_url.hostname:
             return None
@@ -1861,39 +1942,42 @@ def parse_trojan_go(node):
             return None
         params = parse_qs(p_url.query)
         def gp(k): return params.get(k, [""])[0]
-        original_name = p_url.fragment if p_url.fragment else f"TG-{
-            generate_unique_id(
-                {
-                    'server': p_url.hostname,
-                    'port': _safe_port(
-                        p_url.port),
-                    'password': pwd})}"
-        proxy = {
-            "name": original_name, "type": "trojan", "server": p_url.hostname,
-            "port": _safe_port(p_url.port), "password": pwd, "udp": True,
-            "skip-cert-verify": True, "sni": gp("sni") or p_url.hostname
-        }
+
+        # v28.27: 使用 ProxyNode 结构化存储
+        node_obj = ProxyNode(
+            protocol="trojan",
+            server=p_url.hostname,
+            port=_safe_port(p_url.port),
+            name=p_url.fragment if p_url.fragment else f"TG-{generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'password': pwd})}",
+            password=pwd,
+            skip_cert_verify=True
+        )
+        node_obj.sni = gp("sni") or node_obj.server
+        
         # trojan-go ws 扩展
         ttype = gp("type")
         if ttype == "ws":
-            proxy["network"] = "ws"
+            node_obj.network = "ws"
             wo = {}
             if gp("path"):
                 wo["path"] = gp("path")
             if gp("host"):
                 wo["headers"] = {"Host": gp("host")}
             if wo:
-                proxy["ws-opts"] = wo
+                node_obj.ws_opts = wo
+        
         fp = gp("fp")
         if fp:
-            proxy["client-fingerprint"] = fp
-        return proxy
+            node_obj._extra["client-fingerprint"] = fp
+        
+        # 向后兼容：返回 dict（现有代码无需修改）
+        return node_obj.to_dict()
     except Exception:
         return None
 
 
 def parse_snell(node):
-    """解析 snell:// 链接"""
+    """解析 snell:// 链接，返回 ProxyNode 对象（兼容层返回 dict）。"""
     try:
         if not node.startswith("snell://"):
             return None
@@ -1901,25 +1985,31 @@ def parse_snell(node):
         if not p_url.hostname:
             return None
         pwd = unquote(p_url.username or "")
+
+        # v28.27: 使用 ProxyNode 结构化存储
+        node_obj = ProxyNode(
+            protocol="snell",
+            server=p_url.hostname,
+            port=_safe_port(p_url.port),
+            password=pwd,
+            udp=True
+        )
+        
+        node_obj.name = p_url.fragment if p_url.fragment else f"SN-{generate_unique_id({'server': p_url.hostname, 'port': node_obj.port})}"
+        
         params = parse_qs(p_url.query)
         def gp(k): return params.get(k, [""])[0]
-        name = p_url.fragment if p_url.fragment else f"SN-{
-            generate_unique_id(
-                {
-                    'server': p_url.hostname,
-                    'port': _safe_port(
-                        p_url.port)})}"
-        proxy = {
-            "name": name, "type": "snell", "server": p_url.hostname,
-            "port": _safe_port(p_url.port), "psk": pwd, "udp": True
-        }
+        
         obfs = gp("obfs")
         if obfs:
-            proxy["obfs-opts"] = {"mode": obfs}
+            node_obj._extra["obfs-opts"] = {"mode": obfs}
+        
         version = gp("version")
         if version:
-            proxy["version"] = int(version)
-        return proxy if proxy["server"] else None
+            node_obj._extra["version"] = int(version)
+        
+        # 向后兼容：返回 dict（现有代码无需修改）
+        return node_obj.to_dict() if node_obj.server else None
     except Exception:
         return None
 
@@ -2706,8 +2796,8 @@ async def async_fetch_and_parse(client: httpx.AsyncClient, url: str) -> Tuple[Di
     if is_yaml_content(content):
         yaml_nodes = parse_yaml_proxies(content)
         for p in yaml_nodes:
-            k = f"{p['server']}:{p.get('port', 0)}:{p.get('uuid', p.get('password', ''))}"
-            h = hashlib.md5(k.encode(), usedforsecurity=False).hexdigest()
+            # v28.27: 使用 dedup_key_from_dict() 改进去重逻辑
+            h = dedup_key_from_dict(p)
             if h not in local_nodes:
                 p["_src_weight"] = src_weight  # v28.23
                 local_nodes[h] = p
@@ -2722,8 +2812,8 @@ async def async_fetch_and_parse(client: httpx.AsyncClient, url: str) -> Tuple[Di
             continue
         p = parse_node(line)
         if p:
-            k = f"{p['server']}:{p['port']}:{p.get('uuid', p.get('password', ''))}"
-            h = hashlib.md5(k.encode(), usedforsecurity=False).hexdigest()
+            # v28.27: 使用 dedup_key_from_dict() 改进去重逻辑
+            h = dedup_key_from_dict(p)
             if h not in local_nodes:
                 p["_src_weight"] = src_weight  # v28.23
                 local_nodes[h] = p
@@ -3640,8 +3730,7 @@ def main():
                         continue
                     p = parse_node(line)
                     if p:
-                        k = f"{p['server']}:{p['port']}:{p.get('uuid', p.get('password', ''))}"
-                        h = hashlib.md5(k.encode(), usedforsecurity=False).hexdigest()
+                        h = dedup_key_from_dict(p)
                         if h not in local_nodes:
                             local_nodes[h] = p
                 return local_nodes, False

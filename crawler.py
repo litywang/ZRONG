@@ -1,20 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v28.23 - 大陆优化版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.23
-优化：httpx连接池 + 异步HTTP抓取 + sources.yaml配置外置 + Clash分批测速 + 大陆可用性优化
+聚合订阅爬虫 v28.25 - 大陆优化版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.25
+优化：httpx连接池 + 异步HTTP抓取 + sources.yaml配置外置 + Clash分批测速 + 大陆可用性优化 + ProxyNode数据模型
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性 + 大陆高可用
-CHANGELOG v28.23:
-- 【aid安全转换】parse_vmess 的 aid 参数容错处理（"auto"等非数字值不再丢失节点）
-- 【flow白名单】parse_vless 的 flow 参数校验，非法值不再导致 Clash 配置解析错误
-- 【alpn容错】format_trojan/tuic 的 alpn 参数类型容错（字符串/列表自适应）
-- 【连接池可配】httpx连接池参数从环境变量读取，默认200/50
-- 【大陆友好评分】新增 mainland_friendly_score() 综合评分，整合地理位置/协议/传输层/端口
-- 【源权重机制】新增 _source_weight() 源权重推断，国内友好源节点排序加分
-- 【排序升级】final_sort_key 整合大陆友好性+源权重，优化节点选择
-- 【协议评分调整】Hysteria2 4→12, Hysteria 2→6, TUIC 3→8（抗封锁协议优先）
-- 【大陆端点测试】新增 MAINLAND_TEST_URLS 和 ENABLE_MAINLAND_TEST 配置项
+CHANGELOG v28.25:
+- 【数据模型】新增 ProxyNode dataclass（结构化节点存储，逐步替代 dict）
+- 【去重改进】新增 dedup_key() 方法（基于协议/服务器/端口/认证信息的 MD5）
+- 【兼容层】新增 _proxy_getattr() 辅助函数（兼容 ProxyNode 对象和普通 dict）
+- 【版本统一】版本号从 v28.22 更新至 v28.25
 
 CHANGELOG v28.22:
 - 【线程安全】DNS缓存/_HISTORY_SCORES 加锁保护，消除并发竞态
@@ -75,13 +70,160 @@ import threading
 import random
 import logging
 from datetime import datetime
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional, Any
+from dataclasses import dataclass, field
 from cachetools import TTLCache
 
 # v28.15: 安全地禁用urllib3警告
 urllib3_logger = logging.getLogger('urllib3')
 urllib3_logger.setLevel(logging.CRITICAL)
 urllib3_logger.propagate = False
+
+# ========== ProxyNode 数据模型 ==========
+@dataclass
+class ProxyNode:
+    """结构化代理节点数据模型，替代 dict 作为内部统一格式。
+    
+    兼容 dict 回退：所有属性提供默认值，parse_* 函数返回的 dict 仍可透明使用。
+    """
+    # 核心字段（必须有）
+    protocol: str = "unknown"
+    server: str = ""
+    port: int = 0
+    # 协议相关字段
+    name: str = ""
+    cipher: str = ""
+    password: str = ""
+    uuid: str = ""
+    sni: str = ""
+    host: str = ""
+    path: str = ""
+    alpn: str = ""
+    # 协议辅助字段
+    alterId: int = 0
+    network: str = "tcp"
+    tls: bool = False
+    udp: bool = True
+    skip_cert_verify: bool = True
+    # Clash 特有字段
+    ws_opts: Optional[Dict] = None  # ws-opts
+    grpc_opts: Optional[Dict] = None  # grpc-opts
+    h2_opts: Optional[Dict] = None  # h2-opts
+    hysteria_opts: Optional[Dict] = None  # hysteria2 特有
+    tuic_opts: Optional[Dict] = None  # tuic 特有
+    vless_opts: Optional[Dict] = None  # vlessreality 等
+    # 内部评分/元数据
+    _score: float = 0.0
+    _src_weight: float = 0.0
+    _mainland_reachable: bool = False
+    # 原始解析数据（供 to_dict 使用）
+    _extra: Dict[str, Any] = field(default_factory=dict)
+
+    def dedup_key(self) -> str:
+        """生成去重键（基于协议/服务器/端口/认证信息）。"""
+        uid = self.uuid or self.password or ""
+        return hashlib.md5(
+            f"{self.protocol}|{self.server}|{self.port}|{uid}|{self.path}|{self.sni}".encode()
+        ).hexdigest()
+
+    def to_dict(self) -> Dict:
+        """转换为 Clash 配置 dict 格式（供 create_config 使用）。"""
+        name = self.name or f"{self.protocol.upper()}-{self.server}:{self.port}"
+        p = {"name": name, "type": self.protocol, "server": self.server, "port": self.port, "udp": True, "skip-cert-verify": self.skip_cert_verify}
+        
+        if self.protocol in ("ss", "ss2022"):
+            p.update({"cipher": self.cipher or "aes-128-gcm", "password": self.password})
+        elif self.protocol == "vmess":
+            p.update({"uuid": self.uuid, "alterId": self.alterId, "cipher": "auto"})
+            if self.network in ("ws", "h2", "grpc"):
+                p["network"] = self.network
+            if self.tls:
+                p["tls"] = True
+                p["sni"] = self.sni or self.host or self.server
+            if self.network == "ws" and self.ws_opts:
+                p["ws-opts"] = self.ws_opts
+            elif self.network == "grpc" and self.grpc_opts:
+                p["grpc-opts"] = self.grpc_opts
+            elif self.network == "h2" and self.h2_opts:
+                p["h2-opts"] = self.h2_opts
+        elif self.protocol == "vless":
+            p.update({"uuid": self.uuid})
+            if self.tls:
+                p["tls"] = True
+                p["sni"] = self.sni or self.server
+            if self.network in ("ws", "grpc"):
+                p["network"] = self.network
+                if self.ws_opts:
+                    p["ws-opts"] = self.ws_opts
+            if self.vless_opts:
+                p.update(self.vless_opts)
+        elif self.protocol == "trojan":
+            p.update({"password": self.password or "", "tls": True, "sni": self.sni or self.server})
+        elif self.protocol in ("hysteria", "hysteria2", "hy2"):
+            p["type"] = "hysteria2"
+            p.update({"password": self.password or "", "sni": self.sni or self.server})
+            if self.hysteria_opts:
+                p.update(self.hysteria_opts)
+        elif self.protocol == "tuic":
+            p["type"] = "tuic"
+            p.update({"uuid": self.uuid, "password": self.password, "sni": self.sni or self.server})
+            if self.tuic_opts:
+                p.update(self.tuic_opts)
+        elif self.protocol == "ssr":
+            p.update({"cipher": self.cipher, "password": self.password})
+            if self._extra:
+                p.update(self._extra)
+        elif self.protocol == "snell":
+            p.update({"password": self.password or ""})
+        
+        # 合并 _extra 中的其他字段（用于 ssr 等特殊字段）
+        for k, v in self._extra.items():
+            if k not in p:
+                p[k] = v
+        
+        return p
+
+    @staticmethod
+    def from_dict(d: Dict) -> "ProxyNode":
+        """从 dict（现有 parse_* 函数返回值）构造 ProxyNode。"""
+        return ProxyNode(
+            protocol=d.get("type", "unknown"),
+            server=d.get("server", ""),
+            port=d.get("port", 0),
+            name=d.get("name", ""),
+            cipher=d.get("cipher", ""),
+            password=d.get("password", ""),
+            uuid=d.get("uuid", ""),
+            sni=d.get("sni", ""),
+            host=d.get("host", ""),
+            path=d.get("path", ""),
+            alpn=d.get("alpn", ""),
+            alterId=d.get("alterId", 0),
+            network=d.get("network", "tcp"),
+            tls=bool(d.get("tls", False)),
+            udp=bool(d.get("udp", True)),
+            skip_cert_verify=bool(d.get("skip-cert-verify", True)),
+            ws_opts=d.get("ws-opts"),
+            grpc_opts=d.get("grpc-opts"),
+            h2_opts=d.get("h2-opts"),
+            hysteria_opts=d.get("hysteria_opts"),
+            tuic_opts=d.get("tuic_opts"),
+            vless_opts=d.get("vless_opts"),
+            _score=d.get("_score", 0.0),
+            _src_weight=d.get("_src_weight", 0.0),
+            _mainland_reachable=d.get("_mainland_reachable", False),
+            _extra={k: v for k, v in d.items() if k.startswith("_") or k in ("protocol", "obfs", "obfs-param", "protocol-param", "group")}
+        )
+
+
+def _proxy_getattr(obj, key, default=None):
+    """统一访问属性/dict 的辅助函数。兼容 ProxyNode 对象和普通 dict。"""
+    if isinstance(obj, ProxyNode):
+        return getattr(obj, key, default)
+    elif isinstance(obj, dict):
+        return obj.get(key, default)
+    return default
+
 
 # ========== v28.23: 通用重试装饰器 ==========
 def retry_on_exception(max_retries=2, backoff=1.0, jitter=0.5,

@@ -1137,11 +1137,16 @@ class SmartRateLimiter:
                 self.locks.pop(d, None)
                 self.last_call.pop(d, None)
 
+    # BUGFIX: 增加初始化锁，彻底解决 TOCTOU 竞态
+    _init_lock = threading.Lock()
+
     def wait(self, url=""):
         domain = urlparse(url).netloc or "default"
-        # BUGFIX: 使用 setdefault 原子操作，避免 TOCTOU 竞态
-        self.locks.setdefault(domain, threading.Lock())
-        self.last_call.setdefault(domain, 0.0)
+        # 使用初始化锁确保原子性
+        with self._init_lock:
+            if domain not in self.locks:
+                self.locks[domain] = threading.Lock()
+                self.last_call[domain] = 0.0
         # v28.22: 每次wait时以1%概率触发清理，避免频繁但防止无限增长
         if len(self.locks) > 50 and random.random() < 0.01:
             self._cleanup_stale()
@@ -1401,7 +1406,8 @@ def parse_vmess(node):
 
         # 向后兼容：返回 dict
         return node_obj.to_dict() if node_obj.server and node_obj.uuid else None
-    except Exception:
+    except Exception as e:
+        logging.debug(f"VMess解析失败: {e}", exc_info=True)
         return None
 
 
@@ -1478,7 +1484,8 @@ def parse_vless(node):
         
         # 向后兼容：返回 dict（现有代码无需修改）
         return node_obj.to_dict()
-    except Exception:
+    except Exception as e:
+        logging.debug(f"VLESS解析失败: {e}", exc_info=True)
         return None
 
 
@@ -1536,7 +1543,8 @@ def parse_trojan(node):
         
         # 向后兼容：返回 dict（现有代码无需修改）
         return node_obj.to_dict()
-    except Exception:
+    except Exception as e:
+        logging.debug(f"Trojan解析失败: {e}", exc_info=True)
         return None
 
 
@@ -3201,9 +3209,28 @@ class ClashManager:
     def download_clash(self):
         if CLASH_PATH.exists():
             return True
+        # ISSUE-3-03: 跨平台 Clash 二进制下载
+        import platform
+        sys = platform.system().lower()
+        arch = platform.machine().lower()
+        if sys == "windows":
+            if "arm" in arch:
+                clang_name = f"mihomo-windows-arm64-compatible-{CLASH_VERSION}.exe.gz"
+            else:
+                clang_name = f"mihomo-windows-amd64-compatible-{CLASH_VERSION}.exe.gz"
+        elif sys == "darwin":
+            if "arm" in arch:
+                clang_name = f"mihomo-darwin-arm64-compatible-{CLASH_VERSION}.gz"
+            else:
+                clang_name = f"mihomo-darwin-amd64-compatible-{CLASH_VERSION}.gz"
+        else:  # Linux
+            if "arm" in arch:
+                clang_name = f"mihomo-linux-arm64-compatible-{CLASH_VERSION}.gz"
+            else:
+                clang_name = f"mihomo-linux-amd64-compatible-{CLASH_VERSION}.gz"
         url = (
             f"https://github.com/MetaCubeX/mihomo/releases/download/{CLASH_VERSION}/"
-            f"mihomo-linux-amd64-compatible-{CLASH_VERSION}.gz"
+            f"{clang_name}"
         )
         try:
             resp = requests.get(url, timeout=120, stream=True)
@@ -4278,6 +4305,12 @@ TXT: <a href="{txt_html_url}">{txt_html_url}</a>
         sys.exit(1)
     finally:
         clash.stop()
+        # ISSUE-3-05: 关闭 requests session，避免资源泄漏
+        try:
+            session.close()
+            print("✅ Requests session 已关闭")
+        except Exception:
+            pass
         # v28.17: 程序退出时保存IP地理缓存
         try:
             limiter.save_geo_cache()

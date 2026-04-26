@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v28.29 - 大陆优化版
+聚合订阅爬虫 v28.30 - 大陆优化版
 作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.27
 优化：httpx连接池 + 异步HTTP抓取 + sources.yaml配置外置 + Clash分批测速 + 大陆可用性优化 + ProxyNode数据模型
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性 + 大陆高可用
@@ -239,29 +239,6 @@ class ProxyNode:
 
 
 
-def dedup_key_from_dict(d: dict) -> str:
-    """从 dict（现有 parse_* 函数返回值）计算去重键（兼容 ProxyNode.dedup_key()）。"""
-    protocol = d.get("type", "unknown")
-    server = d.get("server", "")
-    port = str(d.get("port", 0))
-    uid = d.get("uuid", "") or d.get("password", "")
-    path = d.get("path", "")
-    sni = d.get("sni", "")
-    return hashlib.md5(
-        f"{protocol}|{server}|{port}|{uid}|{path}|{sni}".encode()
-    ).hexdigest()
-
-
-def _proxy_getattr(obj, key, default=None):
-    """统一访问属性/dict 的辅助函数。兼容 ProxyNode 对象和普通 dict。"""
-    if isinstance(obj, ProxyNode):
-        return getattr(obj, key, default)
-    elif isinstance(obj, dict):
-        return obj.get(key, default)
-    return default
-
-
-# ========== v28.23: 通用重试装饰器 ==========
 def retry_on_exception(max_retries=2, backoff=1.0, jitter=0.5,
                       retry_on=(Exception,), return_on_fail=None):
     """通用重试装饰器。
@@ -2814,7 +2791,7 @@ async def async_fetch_and_parse(client: httpx.AsyncClient, url: str) -> Tuple[Di
         yaml_nodes = parse_yaml_proxies(content)
         for p in yaml_nodes:
             # v28.27: 使用 dedup_key_from_dict() 改进去重逻辑
-            h = dedup_key_from_dict(p)
+            h = ProxyNode.from_dict(p).dedup_key()
             if h not in local_nodes:
                 p["_src_weight"] = src_weight  # v28.23
                 local_nodes[h] = p
@@ -2830,7 +2807,7 @@ async def async_fetch_and_parse(client: httpx.AsyncClient, url: str) -> Tuple[Di
         p = parse_node(line)
         if p:
             # v28.27: 使用 dedup_key_from_dict() 改进去重逻辑
-            h = dedup_key_from_dict(p)
+            h = ProxyNode.from_dict(p).dedup_key()
             if h not in local_nodes:
                 p["_src_weight"] = src_weight  # v28.23
                 local_nodes[h] = p
@@ -3675,7 +3652,7 @@ def main():
     USE_ASYNC_FETCH = os.getenv("USE_ASYNC_FETCH", "0") == "1"
 
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v28.29 - 大陆优化版")
+    print("🚀 聚合订阅爬虫 v28.30 - 大陆优化版")
     print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.22")
     print(f"异步抓取: {'✅ 启用' if USE_ASYNC_FETCH else '❌ 禁用（同步模式）'}")
     print("=" * 50)
@@ -3747,7 +3724,7 @@ def main():
                         continue
                     p = parse_node(line)
                     if p:
-                        h = dedup_key_from_dict(p)
+                        h = ProxyNode.from_dict(p).dedup_key()
                         if h not in local_nodes:
                             local_nodes[h] = p
                 return local_nodes, False

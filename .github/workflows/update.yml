@@ -43,13 +43,34 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
           USE_ASYNC_FETCH: '1'
+
+          # 🌏 亚洲策略：柔性配额，质量优先
           MAX_FINAL_NODES: 150
-          MAX_LATENCY: 5000
+          TARGET_ASIA_RATIO: '0.45'
+          ASIA_PRIORITY_BONUS: '35'
+          ASIA_MIN_COUNT: '40'
+
+          # ⚡ 四层验证阈值（针对国内网络特征优化）
+          MAX_LATENCY: 4000
           MAX_PROXY_LATENCY: 5000
+          MIN_PROXY_SPEED: '30'
+          PROTO_HANDSHAKE_TIMEOUT: '10'
+          SPEED_TEST_MIN_SUCCESS: '1'
+
+          # 🌐 多URL验证
+          SPEED_TEST_URLS: 'https://www.gstatic.com/generate_204,https://cp.cloudflare.com/generate_204,http://connectivitycheck.platform.hicloud.com/generate_204'
+
+          # 🔄 重试与容错
+          CLASH_TEST_RETRY: '2'
+
+          # 📦 候选池与并发
           MAX_TCP_TEST_NODES: 1200
-          MAX_PROXY_TEST_NODES: 800
+          MAX_PROXY_TEST_NODES: 1000
           MAX_FETCH_NODES: 5000
           MAX_FORK_REPOS: 60
+          MAX_WORKERS: '80'
+          FETCH_WORKERS: '150'
+          TIMEOUT: '12'
         run: python crawler.py
 
       - name: Check Output

@@ -242,23 +242,24 @@ HEADERS_POOL = [{
     "Sec-Fetch-Dest": "empty",
     "Sec-Fetch-Mode": "cors",
 }]
-TIMEOUT = 8
+TIMEOUT = int(os.getenv("TIMEOUT", "12"))  # v28.21: 8→12秒，GitHub Actions 网络波动容忍
 
 MAX_FETCH_NODES = int(os.getenv("MAX_FETCH_NODES", 5000))     # v25: 扩大候选池（原3000）
 MAX_TCP_TEST_NODES = int(os.getenv("MAX_TCP_TEST_NODES", 1200))  # v25: TCP翻倍（原600，匹配README 10s阈值）
-MAX_PROXY_TEST_NODES = int(os.getenv("MAX_PROXY_TEST_NODES", 800))  # v28.19: 增大测速批次（原600，提高可用率）
+MAX_PROXY_TEST_NODES = int(os.getenv("MAX_PROXY_TEST_NODES", 1000))  # v28.21: 800→1000，更多节点进入测速
 MAX_FINAL_NODES = int(os.getenv("MAX_FINAL_NODES", 150))       # v28.4: 150够用（TCP补充几乎无效，不凑数）
 MAX_LATENCY = int(os.getenv("MAX_LATENCY", 5000))              # v28.8: 放宽到5s（大陆网络环境需要更宽松阈值）
-MIN_PROXY_SPEED = 0.0         # 取消速度限制，只看能否连通
+MIN_PROXY_SPEED = float(os.getenv("MIN_PROXY_SPEED", "30"))  # v28.21: 30KB/s保活（原0过松）
 MAX_PROXY_LATENCY = int(os.getenv("MAX_PROXY_LATENCY", 5000))  # v28.8: 放宽到5s（大陆网络环境需要更宽松阈值）
 TEST_URL = "http://www.gstatic.com/generate_204"  # v28.3: 恢复gstatic.com（国际出口才是代理核心指标）
 # v28.19: 国际测速URL（代理核心指标：能否访问国际网站）
 TEST_URLS = [
+    "https://www.gstatic.com/generate_204",
+    "https://cp.cloudflare.com/generate_204",
     "https://www.google.com/generate_204",
     "https://www.youtube.com/generate_204",
-    "https://cp.cloudflare.com/",
     "https://captive.apple.com/",
-    "https://www.gstatic.com/generate_204",
+    "http://connectivitycheck.platform.hicloud.com/generate_204",  # v28.21: 华为云CDN，国内可达性参考
 ]
 
 CLASH_PORT = 17890
@@ -266,12 +267,12 @@ CLASH_API_PORT = 19090
 CLASH_VERSION = "v1.19.0"
 NODE_NAME_PREFIX = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
 
-MAX_WORKERS = 50
+MAX_WORKERS = int(os.getenv("MAX_WORKERS", "80"))  # v28.21: 50→80，Actions 可承受
 REQUESTS_PER_SECOND = 6.0     # v25: 提速（原3.0，Actions美国机房可承受）
-MAX_RETRIES = 1
+MAX_RETRIES = int(os.getenv("CLASH_TEST_RETRY", "2"))  # v28.21: 1→2，重试容错
 
 # 订阅源抓取并发（降速防封）
-FETCH_WORKERS = 30
+FETCH_WORKERS = int(os.getenv("FETCH_WORKERS", "150"))  # v28.21: 30→150，抓取并发提升
 
 # ⚡ GitHub Fork 发现限制（最大耗时来源）
 MAX_FORK_REPOS = int(os.getenv("MAX_FORK_REPOS", 60))  # v25: 提升fork发现量（原30）
@@ -325,9 +326,10 @@ ASIA_REGIONS = ["HK", "TW", "JP", "SG", "KR", "TH", "VN", "MY", "ID", "PH", "MO"
                 "MN", "KH", "LA", "MM", "BN", "TL", "NP", "LK", "BD", "BT", "MV"]  # 22个亚洲区域
 
 # v28.14: 提高亚洲优先级权重
-ASIA_PRIORITY_BONUS = 80  # v28.16: 大幅提高亚洲优先级（50→80）
-TARGET_ASIA_RATIO = 0.6   # v28.16: 目标亚洲节点占比 60%
+ASIA_PRIORITY_BONUS = int(os.getenv("ASIA_PRIORITY_BONUS", "35"))  # v28.21: 柔性配额（80→35），质量优先于凑数
+TARGET_ASIA_RATIO = float(os.getenv("TARGET_ASIA_RATIO", "0.45"))  # v28.21: 柔性45%（原60%强制导致低质凑数）
 ASIA_TCP_RELAX = 1500    # v28.16: 亚洲TCP补充延迟放宽到1500ms
+ASIA_MIN_COUNT = int(os.getenv("ASIA_MIN_COUNT", "40"))  # v28.21: 亚洲保底数量
 NON_FRIENDLY_REGIONS = [
     "IR",
     "IN",
@@ -3465,7 +3467,7 @@ def main():
             return (-asia, -reality, -proto_score, -region_bonus, lat_from_name)
 
         # v28.16: 配额制节点选择（修复 v28.14 前置+排序互斥BUG）
-        # 分组排序后再按配额合并，确保亚洲≥60%
+        # 分组排序后再按配额合并，柔性配额：保底+上限
         asia_final = sorted(
             [p for p in final if is_asia(p)],
             key=final_sort_key
@@ -3475,20 +3477,33 @@ def main():
             key=final_sort_key
         )
 
-        target_asia = int(MAX_FINAL_NODES * TARGET_ASIA_RATIO)  # 90个
-        target_non_asia = MAX_FINAL_NODES - target_asia          # 60个
+        target_asia = int(MAX_FINAL_NODES * TARGET_ASIA_RATIO)  # 柔性目标
+        max_asia = int(MAX_FINAL_NODES * 0.55)  # v28.21: 上限55%防过度集中
+        min_asia = min(ASIA_MIN_COUNT, MAX_FINAL_NODES)  # 保底数量
+        target_non_asia = MAX_FINAL_NODES - target_asia
 
-        # 亚洲节点不够时，全部保留，从非亚洲补足
-        if len(asia_final) < target_asia:
+        # 柔性配额：保底 ≤ 实际 ≤ 上限
+        if len(asia_final) < min_asia:
+            # 亚洲极少，全部保留，非亚洲补足
             actual_asia = len(asia_final)
             actual_non_asia = min(len(non_asia_final), MAX_FINAL_NODES - actual_asia)
             final = asia_final + non_asia_final[:actual_non_asia]
-            print(f"   ⚠️ 亚洲节点不足{target_asia}个，全部保留{actual_asia}个"
+            print(f"   ⚠️ 亚洲节点不足保底{min_asia}个，全部保留{actual_asia}个"
                   f" + 非亚洲{actual_non_asia}个")
-        else:
-            # 亚洲节点充足，按配额切割
+        elif len(asia_final) <= target_asia:
+            # 亚洲在保底~目标之间，全部保留高质量亚洲
+            actual_non_asia = min(len(non_asia_final), MAX_FINAL_NODES - len(asia_final))
+            final = asia_final + non_asia_final[:actual_non_asia]
+            print(f"   ✅ 亚洲{len(asia_final)}个(柔性区间) + 非亚洲{actual_non_asia}个")
+        elif len(asia_final) <= max_asia:
+            # 亚洲在目标~上限之间，按目标配额
             final = asia_final[:target_asia] + non_asia_final[:target_non_asia]
             print(f"   ✅ 亚洲配额{target_asia}个 + 非亚洲配额{target_non_asia}个")
+        else:
+            # 亚洲过多，截到上限，非亚洲用剩余
+            actual_non_asia = min(len(non_asia_final), MAX_FINAL_NODES - max_asia)
+            final = asia_final[:max_asia] + non_asia_final[:actual_non_asia]
+            print(f"   ✅ 亚洲截断{max_asia}个(上限) + 非亚洲{actual_non_asia}个")
 
         print(f"\n✅ 最终：{len(final)} 个")
         print(f"📊 真实测速：{'✅' if proxy_ok else '❌'}\n")

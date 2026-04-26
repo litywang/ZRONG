@@ -1,7 +1,33 @@
 import yaml
+import sys
 
-with open('proxies.yaml', 'r', encoding='utf-8') as f:
-    cfg = yaml.safe_load(f)
+# v28.22: 增加 YAML 格式校验
+def validate_proxies_yaml(filepath="proxies.yaml"):
+    """验证 proxies.yaml 格式正确性"""
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            cfg = yaml.safe_load(f)
+
+        # 基本结构校验
+        assert 'proxies' in cfg, "缺少 proxies 字段"
+        assert isinstance(cfg['proxies'], list), "proxies 必须是列表"
+
+        # 节点字段校验 (抽样前10个)
+        required_fields = ['name', 'server', 'port', 'type']
+        for i, p in enumerate(cfg['proxies'][:10]):
+            for field in required_fields:
+                assert field in p, f"节点 {i} 缺少 {field}"
+
+        return True, cfg, "✓ 格式验证通过"
+    except FileNotFoundError:
+        return False, None, f"❌ 文件不存在: {filepath}"
+    except Exception as e:
+        return False, None, f"❌ 验证失败: {e}"
+
+ok, cfg, msg = validate_proxies_yaml()
+print(msg)
+if not ok:
+    sys.exit(1)
 
 proxies = cfg.get('proxies', [])
 print(f'Total proxies: {len(proxies)}')

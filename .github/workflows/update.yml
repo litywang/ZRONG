@@ -38,7 +38,7 @@ jobs:
       - name: 更新中国 CIDR 数据
         run: python gen_cn_cidr.py
 
-      - name: Run Crawler v28.20
+      - name: Run Crawler v28.22
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
@@ -90,7 +90,7 @@ jobs:
           git add proxies.yaml subscription.txt cn_cidr_data.py
           git status
           git diff --staged --stat
-          git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M') [v28.20]" || echo "Nothing to commit"
+          git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M') [v28.22]" || echo "Nothing to commit"
           git push https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}.git HEAD:main
 
       - name: Upload Logs on Failure
@@ -103,3 +103,17 @@ jobs:
             *.yaml
             *.txt
           retention-days: 7
+
+      # v28.22: 失败通知机制
+      - name: Notify Failure
+        if: failure()
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: |
+          if [ -n "$BOT_TOKEN" ] && [ -n "$CHAT_ID" ]; then
+            curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+              -d "chat_id=$CHAT_ID" \
+              -d "text=❌ ZRONG 更新失败: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+              -d "parse_mode=HTML"
+          fi

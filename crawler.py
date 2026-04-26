@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v28.20 - 大陆优化版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.20
+聚合订阅爬虫 v28.22 - 大陆优化版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.22
 优化：httpx连接池 + 异步HTTP抓取 + sources.yaml配置外置 + Clash分批测速 + 大陆可用性优化
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性 + 大陆高可用
+CHANGELOG v28.22:
+- 【线程安全】DNS缓存/_HISTORY_SCORES 加锁保护，消除并发竞态
+- 【DNS修复】resolve_domain 移除全局 setdefaulttimeout，改用超时线程包装
+- 【SSR修复】SSR序列化失败不再输出注释行，返回None避免客户端解析错误
+- 【老挝修复】get_region移除"la"二字母匹配，改用"laos"词边界正则，防止Los Angeles误判
+- 【缓存统一】移除过时_ip_geo_cache引用，统一使用limiter.get_geo()
+- 【版本统一】版本号从v28.20更新至v28.22
+- 【tcp_workers可配】从硬编码200改为环境变量TCP_WORKERS，上限500
 CHANGELOG v28.19:
 - 【关键修复】协议握手检测扩展到所有协议(vmess/vless/trojan/hysteria2/tuic/snell)
 - 【可用率提升】修复节点通过TCP但协议握手失败导致实际不可用的问题
@@ -30,7 +38,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from cn_cidr_data import CN_IP_RANGES as _CN_IP_RANGES_RAW
+from cn_cidr_data import CN_IP_RANGES as _CN_IP_RANGES_RAW, is_cidr_data_fresh  # v28.22: 导入有效期校验
 import ipaddress
 import httpx
 import asyncio
@@ -262,9 +270,9 @@ TEST_URLS = [
     "http://connectivitycheck.platform.hicloud.com/generate_204",  # v28.21: 华为云CDN，国内可达性参考
 ]
 
-CLASH_PORT = 17890
-CLASH_API_PORT = 19090
-CLASH_VERSION = "v1.19.0"
+CLASH_PORT = int(os.getenv("CLASH_PORT", "17890"))  # v28.22: 可配置
+CLASH_API_PORT = int(os.getenv("CLASH_API_PORT", "19090"))  # v28.22: 可配置
+CLASH_VERSION = os.getenv("CLASH_VERSION", "v1.19.0")  # v28.22: 可配置
 NODE_NAME_PREFIX = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
 
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "80"))  # v28.21: 50→80，Actions 可承受
@@ -377,10 +385,12 @@ MAX_CONCURRENT_TCP = 60
 
 # ===== DNS 缓存 ======
 _DNS_CACHE = {}
+_DNS_CACHE_LOCK = threading.Lock()  # v28.22: 线程安全锁
 DNS_CACHE_TTL = 300
 
 # ===== 历史稳定性记录 ======
 _HISTORY_SCORES = {}
+_HISTORY_SCORES_LOCK = threading.Lock()  # v28.22: 线程安全锁
 
 # ===== 网络基准 ======
 _NETWORK_BASELINE = {"latency": 9999, "verified": False}
@@ -459,19 +469,29 @@ def resolve_domain(domain, timeout=3):
     if not domain or not isinstance(domain, str):
         return None
     now = time.time()
-    if domain in _DNS_CACHE:
-        ip, ts = _DNS_CACHE[domain]
-        if now - ts < DNS_CACHE_TTL:
-            return ip
+    with _DNS_CACHE_LOCK:  # v28.22: 线程安全读缓存
+        if domain in _DNS_CACHE:
+            ip, ts = _DNS_CACHE[domain]
+            if now - ts < DNS_CACHE_TTL:
+                return ip
+    # v28.22: 用 socket.create_connection 替代 setdefaulttimeout
+    # 原实现临时修改全局 default timeout，多线程下互相干扰
     try:
-        old_to = socket.getdefaulttimeout()
-        socket.setdefaulttimeout(timeout)
-        ip = socket.gethostbyname(domain)
-        socket.setdefaulttimeout(old_to)
-        _DNS_CACHE[domain] = (ip, now)
+        # 使用 getaddrinfo 而非 gethostbyname，支持超时控制
+        # socket.getaddrinfo 没有独立超时参数，改用线程+超时包装
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exc:
+            future = exc.submit(socket.gethostbyname, domain)
+            try:
+                ip = future.result(timeout=timeout)
+            except concurrent.futures.TimeoutError:
+                ip = None
+        with _DNS_CACHE_LOCK:  # v28.22: 线程安全写缓存
+            _DNS_CACHE[domain] = (ip, now)
         return ip
     except Exception:
-        _DNS_CACHE[domain] = (None, now)
+        with _DNS_CACHE_LOCK:  # v28.22: 线程安全写缓存
+            _DNS_CACHE[domain] = (None, now)
         return None
 
 # ========== CN 过滤工具 ==========
@@ -570,18 +590,20 @@ def is_reality_friendly(p):
 
 def record_history(server_ip, port, latency):
     key = (server_ip, port)
-    if key not in _HISTORY_SCORES:
-        _HISTORY_SCORES[key] = []
-    _HISTORY_SCORES[key].append(latency)
-    if len(_HISTORY_SCORES[key]) > 10:
-        _HISTORY_SCORES[key] = _HISTORY_SCORES[key][-10:]
+    with _HISTORY_SCORES_LOCK:  # v28.22: 线程安全
+        if key not in _HISTORY_SCORES:
+            _HISTORY_SCORES[key] = []
+        _HISTORY_SCORES[key].append(latency)
+        if len(_HISTORY_SCORES[key]) > 10:
+            _HISTORY_SCORES[key] = _HISTORY_SCORES[key][-10:]
 
 
 def history_stability_score(server_ip, port):
     key = (server_ip, port)
-    if key not in _HISTORY_SCORES or not _HISTORY_SCORES[key]:
-        return 0
-    scores = _HISTORY_SCORES[key]
+    with _HISTORY_SCORES_LOCK:  # v28.22: 线程安全读
+        if key not in _HISTORY_SCORES or not _HISTORY_SCORES[key]:
+            return 0
+        scores = list(_HISTORY_SCORES[key])  # 快照，避免持锁计算
     n = len(scores)
     success_rate = sum(1 for s in scores if s < 9999) / n
     avg = sum(scores) / n
@@ -709,13 +731,13 @@ def _proto_handshake_ok(host, port, ptype, proxy=None, timeout=3.0):
             # Shadowsocks 收到未知数据会静默丢弃或断开
             # 策略：发送垃圾数据后，如果服务器立即回显数据或立即 RST → 不是 SS
             # 如果超时无响应 → 可能是 SS（默认放过，不误杀）
+            s = None
             try:
                 s = _create_socket(host, timeout)
                 s.connect((host, port))
                 s.send(b"\x00")
                 try:
                     data = s.recv(16)
-                    s.close()
                     # BUGFIX: recv 返回 b'' 表示对端已关闭连接（FIN），
                     # 不是 SS 特征；返回非空数据 = 服务器回显了 = 肯定不是 SS
                     # b''（连接关闭）→ 保守放过，不误杀
@@ -723,42 +745,58 @@ def _proto_handshake_ok(host, port, ptype, proxy=None, timeout=3.0):
                         return False  # 服务器回显了数据，不是 SS
                     return True  # 连接关闭或空，可能是 SS，不误杀
                 except socket.timeout:
-                    s.close()
                     return True  # 超时 = 服务器没断开 = 可能是 SS
                 except (ConnectionResetError, ConnectionAbortedError):
-                    s.close()
                     # BUGFIX v28.20: SS 服务器收到非法数据后 RST 是正常行为（解密失败重置）
                     # 之前误判为"不是SS"导致大量 SS 节点被误杀
                     return True
             except Exception:
                 return True  # 连接失败默认放过，不误杀
+            finally:
+                if s:
+                    try:
+                        s.close()
+                    except Exception:
+                        pass
         elif ptype == "hysteria" or ptype == "hysteria2":
             # Hysteria 是 QUIC/UDP 协议，TCP 探测无意义，默认放过
             return True
         elif ptype == "http":
             # HTTP 代理：发送 CONNECT 请求
+            s = None
             try:
                 s = _create_socket(host, timeout)
                 s.connect((host, port))
                 s.send(b"CONNECT www.gstatic.com:443 HTTP/1.1\r\nHost: www.gstatic.com:443\r\n\r\n")
                 data = s.recv(256)
-                s.close()
                 # HTTP 代理应返回 200/407 等 HTTP 响应
                 return b"HTTP/" in data
             except Exception:
                 return False
+            finally:
+                if s:
+                    try:
+                        s.close()
+                    except Exception:
+                        pass
         elif ptype == "socks5":
             # SOCKS5: 发送握手
+            s = None
             try:
                 s = _create_socket(host, timeout)
                 s.connect((host, port))
                 s.send(b"\x05\x01\x00")  # SOCKS5, 1 auth method, no auth
                 data = s.recv(16)
-                s.close()
                 # SOCKS5 服务器应返回 0x05 + method
                 return len(data) >= 2 and data[0] == 0x05
             except Exception:
                 return False
+            finally:
+                if s:
+                    try:
+                        s.close()
+                    except Exception:
+                        pass
         else:
             # 未知协议默认放过
             return True
@@ -832,11 +870,22 @@ class SmartRateLimiter:
                 return interval
         return self.domain_intervals['default']
 
+    def _cleanup_stale(self):
+        """v28.22: 清理超过60秒未使用的域名锁和计时器，防止内存无限增长"""
+        now = time.time()
+        stale = [d for d, t in self.last_call.items() if now - t > 60]
+        for d in stale:
+            self.locks.pop(d, None)
+            self.last_call.pop(d, None)
+
     def wait(self, url=""):
         domain = urlparse(url).netloc or "default"
         if domain not in self.locks:
             self.locks[domain] = threading.Lock()
             self.last_call[domain] = 0
+        # v28.22: 每次wait时以1%概率触发清理，避免频繁但防止无限增长
+        if len(self.locks) > 50 and random.random() < 0.01:
+            self._cleanup_stale()
         with self.locks[domain]:
             now = time.time()
             interval = self._get_interval(domain)
@@ -925,14 +974,31 @@ def discover_github_forks():
 
     # 并行获取所有 base repo 的 fork 列表
     def fetch_forks(base):
-        # ⚡ 只取最新的 MAX_FORK_REPOS 个 fork
+        # v28.22: GitHub API 限流处理 + Token 支持
         url = f"https://api.github.com/repos/{base}/forks?per_page={MAX_FORK_REPOS}&sort=newest"
-        try:
-            resp = session.get(url, timeout=10, headers={"Accept": "application/vnd.github.v3+json"})
-            if resp.status_code == 200:
-                return resp.json()
-        except Exception:
-            logging.debug("GitHub API request failed: %s", url)
+        headers = {"Accept": "application/vnd.github.v3+json"}
+        if GITHUB_TOKEN:
+            headers["Authorization"] = f"token {GITHUB_TOKEN}"
+        for attempt in range(2):
+            try:
+                resp = session.get(url, timeout=10, headers=headers)
+                if resp.status_code == 200:
+                    return resp.json()
+                elif resp.status_code == 403:
+                    # API 限流，等待后重试
+                    reset = int(resp.headers.get("X-RateLimit-Reset", 0))
+                    if reset and attempt == 0:
+                        wait_time = max(reset - int(time.time()), 1)
+                        wait_time = min(wait_time, 30)  # 最多等30秒
+                        print(f"   ⏳ GitHub API 限流，等待 {wait_time}s...")
+                        time.sleep(wait_time)
+                        continue
+                    logging.debug("GitHub API rate limited: %s", base)
+                    return []
+                elif resp.status_code == 404:
+                    return []  # Repo 不存在
+            except Exception:
+                logging.debug("GitHub API request failed: %s", url)
         return []
 
     # 并行获取 fork 列表
@@ -1743,7 +1809,7 @@ def get_region(name, server=None, sni=None):
     elif match(["kh", "cambodia", "🇰🇭", "柬埔寨", "金边", "phnom penh"]):
         return "🇰🇭", "KH"
     # 老挝检测 (v28.16)
-    elif match(["la", "laos", "🇱🇦", "老挝", "万象", "vientiane"]):
+    elif match(["laos", "🇱🇦", "老挝", "万象", "vientiane"]) or re.search(r"\blaos\b", nl):
         return "🇱🇦", "LA"
     # 缅甸检测 (v28.16)
     elif match(["mm", "myanmar", "🇲🇲", "缅甸", "仰光", "yangon"]):
@@ -2021,8 +2087,8 @@ def get_region(name, server=None, sni=None):
 
 
 # ========== IP 地理位置缓存 (ip-api.com 批量查询) ==========
-# v28.17: 使用 limiter.ip_geo_cache 替代全局变量，支持持久化
-_ip_geo_cache = limiter.ip_geo_cache
+# v28.22: 移除过时的 _ip_geo_cache = limiter.ip_geo_cache 引用
+# 所有地理缓存访问统一通过 limiter.get_geo() / limiter.set_geo()
 
 
 def _cc_to_flag(cc):
@@ -2066,9 +2132,11 @@ def is_asia(p):
     t = f"{p.get('name', '')} {p.get('server', '')}".lower()
     # 二字母代码精确匹配
     tokens = set(re.split(r'[\s\-_|,.:;/()（）【】\[\]{}]+', t))
+    # v28.22: 移除 "la"(老挝→误匹配Los Angeles) 和 "my"(马来西亚→误匹配英文my)
+    # 这些改由长关键词和TLD判断
     asia_2letter = {
-        "hk", "tw", "jp", "sg", "kr", "th", "vn", "my",
-        "ph", "mo", "mn", "kh", "la", "mm", "bn",
+        "hk", "tw", "jp", "sg", "kr", "th", "vn",
+        "ph", "mo", "mn", "kh", "mm", "bn",
         "tl", "np", "lk", "bd", "bt", "mv",
     }
     # BUGFIX v28.20: 移除 "id" 和 "in" 二字母代码
@@ -2982,7 +3050,7 @@ def format_proxy_to_link(p):
                 b64_full = base64.b64encode(full.encode()).decode()
                 return f"ssr://{b64_full}"
             except Exception:
-                return f"# {p.get('name', 'unknown')} (SSR fallback)"
+                return None  # v28.22: SSR 序列化失败时返回 None 而非注释行，避免客户端解析错误
 
         elif ptype == "hysteria2":
             pwd = urllib.parse.quote(p.get('password', ''), safe='')
@@ -3032,14 +3100,19 @@ def format_proxy_to_link(p):
             scheme = "https" if p.get('tls') else "http"
             return f"{scheme}://{auth}{p['server']}:{p['port']}#{name_enc}"
 
-        return f"# {p['name']}"
+        return None  # v28.22: 未知协议返回None而非注释行，避免客户端解析错误
     except Exception:
-        return f"# {p.get('name', 'unknown')}"
+        return None  # v28.22: 异常时返回None而非注释行
 
 
 # ⭐ 主程序（集成 Fork 发现）
 def main():
     st = time.time()
+
+    # v28.22: CN CIDR 数据有效期校验
+    if not is_cidr_data_fresh():
+        logging.warning("⚠️ CN_CIDR 数据已过期，建议运行 gen_cn_cidr.py 更新")
+
     clash = ClashManager()
     namer = NodeNamer()
     proxy_ok = False
@@ -3048,8 +3121,8 @@ def main():
     USE_ASYNC_FETCH = os.getenv("USE_ASYNC_FETCH", "0") == "1"
 
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v28.20 - 大陆优化版")
-    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.20")
+    print("🚀 聚合订阅爬虫 v28.22 - 大陆优化版")
+    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.22")
     print(f"异步抓取: {'✅ 启用' if USE_ASYNC_FETCH else '❌ 禁用（同步模式）'}")
     print("=" * 50)
 
@@ -3237,7 +3310,7 @@ def main():
             except Exception:
                 return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
         # 提高并发数用于 TCP 测试（大幅提高）
-        tcp_workers = 200  # 100 → 200
+        tcp_workers = min(int(os.getenv("TCP_WORKERS", "200")), 500)  # v28.22: 可配置，上限500
         with ThreadPoolExecutor(max_workers=tcp_workers) as ex:
             futures = {ex.submit(test_tcp_node, p): p for p in nlist}
             completed = 0
@@ -3267,7 +3340,7 @@ def main():
             else:
                 host = srv
             score = 0
-            geo = _ip_geo_cache.get(host)
+            geo = limiter.get_geo(host)  # v28.22: 统一使用 limiter.get_geo()
             if geo:
                 score += 2  # 有地理位置信息，更可靠
                 cc = geo.get("countryCode", "").upper()
@@ -3535,7 +3608,7 @@ def main():
             yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
 
         # BUGFIX: 标准订阅格式 = 整块 base64 编码（大部分客户端要求此格式）
-        plain_lines = '\n'.join(format_proxy_to_link(p) for p in unique_final)
+        plain_lines = '\n'.join(link for p in unique_final if (link := format_proxy_to_link(p)) is not None)  # v28.22: 过滤None
         b64_content = base64.b64encode(plain_lines.encode('utf-8')).decode('utf-8')
         with open("subscription.txt", "w", encoding="utf-8") as f:
             f.write(b64_content)

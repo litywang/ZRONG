@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v28.25 - 大陆优化版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.25
+聚合订阅爬虫 v28.26 - 大陆优化版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.26
 优化：httpx连接池 + 异步HTTP抓取 + sources.yaml配置外置 + Clash分批测速 + 大陆可用性优化 + ProxyNode数据模型
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性 + 大陆高可用
 CHANGELOG v28.25:
@@ -3134,11 +3134,25 @@ class ClashManager:
 
     def create_config(self, proxies):
         ensure_clash_dir()
+        # BUGFIX v28.26: 过滤 Clash 不支持的协议（anytls 等）
+        SUPPORTED_TYPES = {
+            'ss', 'ssr', 'vmess', 'vless', 'trojan', 'socks5', 'http',
+            'hysteria', 'hysteria2', 'tuic', 'snell', 'mieru', 'juicity'
+        }
+        filtered = []
+        for p in proxies:
+            if p.get('type', '').lower() not in SUPPORTED_TYPES:
+                logging.debug("Clash: 跳过不支持的协议类型 %s from %s", p.get('type'), p.get('name','?'))
+                continue
+            filtered.append(p)
+        if not filtered:
+            print("   ⚠️ 所有节点协议均不支持，无法生成 Clash 配置")
+            return False
         # BUGFIX: 移除内部双重截断，调用方已用 batch_size 限制了 proxies 数量
         # 原代码 proxies[:MAX_PROXY_TEST_NODES] 出现两次，与外层 batch_size 职责重叠
         names = []
         seen = set()
-        cleaned_proxies = [self._clean_proxy_for_clash(p) for p in proxies]
+        cleaned_proxies = [self._clean_proxy_for_clash(p) for p in filtered]
         for i, p in enumerate(cleaned_proxies):
             name = p["name"]
             if name in seen:

@@ -83,6 +83,39 @@ urllib3_logger = logging.getLogger('urllib3')
 urllib3_logger.setLevel(logging.CRITICAL)
 urllib3_logger.propagate = False
 
+# ========== v28.23: 通用重试装饰器 ==========
+def retry_on_exception(max_retries=2, backoff=1.0, jitter=0.5,
+                      retry_on=(Exception,), return_on_fail=None):
+    """通用重试装饰器。
+
+    Args:
+        max_retries: 最大重试次数（不含首次调用）
+        backoff: 退避基数（秒），实际等待 = backoff * attempt + random jitter
+        jitter: 随机抖动上限（秒）
+        retry_on: 仅捕获这些异常类型进行重试
+        return_on_fail: 全部重试失败后的返回值（默认 None）
+    """
+    import functools
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            last_exc = None
+            for attempt in range(max_retries + 1):
+                try:
+                    return func(*args, **kwargs)
+                except retry_on as e:
+                    last_exc = e
+                    if attempt < max_retries:
+                        wait = backoff * (attempt + 1) + random.uniform(0, jitter)
+                        print(f"   [retry] {func.__name__} attempt {attempt+1}/{max_retries} failed: {e}, waiting {wait:.1f}s")
+                        time.sleep(wait)
+            if last_exc is not None:
+                print(f"   [retry] {func.__name__} exhausted {max_retries} retries")
+            return return_on_fail
+        return wrapper
+    return decorator
+
+
 # ========== httpx 同步客户端（高性能连接池 + HTTP/2）==========
 _http_client = None
 _http_client_lock = threading.Lock()  # v28.8: 添加线程锁保护
@@ -2414,25 +2447,22 @@ def decode_b64(c):
         return c
 
 
+@retry_on_exception(max_retries=1, backoff=2.0, jitter=1.0, return_on_fail="")
 def fetch(url):
-    """【v28.1 httpx优化】GitHub URL 多镜像池遍历 + HTTP/2"""
+    """【v28.23 httpx优化】GitHub URL 多镜像池遍历 + HTTP/2 + 装饰器重试"""
     limiter.wait(url)
     client = get_http_client()
     headers = random.choice(HEADERS_POOL)
     is_github = "github" in url.lower() or "raw.githubusercontent" in url
 
-    # 非GitHub URL：直连 + 重试
+    # 非GitHub URL：直连
     if not is_github:
-        for attempt in range(2):
-            try:
-                resp = client.get(url, headers=headers)
-                if resp.status_code == 200:
-                    return resp.text.strip()
-                elif resp.status_code in (403, 429):
-                    time.sleep(3)
-                    continue
-            except Exception:
-                time.sleep(1)
+        resp = client.get(url, headers=headers)
+        if resp.status_code == 200:
+            return resp.text.strip()
+        elif resp.status_code in (403, 429):
+            time.sleep(3)
+            raise ConnectionError(f"HTTP {resp.status_code}")  # 触发装饰器重试
         return ""
 
     # GitHub: 镜像池 + 原始URL兜底
@@ -2444,20 +2474,21 @@ def fetch(url):
     all_urls.append(url)
 
     for try_url in all_urls:
-        for attempt in range(2):
-            try:
-                resp = client.get(try_url, headers=headers)
-                if resp.status_code == 200:
-                    text = resp.text.strip()
-                    if text.startswith("<!") or text.startswith("<html"):
-                        continue
-                    if len(text) > 50:
-                        return text
-                elif resp.status_code in (403, 429, 503):
-                    time.sleep(random.uniform(2.0, 5.0))
+        try:
+            resp = client.get(try_url, headers=headers)
+            if resp.status_code == 200:
+                text = resp.text.strip()
+                if text.startswith("<!") or text.startswith("<html"):
                     continue
-            except Exception:
-                time.sleep(random.uniform(0.5, 1.5))
+                if len(text) > 50:
+                    return text
+            elif resp.status_code in (403, 429, 503):
+                time.sleep(random.uniform(2.0, 5.0))
+                raise ConnectionError(f"GitHub HTTP {resp.status_code}")  # 触发装饰器重试
+        except ConnectionError:
+            raise  # 透传给装饰器
+        except Exception:
+            time.sleep(random.uniform(0.5, 1.5))
     return ""
 
 

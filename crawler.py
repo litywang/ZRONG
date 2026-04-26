@@ -1128,17 +1128,20 @@ class SmartRateLimiter:
 
     def _cleanup_stale(self):
         """v28.22: 清理超过60秒未使用的域名锁和计时器，防止内存无限增长"""
-        now = time.time()
-        stale = [d for d, t in self.last_call.items() if now - t > 60]
-        for d in stale:
-            self.locks.pop(d, None)
-            self.last_call.pop(d, None)
+        # BUGFIX: 加锁保护 + 避免迭代时修改字典
+        with self._cache_lock:  # 复用缓存锁（都是元数据）
+            now = time.time()
+            # 复制 key 列表，避免 dictionary changed size during iteration
+            stale = [d for d, t in list(self.last_call.items()) if now - t > 60]
+            for d in stale:
+                self.locks.pop(d, None)
+                self.last_call.pop(d, None)
 
     def wait(self, url=""):
         domain = urlparse(url).netloc or "default"
-        if domain not in self.locks:
-            self.locks[domain] = threading.Lock()
-            self.last_call[domain] = 0
+        # BUGFIX: 使用 setdefault 原子操作，避免 TOCTOU 竞态
+        self.locks.setdefault(domain, threading.Lock())
+        self.last_call.setdefault(domain, 0.0)
         # v28.22: 每次wait时以1%概率触发清理，避免频繁但防止无限增长
         if len(self.locks) > 50 and random.random() < 0.01:
             self._cleanup_stale()
@@ -1149,7 +1152,7 @@ class SmartRateLimiter:
             elapsed = now - last
             if elapsed < interval:
                 time.sleep(interval - elapsed)
-            self.last_call[domain] = time.time()  # BUGFIX: 用局部变量避免 TOCTOU
+            self.last_call[domain] = now
 
     def _get_cache_file(self):
         """获取缓存文件路径"""

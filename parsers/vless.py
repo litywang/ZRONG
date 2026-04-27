@@ -7,6 +7,16 @@ from .common import ProxyNode, generate_unique_id
 
 logger = logging.getLogger(__name__)
 
+def _safe_port(val, default=443):
+    """端口安全转换"""
+    try:
+        p = int(val) if val else default
+        if p <= 0 or p > 65535:
+            return default
+        return p
+    except (ValueError, TypeError):
+        return default
+
 def parse_vless(node: str) -> dict | None:
     """解析 vless:// 链接，返回 dict（兼容层）。内部使用 ProxyNode 结构化存储。"""
     try:
@@ -41,10 +51,13 @@ def parse_vless(node: str) -> dict | None:
             node_obj.tls = True
             node_obj.sni = gp("sni") or node_obj.server
         if sec == "reality":
-            pbk, sid = gp("pbk"), gp("sid")
+            # v28.39: 安全获取reality参数
+            pbk = gp("pbk")
+            sid = gp("sid")
             if pbk and sid:
                 node_obj.vless_opts = {"reality-opts": {"public-key": pbk, "short-id": sid}}
             else:
+                logger.debug("VLESS reality missing pbk or sid, skipping")
                 return None
         fp = gp("fp")
         if fp:
@@ -84,14 +97,3 @@ def parse_vless(node: str) -> dict | None:
     except Exception as e:
         logger.debug(f"VLESS解析失败: {e}", exc_info=True)
         return None
-
-
-def _safe_port(val, default=443):
-    """端口安全转换"""
-    try:
-        p = int(val) if val else default
-        if p <= 0 or p > 65535:
-            return default
-        return p
-    except (ValueError, TypeError):
-        return default

@@ -1,5 +1,5 @@
 # sources/github.py - GitHub Fork 发现模块
-# v28.35: 从 crawler.py 解耦
+# v28.39: 从 crawler.py 解耦
 
 import os
 import time

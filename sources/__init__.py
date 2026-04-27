@@ -1,6 +1,6 @@
 # sources/__init__.py - 源抓取包
 # 包含 GitHub Fork、Telegram 频道、固定订阅源的抓取逻辑
-# v28.35: 从 crawler.py 解耦，模块化架构
+# v28.39: 从 crawler.py 解耦，模块化架构
 
 from .github import discover_github_forks
 from .telegram import crawl_telegram_channels, get_telegram_pages, crawl_telegram_page, crawl_single_channel

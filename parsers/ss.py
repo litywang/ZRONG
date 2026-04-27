@@ -16,6 +16,11 @@ def parse_ss(node: str) -> dict | None:
         info = parts[0]
         # 从 URL fragment 提取原始名称
         original_name = parts[1] if len(parts) > 1 else None
+        # v28.39: 初始化变量，避免异常路径未定义
+        method = ""
+        pwd = ""
+        server = ""
+        port = ""
         try:
             m_info = len(info) % 4
             info_padded = info + "=" * (4 - m_info) if m_info else info
@@ -23,10 +28,19 @@ def parse_ss(node: str) -> dict | None:
             method_pwd, server_info = decoded.split("@", 1)
             method, pwd = method_pwd.split(":", 1)
         except Exception:
-            logger.debug("Exception occurred", exc_info=True)
-            method_pwd, server_info = info.split("@", 1)
-            method, pwd = method_pwd.split(":", 1)
-        server, port = server_info.rsplit(":", 1)  # BUGFIX v28.20: 用 rsplit 从右拆分，兼容 IPv6
+            logger.debug("Base64 decode failed, trying plain text", exc_info=True)
+            try:
+                method_pwd, server_info = info.split("@", 1)
+                method, pwd = method_pwd.split(":", 1)
+            except Exception:
+                logger.debug("Plain text parse also failed", exc_info=True)
+                return None
+        # v28.39: 安全拆分server和port
+        try:
+            server, port = server_info.rsplit(":", 1)  # BUGFIX v28.20: 用 rsplit 从右拆分，兼容 IPv6
+        except ValueError:
+            logger.debug("Failed to split server:port from %s", server_info)
+            return None
         # 去除 IPv6 方括号
         if server.startswith("[") and server.endswith("]"):
             server = server[1:-1]
@@ -34,6 +48,11 @@ def parse_ss(node: str) -> dict | None:
         # 如果没有原始名称，生成默认名称
         if not original_name:
             original_name = f"SS-{generate_unique_id({'server': server, 'port': _safe_port(port), 'password': pwd})}"
+
+        # v28.39: 验证必要字段
+        if not server or not method or not pwd:
+            logger.debug("Missing required fields: server=%s method=%s", server, method)
+            return None
 
         # v28.26: 使用 ProxyNode 结构化存储
         node_obj = ProxyNode(

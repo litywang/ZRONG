@@ -28,7 +28,7 @@ NON_PROXY_PORTS = {2377, 2376, 2375, 9200, 9300, 27017, 27018, 27019, 6379, 1121
 
 def generate_unique_id(proxy):
     """生成节点唯一ID（与 crawler.py 原逻辑一致）
-    ✅ v28.37: 包含协议类型和路径，避免不同协议/路径的节点被误去重
+    ✅ v28.39: 包含协议类型和路径，避免不同协议/路径的节点被误去重
     """
     protocol = proxy.get('type', proxy.get('protocol', 'unknown'))
     server = proxy.get('server', '')
@@ -463,7 +463,7 @@ def get_region(name, server=None, sni=None):
                 return "🇪🇨", "EC"
 
     # v28.5 FIX: IP 地理位置 fallback
-    # BUGFIX v28.35: 使用 _get_limiter() 延迟导入，避免循环依赖
+    # BUGFIX v28.39: 使用 _get_limiter() 延迟导入，避免循环依赖
     if is_pure_ip(server):
         try:
             limiter = _get_limiter()
@@ -573,7 +573,7 @@ def is_china_mainland(p):
             return True
         if any(k in t for k in cn_long):
             return True
-        # v28.36: 检测 server IP 是否为中国大陆 IP
+        # v28.39: 检测 server IP 是否为中国大陆 IP
         server = p.get("server", "")
         if is_pure_ip(server):
             try:

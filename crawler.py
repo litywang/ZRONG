@@ -24,10 +24,10 @@ from sources import (
     is_base64, decode_b64, is_yaml_content, parse_yaml_proxies,
     strip_url, check_url, check_url_fast,
 )
-# v28.35: 工具函数已迁移到 utils.py，请从 utils 导入
+# v28.39: 工具函数已迁移到 utils.py，请从 utils 导入
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v28.33 - 大陆优化版
+聚合订阅爬虫 v28.39 - 大陆优化版
 作者：Anftlity | Version: 28.33
 优化：httpx连接池 + 异步HTTP抓取 + sources.yaml配置外置 + Clash分批测速 + 大陆可用性优化 + ProxyNode数据模型
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性 + 大陆高可用
@@ -897,7 +897,7 @@ def _proto_handshake_ok(host, port, ptype, proxy=None, timeout=3.0):
                     # 之前误判为"不是SS"导致大量 SS 节点被误杀
                     return True
             except Exception:
-                logging.debug("Exception occurred", exc_info=True)
+                logging.debug("SS handshake probe failed", exc_info=True)
                 return True  # 连接失败默认放过，不误杀
             finally:
                 if s:
@@ -988,7 +988,7 @@ def _tcp_ping(host, port, timeout=2.5):
         return 9999
 
 
-# BUGFIX v28.35: 添加 tcp_ping 别名（兼容主流程调用）
+# BUGFIX v28.39: 添加 tcp_ping 别名（兼容主流程调用）
 tcp_ping = _tcp_ping
 
 
@@ -1109,7 +1109,7 @@ class SmartRateLimiter:
 limiter = SmartRateLimiter()
 
 
-# BUGFIX v28.35: 添加 _ip_geo_batch（主流程依赖）
+# BUGFIX v28.39: 添加 _ip_geo_batch（主流程依赖）
 def _ip_geo_batch(ips):
     """批量查询 IP 地理位置，使用 ip-api.com（免费，100条/批）"""
     if not ips:
@@ -1164,7 +1164,7 @@ session = create_session()
 
 
 def filter_quality(p):
-    """【v28.36】节点质量过滤，含 CN IP/域名黑名单 + 非代理端口过滤 + 大陆友好性评分"""
+    """【v28.39】节点质量过滤，含 CN IP/域名黑名单 + 非代理端口过滤 + 大陆友好性评分"""
     if not p or not isinstance(p, dict):
         return False
     name = p.get("name", "").lower()
@@ -1189,7 +1189,7 @@ def filter_quality(p):
     if port in NON_PROXY_PORTS:
         return False
 
-    # v28.36: 大陆友好性评分过滤 - 过滤掉极低友好度的节点
+    # v28.39: 大陆友好性评分过滤 - 过滤掉极低友好度的节点
     try:
         mf_score = mainland_friendly_score(p)
         if mf_score < 10:  # 友好度低于10分的节点大概率不可用
@@ -1364,6 +1364,8 @@ class ClashManager:
                 # pylint: disable=no-member
                 popen_kwargs["preexec_fn"] = os.setsid  # type: ignore[attr-defined]
             self.process = subprocess.Popen(cmd, **popen_kwargs)
+            # v28.39: 初始化 out 避免未定义
+            out = ""
             for i in range(30):
                 time.sleep(1)
                 if self.process.poll() is not None:
@@ -1493,7 +1495,7 @@ class NodeNamer:
         code, region = get_region(flag, server=server, sni=sni)
         self.counters[region] = self.counters.get(region, 0) + 1
         num = self.counters[region]
-        # v28.37: 使用哥特体后缀 𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+        # v28.39: 使用哥特体后缀 𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
         return f"{code}{num}-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
 
 
@@ -1612,7 +1614,7 @@ def format_proxy_to_link(p):
                 server = p.get('server', '')
                 port = p.get('port', 0)
                 protocol = p.get('protocol', 'origin')
-                method = p.get('method', 'aes-256-cfb')
+                method = p.get('method') or p.get('cipher', 'aes-256-cfb')
                 obfs = p.get('obfs', 'plain')
                 password = p.get('password', '')
                 b64_pwd = base64.b64encode(password.encode()).decode().rstrip('=')
@@ -1720,7 +1722,7 @@ def main():
     USE_ASYNC_FETCH = os.getenv("USE_ASYNC_FETCH", "0") == "1"
 
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v28.30 - 大陆优化版")
+    print("🚀 聚合订阅爬虫 v28.39 - 大陆优化版")
     print("作者：Anftlity | Version: 28.33")
     print(f"异步抓取: {'✅ 启用' if USE_ASYNC_FETCH else '❌ 禁用（同步模式）'}")
     print("=" * 50)
@@ -1920,7 +1922,7 @@ def main():
                 # v28.8: 非友好区域扣分
                 elif cc in NON_FRIENDLY_REGIONS:
                     score -= NON_FRIENDLY_PENALTY
-                        # 大陆友好加分：名称含大陆/CN/内地关键词
+            # 大陆友好加分：名称含大陆/CN/内地关键词
             name_lower = item.get("proxy", {}).get("name", "").lower()
             cn_friendly_kw = ["cn", "china", "国内", "大陆", "直连", "beijing", "shanghai", "guangzhou", "shenzhen"]
             if any(kw in name_lower for kw in cn_friendly_kw):
@@ -2210,11 +2212,16 @@ def main():
         # 统计
         tt = time.time() - st
         asia_ct = sum(1 for p in unique_final if is_asia(p))
-        # BUGFIX v28.20: 移除对 final 节点的重复 tcp_ping
-        # 原代码对 unique_final[:20] 再次 tcp_ping，但这些节点已通过 Clash 测速
-        # 额外延迟无意义且可能因网络波动显示不准确延迟
-        # 改为从测速结果中提取已知延迟
-        min_lat = 0  # Clash 测速延迟已在命名中体现，此处无需重复检测
+        # v28.39: 从节点名称提取延迟用于统计
+        min_lat = 9999
+        for p in unique_final[:20]:
+            m = re.search(r"(\d+)", p.get("name", ""))
+            if m:
+                lat = int(m.group(1))
+                if 0 < lat < min_lat:
+                    min_lat = lat
+        if min_lat == 9999:
+            min_lat = 0
 
         print("\n" + "=" * 180)
         print("📊 统计结果")

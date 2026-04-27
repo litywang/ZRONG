@@ -1,7 +1,12 @@
 import yaml
 import sys
+import io
 
-# v28.22: 增加 YAML 格式校验
+# v28.39: 修复 Windows 控制台编码问题
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
+# v28.39: 增加 YAML 格式校验
 def validate_proxies_yaml(filepath="proxies.yaml"):
     """验证 proxies.yaml 格式正确性"""
     try:
@@ -18,11 +23,11 @@ def validate_proxies_yaml(filepath="proxies.yaml"):
             for field in required_fields:
                 assert field in p, f"节点 {i} 缺少 {field}"
 
-        return True, cfg, "✓ 格式验证通过"
+        return True, cfg, "[OK] 格式验证通过"
     except FileNotFoundError:
-        return False, None, f"❌ 文件不存在: {filepath}"
+        return False, None, f"[FAIL] 文件不存在: {filepath}"
     except Exception as e:
-        return False, None, f"❌ 验证失败: {e}"
+        return False, None, f"[FAIL] 验证失败: {e}"
 
 ok, cfg, msg = validate_proxies_yaml()
 print(msg)

@@ -1,5 +1,5 @@
 # sources/subscription.py - 订阅源抓取模块
-# v28.35: 从 crawler.py 解耦
+# v28.39: 从 crawler.py 解耦
 
 import os
 import re
@@ -437,7 +437,15 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
 
     try:
         for coro in asyncio.as_completed(tasks):
-            local_nodes, is_yaml = await coro
+            # v28.39: 安全解构，避免未定义变量
+            local_nodes = {}
+            is_yaml = False
+            try:
+                local_nodes, is_yaml = await coro
+            except Exception as e:
+                logging.debug("Fetch task failed: %s", e)
+                local_nodes = {}
+                is_yaml = False
             completed += 1
 
             for h, p in local_nodes.items():

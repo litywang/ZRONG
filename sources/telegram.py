@@ -1,5 +1,5 @@
 # sources/telegram.py - Telegram 频道爬虫模块
-# v28.35: 从 crawler.py 解耦
+# v28.39: 从 crawler.py 解耦
 
 import re
 import time
@@ -245,6 +245,9 @@ def crawl_single_channel(channel: str, pages: int = 2, limits: int = 20) -> tupl
 
         return channel_subs, channel, "ok"
     except Exception as e:
+        # v28.39: 确保 channel_subs 已定义
+        if 'channel_subs' not in locals():
+            channel_subs = {}
         return channel_subs, channel, str(e)[:50]
 
 
@@ -267,7 +270,14 @@ def crawl_telegram_channels(channels: List[str], pages: int = 2, limits: int = 2
         completed = 0
         for future in as_completed(futures):
             completed += 1
-            channel_subs, channel, status = future.result()
+            # v28.39: 安全解构，避免未定义变量
+            try:
+                channel_subs, channel, status = future.result()
+            except Exception as e:
+                logger.debug("Channel crawl failed: %s", e)
+                channel_subs = {}
+                channel = futures[future]
+                status = str(e)[:50]
 
             for link, meta in channel_subs.items():
                 if link not in all_subscribes:

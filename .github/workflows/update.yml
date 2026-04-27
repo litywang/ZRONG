@@ -87,11 +87,55 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          
+          # v28.39: 先彻底清理所有运行时缓存，确保工作区干净
+          rm -f .ip_geo_cache.json
+          git checkout -- .ip_geo_cache.json 2>/dev/null || true
+          git rm --cached .ip_geo_cache.json 2>/dev/null || true
+          
+          # 确保 .gitignore 排除缓存文件（如果不存在则添加）
+          if ! grep -q "\.ip_geo_cache\.json" .gitignore 2>/dev/null; then
+            echo ".ip_geo_cache.json" >> .gitignore
+            git add .gitignore
+          fi
+          
+          # 只添加目标文件
           git add proxies.yaml subscription.txt cn_cidr_data.py
+          
+          # 检查是否有变更需要提交
+          if git diff --staged --quiet; then
+            echo "[OK] No changes to commit"
+            exit 0
+          fi
+          
           git status
           git diff --staged --stat
-          git pull --rebase origin main || echo "Rebase failed, will push anyway"
-          git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M') [v28.35]" || echo "Nothing to commit"
+          
+          # v28.39: 安全推送策略
+          # 先 fetch 远程最新状态
+          git fetch origin main
+          
+          # 方法1: 尝试 rebase + autostash（最干净的方式）
+          if git pull --rebase --autostash origin main; then
+            echo "[OK] Rebase successful"
+          else
+            echo "[WARN] Rebase failed, trying merge strategy"
+            git rebase --abort 2>/dev/null || true
+            
+            # 方法2: stash 本地变更，merge 后再应用
+            git stash push -m "auto-stash-$(date +%s)"
+            git pull origin main
+            
+            # 重新应用我们的变更（如果有冲突，优先保留我们的版本）
+            git checkout --theirs proxies.yaml subscription.txt cn_cidr_data.py 2>/dev/null || true
+            git add proxies.yaml subscription.txt cn_cidr_data.py
+            git stash pop || true
+          fi
+          
+          # 最终提交和推送
+          git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M') [v28.39]" || echo "[OK] Nothing new to commit"
+          
+          # 使用 token 推送
           git push https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}.git HEAD:main
 
       - name: Upload Logs on Failure

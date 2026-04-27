@@ -93,11 +93,17 @@ class ProxyNode:
             p.update({"password": self.password or "", "sni": self.sni or self.server})
             if self.hysteria_opts:
                 p.update(self.hysteria_opts)
+            else:
+                # v28.39: 确保 hysteria2 基础字段存在
+                p.update({"up": "100 Mbps", "down": "100 Mbps"})
         elif self.protocol == "tuic":
             p["type"] = "tuic"
             p.update({"uuid": self.uuid, "password": self.password, "sni": self.sni or self.server})
             if self.tuic_opts:
                 p.update(self.tuic_opts)
+            else:
+                # v28.39: 确保 tuic 基础字段存在
+                p.update({"congestion-controller": "bbr"})
         elif self.protocol == "ssr":
             p.update({"cipher": self.cipher, "password": self.password})
             if self._extra:
@@ -181,5 +187,6 @@ def _safe_port(val, default=443):
 
 from urllib.parse import urlparse, unquote, parse_qs
 
-# 日志配置
-logging.basicConfig(level=logging.DEBUG)
+# 日志配置 - v28.39: 使用 NullHandler 避免重复配置
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())

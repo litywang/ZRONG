@@ -3,9 +3,18 @@
 
 import logging
 from urllib.parse import urlparse, unquote, parse_qs
-from .common import ProxyNode
+from .common import ProxyNode, generate_unique_id
 
 logger = logging.getLogger(__name__)
+
+def _safe_port(val, default=443):
+    try:
+        p = int(val) if val else default
+        if p <= 0 or p > 65535:
+            return default
+        return p
+    except (ValueError, TypeError):
+        return default
 
 def parse_snell(node: str) -> dict | None:
     """解析 snell:// 链接，返回 dict（兼容层）。"""
@@ -43,16 +52,3 @@ def parse_snell(node: str) -> dict | None:
     except Exception as e:
         logger.debug(f"[parse_snell] 解析失败: {e}", exc_info=True)
         return None
-
-
-def _safe_port(val, default=443):
-    try:
-        p = int(val) if val else default
-        if p <= 0 or p > 65535:
-            return default
-        return p
-    except (ValueError, TypeError):
-        return default
-
-
-from .common import generate_unique_id

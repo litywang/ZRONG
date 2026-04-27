@@ -1166,7 +1166,7 @@ session = create_session()
 
 
 def filter_quality(p):
-    """【v28.14】节点质量过滤，含 CN IP/域名黑名单 + 非代理端口过滤 + 亚洲优先"""
+    """【v28.36】节点质量过滤，含 CN IP/域名黑名单 + 非代理端口过滤 + 大陆友好性评分"""
     if not p or not isinstance(p, dict):
         return False
     name = p.get("name", "").lower()
@@ -1191,7 +1191,16 @@ def filter_quality(p):
     if port in NON_PROXY_PORTS:
         return False
 
-    # BUGFIX v28.35: 添加缺失的 return True
+    # v28.36: 大陆友好性评分过滤 - 过滤掉极低友好度的节点
+    try:
+        mf_score = mainland_friendly_score(p)
+        if mf_score < 10:  # 友好度低于10分的节点大概率不可用
+            logging.debug("Filter: skip low mainland-friendly node %s (score=%s)", p.get('name', '?'), mf_score)
+            return False
+    except Exception:
+        logging.debug("mainland_friendly_score error for %s", p.get('name', '?'), exc_info=True)
+        # 评分失败时不过滤，避免误杀
+
     return True
 
 # ⭐ Clash 管理（保持不变）

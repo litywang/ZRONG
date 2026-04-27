@@ -554,14 +554,32 @@ def is_china_mainland(p):
     """判断是否为内地直连节点（一般不可用，用于过滤）"""
     if not p or not isinstance(p, dict):
         return False
-    t = f"{p.get('name', '')} {p.get('server', '')}".lower()
-    tokens = set(re.split(r'[\s\-_|,.:;/()（）【】\[\]{}]+', t))
-    cn_2letter = {"cn"}
-    cn_long = ["china", "中国", "国内", "直连", "direct",
-               "北京", "上海", "广州", "深圳", "成都", "杭州"]
-    if tokens & cn_2letter:
-        return True
-    return any(k in t for k in cn_long)
+    try:
+        t = f"{p.get('name', '')} {p.get('server', '')}".lower()
+        tokens = set(re.split(r'[\s\-_|,.:;/()（）【】\[\]{}]+', t))
+        cn_2letter = {"cn"}
+        cn_long = ["china", "中国", "国内", "直连", "direct",
+                   "北京", "上海", "广州", "深圳", "成都", "杭州"]
+        if tokens & cn_2letter:
+            return True
+        if any(k in t for k in cn_long):
+            return True
+        # v28.36: 检测 server IP 是否为中国大陆 IP
+        server = p.get("server", "")
+        if is_pure_ip(server):
+            try:
+                limiter = _get_limiter()
+                geo = limiter.get_geo(server)
+                if geo:
+                    cc = geo.get("countryCode", "").upper()
+                    if cc == "CN":
+                        return True
+            except Exception:
+                pass  # limiter 未就绪时跳过
+        return False
+    except Exception:
+        logging.debug("is_china_mainland error", exc_info=True)
+        return False
 
 
 

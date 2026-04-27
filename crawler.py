@@ -809,6 +809,7 @@ def is_cn_proxy_ip(ip_str):
     try:
         ip = ipaddress.ip_address(ip_str)
     except Exception:
+        logging.debug("Exception occurred", exc_info=True)
         return None
     # 快速排除：如果/8前缀不在CN集合中，肯定不是CN
     if isinstance(ip, ipaddress.IPv4Address):
@@ -905,12 +906,14 @@ def tls_handshake_ok(host, port, timeout=5.0):
                 return False, "handshake_fail"
             return True, "ok"
     except Exception:
+        logging.debug("Exception occurred", exc_info=True)
         return True, "ok"
     finally:
         if sock:
             try:
                 sock.close()
             except Exception:
+                logging.debug("Exception occurred", exc_info=True)
                 pass
 
 # ========== HTTP HEAD 检测 ==========
@@ -944,6 +947,7 @@ def http_head_check(host, port, timeout=3.0):
                 logging.debug("HTTP probe failed for %s:%s", host, port)
         return False
     except Exception:
+        logging.debug("Exception occurred", exc_info=True)
         return False
 
 # ========== 丢包率检测 ==========
@@ -1016,12 +1020,14 @@ def _proto_handshake_ok(host, port, ptype, proxy=None, timeout=3.0):
                     # 之前误判为"不是SS"导致大量 SS 节点被误杀
                     return True
             except Exception:
+                logging.debug("Exception occurred", exc_info=True)
                 return True  # 连接失败默认放过，不误杀
             finally:
                 if s:
                     try:
                         s.close()
                     except Exception:
+                        logging.debug("Exception occurred", exc_info=True)
                         pass
         elif ptype == "hysteria" or ptype == "hysteria2":
             # Hysteria 是 QUIC/UDP 协议，TCP 探测无意义，默认放过
@@ -1037,12 +1043,14 @@ def _proto_handshake_ok(host, port, ptype, proxy=None, timeout=3.0):
                 # HTTP 代理应返回 200/407 等 HTTP 响应
                 return b"HTTP/" in data
             except Exception:
+                logging.debug("Exception occurred", exc_info=True)
                 return False
             finally:
                 if s:
                     try:
                         s.close()
                     except Exception:
+                        logging.debug("Exception occurred", exc_info=True)
                         pass
         elif ptype == "socks5":
             # SOCKS5: 发送握手
@@ -1055,17 +1063,20 @@ def _proto_handshake_ok(host, port, ptype, proxy=None, timeout=3.0):
                 # SOCKS5 服务器应返回 0x05 + method
                 return len(data) >= 2 and data[0] == 0x05
             except Exception:
+                logging.debug("Exception occurred", exc_info=True)
                 return False
             finally:
                 if s:
                     try:
                         s.close()
                     except Exception:
+                        logging.debug("Exception occurred", exc_info=True)
                         pass
         else:
             # 未知协议默认放过
             return True
     except Exception:
+        logging.debug("Exception occurred", exc_info=True)
         return True  # 探测失败不过滤，避免误杀
 
 
@@ -1079,6 +1090,7 @@ def tcp_verify(host, port, timeout=1.5):
         s.close()
         return True
     except Exception:
+        logging.debug("Exception occurred", exc_info=True)
         return False
 
 # ========== 内部 TCP Ping（兼容旧名 tcp_ping）==========
@@ -1095,6 +1107,7 @@ def _tcp_ping(host, port, timeout=2.5):
         s.close()
         return round((time.time() - start) * 1000, 1)
     except Exception:
+        logging.debug("Exception occurred", exc_info=True)
         return 9999
 
 
@@ -1573,6 +1586,7 @@ def parse_ss(node):
             method_pwd, server_info = decoded.split("@", 1)
             method, pwd = method_pwd.split(":", 1)
         except Exception:
+            logging.debug("Exception occurred", exc_info=True)
             method_pwd, server_info = info.split("@", 1)
             method, pwd = method_pwd.split(":", 1)
         server, port = server_info.rsplit(":", 1)  # BUGFIX v28.20: 用 rsplit 从右拆分，兼容 IPv6
@@ -2110,6 +2124,7 @@ def parse_yaml_proxies(content):
             results.append(p)
         return results
     except Exception:
+        logging.debug("Exception occurred", exc_info=True)
         return []
 
 
@@ -2505,6 +2520,7 @@ def _cc_to_flag(cc):
     try:
         return ''.join(chr(0x1F1E6 + ord(c) - ord('A')) for c in cc.upper()[:2])
     except Exception:
+        logging.debug("Exception occurred", exc_info=True)
         return "🌐"
 
 
@@ -2734,6 +2750,7 @@ def is_base64(s):
         base64.b64decode(s + "=" * (-len(s) % 4), validate=True)
         return True
     except Exception:
+        logging.debug("Exception occurred", exc_info=True)
         return False
 
 
@@ -2746,6 +2763,7 @@ def decode_b64(c):
         d = base64.b64decode(c).decode("utf-8", errors="ignore")
         return d if "://" in d else c
     except Exception:
+        logging.debug("Exception occurred", exc_info=True)
         return c
 
 
@@ -2790,6 +2808,7 @@ def fetch(url):
         except ConnectionError:
             raise  # 透传给装饰器
         except Exception:
+            logging.debug("Exception occurred", exc_info=True)
             time.sleep(random.uniform(0.5, 1.5))
     return ""
 
@@ -2922,6 +2941,7 @@ async def async_fetch_url(client: httpx.AsyncClient, url: str, mirror_pool: List
                         await asyncio.sleep(3)
                         continue
                 except Exception:
+                    logging.debug("Exception occurred", exc_info=True)
                     await asyncio.sleep(1)
         return ""
 
@@ -2948,6 +2968,7 @@ async def async_fetch_url(client: httpx.AsyncClient, url: str, mirror_pool: List
                         await asyncio.sleep(random.uniform(2.0, 5.0))
                         continue
                 except Exception:
+                    logging.debug("Exception occurred", exc_info=True)
                     await asyncio.sleep(random.uniform(0.5, 1.5))
     return ""
 
@@ -2988,6 +3009,7 @@ def tcp_ping(host, port, to=1.5):
         record_history(host, port, lat)
         return lat
     except Exception:
+        logging.debug("Exception occurred", exc_info=True)
         record_history(host, port, 9999)
         return 9999.0
     finally:
@@ -2996,6 +3018,7 @@ def tcp_ping(host, port, to=1.5):
             try:
                 s.close()
             except Exception:
+                logging.debug("Exception occurred", exc_info=True)
                 pass
 
 
@@ -3266,6 +3289,7 @@ class ClashManager:
             temp.unlink(missing_ok=True)
             return CLASH_PATH.exists()
         except Exception:
+            logging.debug("Exception occurred", exc_info=True)
             return False
 
     def _clean_proxy_for_clash(self, p):
@@ -3650,6 +3674,7 @@ def format_proxy_to_link(p):
                 b64_full = base64.b64encode(full.encode()).decode()
                 return f"ssr://{b64_full}"
             except Exception:
+                logging.debug("Exception occurred", exc_info=True)
                 return None  # v28.22: SSR 序列化失败时返回 None 而非注释行，避免客户端解析错误
 
         elif ptype == "hysteria2":
@@ -3707,6 +3732,7 @@ def format_proxy_to_link(p):
 
         return None  # v28.22: 未知协议返回None而非注释行，避免客户端解析错误
     except Exception:
+        logging.debug("Exception occurred", exc_info=True)
         return None  # v28.22: 异常时返回None而非注释行
 
 
@@ -3722,6 +3748,7 @@ def main():
             if _cidr_age_days > 30:
                 logging.warning("⚠️ CN_CIDR 数据已过期 (%.0f 天)，建议运行 gen_cn_cidr.py 更新", _cidr_age_days)
     except Exception:
+        logging.debug("Exception occurred", exc_info=True)
         pass  # 校验失败不影响主流程
 
     clash = ClashManager()
@@ -3918,6 +3945,7 @@ def main():
                 return {"proxy": proxy, "latency": float(lat), "is_asia": is_asia(proxy),
                         "hist_score": history_stability_score(host, port)}
             except Exception:
+                logging.debug("Exception occurred", exc_info=True)
                 return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
         # 提高并发数用于 TCP 测试（大幅提高）
         tcp_workers = min(int(os.getenv("TCP_WORKERS", "200")), 500)  # v28.22: 可配置，上限500
@@ -4330,11 +4358,13 @@ TXT: <a href="{txt_html_url}">{txt_html_url}</a>
             session.close()
             print("✅ Requests session 已关闭")
         except Exception:
+            logging.debug("Exception occurred", exc_info=True)
             pass
         # v28.17: 程序退出时保存IP地理缓存
         try:
             limiter.save_geo_cache()
         except Exception:
+            logging.debug("Exception occurred", exc_info=True)
             pass
 
 

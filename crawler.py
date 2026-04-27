@@ -670,8 +670,7 @@ _CN_IP_NETS = []    # 精确CIDR列表
 
 def _init_cn_lookup():
     """初始化CN IP查找表"""
-    # v28.15: global声明用于修改模块级变量
-    global _CN_IP_SET, _CN_IP_NETS  # noqa: F824
+    # v28.15: 修改模块级变量
     for net in CN_IP_RANGES:
         _CN_IP_NETS.append(net)
         # 记录/8前缀用于快速排除
@@ -753,8 +752,7 @@ def history_stability_score(server_ip, port):
 
 
 def check_network_baseline():
-    # v28.15: global声明用于修改模块级变量
-    global _NETWORK_BASELINE  # noqa: F824
+    """检测网络基准延迟"""
     for target, port in [("8.8.8.8", 53), ("1.1.1.1", 53)]:
         lat = _tcp_ping(target, port, timeout=2.0)
         if lat < 9999:

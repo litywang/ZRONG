@@ -465,7 +465,7 @@ def get_region(name, server=None, sni=None):
                     flag = _cc_to_flag(cc)
                     return flag, cc
         except Exception:
-            pass  # limiter 未就绪时跳过
+            logging.debug("Limiter not ready, skipping geo lookup")  # limiter 未就绪时跳过
     if sni and not is_pure_ip(sni):
         pass  # SNI 域名已在上面 TLD 匹配中处理过
 
@@ -531,7 +531,7 @@ def is_asia(p):
                 if cc in ASIA_REGIONS:
                     return True
         except Exception:
-            pass  # limiter 未就绪时跳过
+            logging.debug("Limiter not ready, skipping geo lookup")  # limiter 未就绪时跳过
     # v28.16: SNI/域名TLD判断
     sni = (p.get("sni", "") or p.get("servername", "")).lower()
     ws_opts = p.get("ws-opts", {})
@@ -599,7 +599,7 @@ def mainland_friendly_score(p):
                 elif cc in ("CA", "AU"):
                     score += 5
         except Exception:
-            pass  # limiter 未就绪时跳过
+            logging.debug("Limiter not ready, skipping geo lookup")  # limiter 未就绪时跳过
 
     # 2. 协议加成（抗检测能力）
     ptype = p.get("type", "")

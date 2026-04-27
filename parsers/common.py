@@ -51,7 +51,8 @@ class ProxyNode:
         """生成去重键（基于协议/服务器/端口/认证信息）。"""
         uid = self.uuid or self.password or ""
         return hashlib.md5(
-            f"{self.protocol}|{self.server}|{self.port}|{uid}|{self.path}|{self.sni}".encode()
+            f"{self.protocol}|{self.server}|{self.port}|{uid}|{self.path}|{self.sni}".encode(),
+            usedforsecurity=False,
         ).hexdigest()
 
     def to_dict(self) -> Dict:
@@ -167,18 +168,6 @@ def generate_unique_id(proxy):
     return hashlib.md5(key.encode(), usedforsecurity=False).hexdigest()[:8].upper()
 
 
-def _safe_port(val, default=443):
-    """端口安全转换（与 crawler.py 原逻辑一致）"""
-    try:
-        p = int(val) if val else default
-        if p <= 0 or p > 65535:
-            return default
-        return p
-    except (ValueError, TypeError):
-        return default
-
-
-# 从 urllib.parse 导入（解析器需要）
 def _safe_port(val, default=443):
     """端口安全转换（与 crawler.py 原逻辑一致）"""
     try:

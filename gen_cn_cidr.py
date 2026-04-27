@@ -19,7 +19,7 @@ except Exception as e:
     print(f"[gen_cn_cidr] Download failed: {e}")
     raise
 
-lines = [l.strip() for l in data.strip().split('\n') if l.strip() and not l.startswith('#')]
+lines = [line.strip() for line in data.strip().split('\n') if line.strip() and not line.startswith('#')]
 
 output_path = Path(__file__).parent / "cn_cidr_data.py"
 with open(output_path, 'w', encoding='utf-8') as f:

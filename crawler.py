@@ -163,7 +163,8 @@ class ProxyNode:
         """生成去重键（基于协议/服务器/端口/认证信息）。"""
         uid = self.uuid or self.password or ""
         return hashlib.md5(
-            f"{self.protocol}|{self.server}|{self.port}|{uid}|{self.path}|{self.sni}".encode()
+            f"{self.protocol}|{self.server}|{self.port}|{uid}|{self.path}|{self.sni}".encode(),
+            usedforsecurity=False,
         ).hexdigest()
 
     def to_dict(self) -> Dict:
@@ -579,77 +580,15 @@ SUB_MIRRORS = [
 # 由 cn_cidr_data.py 提供，替代原来的 /8 粒度（33条），大幅降低误杀率
 CN_IP_RANGES = _CN_IP_RANGES_RAW
 
-# ===== CN 域名黑名单正则 ======
-
-# ===== 非代理端口黑名单 ======
-NON_PROXY_PORTS = {2377, 2376, 2375, 9200, 9300, 27017, 27018, 27019, 6379, 11211, 5432, 3306, 8086}
-
-# ===== Reality 安全域名 ======
-REALITY_SAFE_DOMAINS = {'reality.dev', 'v2fly.org', 'matsuri.biz', 'poi.moe',
-                        '233boys.dev', 'ssrsub.com', 'justmysocks.net', 'flow.kkjiang.com'}
-
-# ===== 协议优先级评分（v25: Reality大幅提权，Hysteria2/TUIC提权 - 大陆友好）=====
-# v29 CN: Protocol scoring optimized
-PROTOCOL_SCORE = {
-    # v28.23: 协议评分调整 — Hysteria2/Reality 抗封锁能力强，提升权重
-    "vless": 15, "trojan": 12, "vmess": 8, "hysteria2": 12, "anytls": 5,
-    "hysteria": 6, "tuic": 8, "snell": 2, "ss": 4, "ssr": 1, "http": 2, "socks5": 2,
-}
-
 # ===== 端口质量评分 ======
 HIGH_PORT_BONUS_THRESHOLD = 10000
 COMMON_PORT_PENALTY = {80: 300, 443: 200, 8080: 100, 8443: 100}
-
-# ===== 亚洲区域 ======
-# v28.14: 大幅扩展亚洲区域列表（提升亚洲节点占比）
-ASIA_REGIONS = ["HK", "TW", "JP", "SG", "KR", "TH", "VN", "MY", "ID", "PH", "MO",
-                "MN", "KH", "LA", "MM", "BN", "TL", "NP", "LK", "BD", "BT", "MV"]  # 22个亚洲区域
 
 # v28.14: 提高亚洲优先级权重
 ASIA_PRIORITY_BONUS = int(os.getenv("ASIA_PRIORITY_BONUS", "35"))  # v28.21: 柔性配额（80→35），质量优先于凑数
 TARGET_ASIA_RATIO = float(os.getenv("TARGET_ASIA_RATIO", "0.45"))  # v28.21: 柔性45%（原60%强制导致低质凑数）
 ASIA_TCP_RELAX = 1500    # v28.16: 亚洲TCP补充延迟放宽到1500ms
 ASIA_MIN_COUNT = int(os.getenv("ASIA_MIN_COUNT", "40"))  # v28.21: 亚洲保底数量
-NON_FRIENDLY_REGIONS = [
-    "IR",
-    "IN",
-    "RU",
-    "NG",
-    "ZA",
-    "BR",
-    "AR",
-    "CL",
-    "PE",
-    "VE",
-    "EC",
-    "CO",
-    "MX",
-    "US",
-    "CA",
-    "AU",
-    "EU",
-    "GB",
-    "DE",
-    "FR",
-    "NL",
-    "IT",
-    "ES",
-    "SE",
-    "NO",
-    "FI",
-    "DK",
-    "PL",
-    "CZ",
-    "HU",
-    "RO",
-    "BG",
-    "GR",
-    "PT",
-    "AT",
-    "CH",
-    "BE",
-    "IE"]  # 扩展非友好区域
-NON_FRIENDLY_PENALTY = 40  # 非友好区域扣分（30→40）
 
 # ===== 并发配置 ======
 MAX_CONCURRENT_FETCH = 3
@@ -718,35 +657,13 @@ def resolve_domain(domain, timeout=3):
         with _DNS_CACHE_LOCK:  # v28.22: 线程安全写缓存
             _DNS_CACHE[domain] = (ip, now)
         return ip
-    except Exception as e:
+    except Exception:
         with _DNS_CACHE_LOCK:  # v28.22: 线程安全写缓存
             _DNS_CACHE[domain] = (None, now)
         return None
 
 # ========== CN 过滤工具 ==========
-
-
-def is_pure_ip(s):
-    if not s:
-        return False
-    s = s.strip()
-    if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', s):
-        return True
-    # BUGFIX v28.20: IPv6 检测使用 ipaddress 模块替代宽松正则
-    # 原正则 r'^[0-9a-fA-F:]+$' 会匹配 "1:2:3" 或纯 ":" 等非法值
-    if ':' in s:
-        try:
-            ipaddress.ip_address(s)
-            return True
-        except ValueError:
-            pass
-    return False
-
-
-def is_cn_proxy_domain(server):
-    if not server or is_pure_ip(server):
-        return False
-    sl = server.lower()
+# 已从 utils.py 导入 is_pure_ip / is_cn_proxy_domain，此处不再重复定义
 _CN_IP_SET = set()  # /8 前缀 → 快速排除非CN
 _CN_IP_NETS = []    # 精确CIDR列表
 
@@ -1372,7 +1289,7 @@ class ClashManager:
                 continue
             filtered.append(p)
         if not filtered:
-            print(f"   ⚠️ 所有节点协议均不支持，无法生成 Clash 配置")
+            print("   ⚠️ 所有节点协议均不支持，无法生成 Clash 配置")
             return False
         # BUGFIX: 移除内部双重截断，调用方已用 batch_size 限制了 proxies 数量
         # 原代码 proxies[:MAX_PROXY_TEST_NODES] 出现两次，与外层 batch_size 职责重叠

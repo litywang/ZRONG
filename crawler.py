@@ -28,7 +28,7 @@ from sources import (
 # -*- coding: utf-8 -*-
 """
 聚合订阅爬虫 v28.33 - 大陆优化版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.33
+作者：Anftlity | Version: 28.33
 优化：httpx连接池 + 异步HTTP抓取 + sources.yaml配置外置 + Clash分批测速 + 大陆可用性优化 + ProxyNode数据模型
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性 + 大陆高可用
 CHANGELOG v28.33:
@@ -541,7 +541,7 @@ TEST_URLS = [
 CLASH_PORT = int(os.getenv("CLASH_PORT", "17890"))  # v28.23: 可配置
 CLASH_API_PORT = int(os.getenv("CLASH_API_PORT", "19090"))  # v28.23: 可配置
 CLASH_VERSION = os.getenv("CLASH_VERSION", "v1.19.0")  # v28.23: 可配置
-NODE_NAME_PREFIX = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
+NODE_NAME_PREFIX = "Anftlity"
 
 # v28.23: 大陆端点测试（通过代理访问大陆CDN，验证实际可用性）
 ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "1") == "1"
@@ -1485,8 +1485,8 @@ class NodeNamer:
         code, region = get_region(flag, server=server, sni=sni)
         self.counters[region] = self.counters.get(region, 0) + 1
         num = self.counters[region]
-        # v26: 添加哥特体后缀 -𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-        return f"{code}{num}-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
+        # v26: 添加后缀 -Anftlity
+        return f"{code}{num}-Anftlity"
 
 
 # ⭐ 协议链接转换（扩展版）
@@ -1713,7 +1713,7 @@ def main():
 
     print("=" * 50)
     print("🚀 聚合订阅爬虫 v28.30 - 大陆优化版")
-    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.33")
+    print("作者：Anftlity | Version: 28.33")
     print(f"异步抓取: {'✅ 启用' if USE_ASYNC_FETCH else '❌ 禁用（同步模式）'}")
     print("=" * 50)
 
@@ -2257,7 +2257,7 @@ TXT: <a href="{txt_html_url}">{txt_html_url}</a>
 ━━━━━━━━━━━━━━━━━━━━━━━
 
 🌐 <b>支持协议:</b> VMess | VLESS | Trojan | SS | Hysteria2 | Hysteria | TUIC | WireGuard
-👨‍💻 <b>作者:</b> 𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+👨‍💻 <b>作者:</b> Anftlity
 
 <b>更新时间:</b> {update_time}"""
                 requests.post(

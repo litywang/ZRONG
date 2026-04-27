@@ -738,7 +738,7 @@ def resolve_domain(domain, timeout=3):
         with _DNS_CACHE_LOCK:  # v28.22: 线程安全写缓存
             _DNS_CACHE[domain] = (ip, now)
         return ip
-    except Exception:
+    except Exception as e:
         with _DNS_CACHE_LOCK:  # v28.22: 线程安全写缓存
             _DNS_CACHE[domain] = (None, now)
         return None
@@ -3303,7 +3303,7 @@ class ClashManager:
                 continue
             filtered.append(p)
         if not filtered:
-            print("   ⚠️ 所有节点协议均不支持，无法生成 Clash 配置")
+            print(f"   ⚠️ 所有节点协议均不支持，无法生成 Clash 配置")
             return False
         # BUGFIX: 移除内部双重截断，调用方已用 batch_size 限制了 proxies 数量
         # 原代码 proxies[:MAX_PROXY_TEST_NODES] 出现两次，与外层 batch_size 职责重叠
@@ -3424,8 +3424,8 @@ class ClashManager:
                     if resp.status_code in [200, 204, 301, 302]:
                         result = {"success": True, "latency": round(lat, 1), "speed": 0.0, "error": ""}
                         break
-                except Exception:
-                    logging.debug("Test URL failed for proxy %s", name)
+                except Exception as e:
+                    logging.debug("Test URL failed for proxy %s: %s", name, str(e)[:50])
                     continue
             # 大陆端点测试（v28.23）
             if ENABLE_MAINLAND_TEST and result["success"]:
@@ -3436,7 +3436,8 @@ class ClashManager:
                         if r.status_code in [200, 204, 301, 302]:
                             ml_ok = True
                             break
-                    except Exception:
+                    except Exception as e:
+                        logging.debug("Mainland test URL failed: %s", str(e)[:50])
                         continue
                 if not ml_ok:
                     result["success"] = False

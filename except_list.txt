@@ -1,0 +1,58 @@
+﻿remain except Exception: 8
+---
+ if WORK_DIR.exists() and not WORK_DIR.is_dir():
+        try:
+            WORK_DIR.unlink()
+        except Exception:
+            logging.debug("Failed to unlink %s", WORK_DIR)
+    WORK_DIR.mkdir(pare
+---
+{p['server']}:{p['port']}#{name_enc}"
+
+        return None  # v28.22: 未知协议返回None而非注释行，避免客户端解析错误
+    except Exception:
+        logging.debug("Exception occurred", exc_info=True)
+        return None  # 
+---
+            logging.warning("⚠️ CN_CIDR 数据已过期 (%.0f 天)，建议运行 gen_cn_cidr.py 更新", _cidr_age_days)
+    except Exception:
+        logging.debug("Exception occurred", exc_info=True)
+        pass  # 校验失败不影响
+---
+asia(proxy),
+                        "hist_score": history_stability_score(host, port)}
+            except Exception:
+                logging.debug("Exception occurred", exc_info=True)
+               
+---
+:
+                        print(f"   进度：{completed}/{len(nlist)} | 合格：{len(nres)}")
+                except Exception:
+                    logging.debug("Proxy test error for node")
+
+        # v28.8: 利
+---
+      print(f"   进度：{done_count}/{len(batch_items)} | 合格：{len(final)}")
+                            except Exception:
+                                logging.debug("Batch proxy test error")
+          
+---
+避免资源泄漏
+        try:
+            session.close()
+            print("✅ Requests session 已关闭")
+        except Exception:
+            logging.debug("Exception occurred", exc_info=True)
+            pass
+  
+---
+     pass
+        # v28.17: 程序退出时保存IP地理缓存
+        try:
+            limiter.save_geo_cache()
+        except Exception:
+            logging.debug("Exception occurred", exc_info=True)
+            pass
+
+
+

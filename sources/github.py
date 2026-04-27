@@ -75,7 +75,7 @@ def fetch_forks(base: str, session=None, config=None) -> List[dict]:
                 return []
             elif resp.status_code == 404:
                 return []
-        except Exception:
+        except (requests.RequestException, requests.Timeout):
             logging.debug("GitHub API request failed: %s", url)
     return []
 

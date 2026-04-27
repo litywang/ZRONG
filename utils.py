@@ -57,7 +57,7 @@ def is_pure_ip(host: str) -> bool:
     try:
         ipaddress.ip_address(host)
         return True
-    except Exception:
+    except (ValueError, TypeError):
         return False
 
 
@@ -96,7 +96,7 @@ def _cc_to_flag(cc):
     """国家代码转 emoji flag，如 'US' → '🇺🇸'"""
     try:
         return ''.join(chr(0x1F1E6 + ord(c) - ord('A')) for c in cc.upper()[:2])
-    except Exception:
+    except (ValueError, TypeError):
         logging.debug("Exception occurred", exc_info=True)
         return "🌐"
 
@@ -473,7 +473,7 @@ def get_region(name, server=None, sni=None):
                 if cc:
                     flag = _cc_to_flag(cc)
                     return flag, cc
-        except Exception:
+        except (ImportError, AttributeError):
             logging.debug("Limiter not ready, skipping geo lookup")  # limiter 未就绪时跳过
     if sni and not is_pure_ip(sni):
         pass  # SNI 域名已在上面 TLD 匹配中处理过
@@ -539,7 +539,7 @@ def is_asia(p):
                 cc = geo.get("countryCode", "").upper()
                 if cc in ASIA_REGIONS:
                     return True
-        except Exception:
+        except (ImportError, AttributeError):
             logging.debug("Limiter not ready, skipping geo lookup")  # limiter 未就绪时跳过
     # v28.16: SNI/域名TLD判断
     sni = (p.get("sni", "") or p.get("servername", "")).lower()
@@ -583,10 +583,10 @@ def is_china_mainland(p):
                     cc = geo.get("countryCode", "").upper()
                     if cc == "CN":
                         return True
-            except Exception:
+            except (ImportError, AttributeError):
                 logging.debug("is_china_mainland limiter not ready", exc_info=True)
         return False
-    except Exception:
+    except (ValueError, TypeError):
         logging.debug("is_china_mainland error", exc_info=True)
         return False
 
@@ -625,7 +625,7 @@ def mainland_friendly_score(p):
                     score += 10
                 elif cc in ("CA", "AU"):
                     score += 5
-        except Exception:
+        except (ImportError, AttributeError):
             logging.debug("Limiter not ready, skipping geo lookup")  # limiter 未就绪时跳过
 
     # 2. 协议加成（抗检测能力）

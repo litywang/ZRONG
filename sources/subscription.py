@@ -154,7 +154,7 @@ def is_base64(s: str) -> bool:
             return False
         base64.b64decode(s + "=" * (-len(s) % 4), validate=True)
         return True
-    except Exception:
+    except (ValueError, base64.binascii.Error):
         logging.debug("is_base64 failed", exc_info=True)
         return False
 
@@ -168,7 +168,7 @@ def decode_b64(c: str) -> str:
             c += "=" * (4 - m)
         d = base64.b64decode(c).decode("utf-8", errors="ignore")
         return d if "://" in d else c
-    except Exception:
+    except (ValueError, base64.binascii.Error):
         logging.debug("decode_b64 failed", exc_info=True)
         return c
 
@@ -214,7 +214,7 @@ def parse_yaml_proxies(content: str) -> List[dict]:
             p["name"] = original_name
             results.append(p)
         return results
-    except Exception:
+    except (yaml.YAMLError, TypeError, AttributeError):
         logging.debug("parse_yaml_proxies failed", exc_info=True)
         return []
 
@@ -239,7 +239,7 @@ def fetch(url: str) -> str:
                 return resp.text.strip()
             elif resp.status_code in (403, 429):
                 time.sleep(3)
-        except Exception:
+        except (httpx.RequestError, httpx.TimeoutException):
             logging.debug("fetch failed for %s", url, exc_info=True)
         return ""
 
@@ -262,7 +262,7 @@ def fetch(url: str) -> str:
                     return text
             elif resp.status_code in (403, 429, 503):
                 time.sleep(random.uniform(2.0, 5.0))
-        except Exception:
+        except (httpx.RequestError, httpx.TimeoutException):
             logging.debug("fetch failed for %s", try_url, exc_info=True)
             time.sleep(random.uniform(0.5, 1.5))
     return ""
@@ -340,7 +340,7 @@ async def async_fetch_url(client: httpx.AsyncClient, url: str, mirror_pool: List
                     elif resp.status_code in (403, 429):
                         await asyncio.sleep(3)
                         continue
-                except Exception:
+                except (httpx.RequestError, httpx.TimeoutException):
                     logging.debug("async_fetch_url failed", exc_info=True)
                     await asyncio.sleep(1)
         return ""
@@ -367,7 +367,7 @@ async def async_fetch_url(client: httpx.AsyncClient, url: str, mirror_pool: List
                     elif resp.status_code in (403, 429, 503):
                         await asyncio.sleep(random.uniform(2.0, 5.0))
                         continue
-                except Exception:
+                except (httpx.RequestError, httpx.TimeoutException):
                     logging.debug("async_fetch_url failed", exc_info=True)
                     await asyncio.sleep(random.uniform(0.5, 1.5))
     return ""

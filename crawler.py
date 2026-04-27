@@ -25,6 +25,11 @@ from sources import (
     strip_url, check_url, check_url_fast,
 )
 # v28.39: 工具函数已迁移到 utils.py，请从 utils 导入
+# v28.41: 设置 stdout 编码为 utf-8，避免 Windows GBK 下 Unicode 输出报错
+import sys, io
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 # -*- coding: utf-8 -*-
 """
 聚合订阅爬虫 v28.39 - 大陆优化版
@@ -657,7 +662,7 @@ def resolve_domain(domain, timeout=3):
         with _DNS_CACHE_LOCK:  # v28.22: 线程安全写缓存
             _DNS_CACHE[domain] = (ip, now)
         return ip
-    except Exception:
+    except (socket.gaierror, socket.timeout, OSError):
         with _DNS_CACHE_LOCK:  # v28.22: 线程安全写缓存
             _DNS_CACHE[domain] = (None, now)
         return None
@@ -686,7 +691,7 @@ def is_cn_proxy_ip(ip_str):
         return None
     try:
         ip = ipaddress.ip_address(ip_str)
-    except Exception:
+    except (ValueError, TypeError):
         logging.debug("Exception occurred", exc_info=True)
         return None
     # 快速排除：如果/8前缀不在CN集合中，肯定不是CN
@@ -782,14 +787,14 @@ def tls_handshake_ok(host, port, timeout=5.0):
             if 'HANDSHAKE_FAILURE' in err or 'SSLV3' in err:
                 return False, "handshake_fail"
             return True, "ok"
-    except Exception:
+    except (socket.timeout, OSError, ConnectionRefusedError):
         logging.debug("Exception occurred", exc_info=True)
         return True, "ok"
     finally:
         if sock:
             try:
                 sock.close()
-            except Exception:
+            except (OSError, socket.error):
                 logging.debug("Exception occurred", exc_info=True)
                 pass
 
@@ -811,7 +816,7 @@ def http_head_check(host, port, timeout=3.0):
                 resp = conn.getresponse()
                 conn.close()
                 return resp.status < 500
-            except Exception:
+            except (socket.timeout, OSError, ConnectionRefusedError):
                 logging.debug("HTTPS probe failed for %s:%s", host, port)
         if port in (80, 8080, 8888):
             try:
@@ -820,10 +825,10 @@ def http_head_check(host, port, timeout=3.0):
                 resp = conn.getresponse()
                 conn.close()
                 return resp.status < 500
-            except Exception:
+            except (socket.timeout, OSError, ConnectionRefusedError):
                 logging.debug("HTTP probe failed for %s:%s", host, port)
         return False
-    except Exception:
+    except (socket.timeout, OSError):
         logging.debug("Exception occurred", exc_info=True)
         return False
 
@@ -896,14 +901,14 @@ def _proto_handshake_ok(host, port, ptype, proxy=None, timeout=3.0):
                     # BUGFIX v28.20: SS 服务器收到非法数据后 RST 是正常行为（解密失败重置）
                     # 之前误判为"不是SS"导致大量 SS 节点被误杀
                     return True
-            except Exception:
+            except (socket.timeout, OSError, ConnectionRefusedError):
                 logging.debug("SS handshake probe failed", exc_info=True)
                 return True  # 连接失败默认放过，不误杀
             finally:
                 if s:
                     try:
                         s.close()
-                    except Exception:
+                    except (OSError, socket.error):
                         logging.debug("Exception occurred", exc_info=True)
                         pass
         elif ptype == "hysteria" or ptype == "hysteria2":
@@ -919,14 +924,14 @@ def _proto_handshake_ok(host, port, ptype, proxy=None, timeout=3.0):
                 data = s.recv(256)
                 # HTTP 代理应返回 200/407 等 HTTP 响应
                 return b"HTTP/" in data
-            except Exception:
+            except (socket.timeout, OSError, ConnectionRefusedError):
                 logging.debug("Exception occurred", exc_info=True)
                 return False
             finally:
                 if s:
                     try:
                         s.close()
-                    except Exception:
+                    except (OSError, socket.error):
                         logging.debug("Exception occurred", exc_info=True)
                         pass
         elif ptype == "socks5":
@@ -939,20 +944,20 @@ def _proto_handshake_ok(host, port, ptype, proxy=None, timeout=3.0):
                 data = s.recv(16)
                 # SOCKS5 服务器应返回 0x05 + method
                 return len(data) >= 2 and data[0] == 0x05
-            except Exception:
+            except (socket.timeout, OSError, ConnectionRefusedError):
                 logging.debug("Exception occurred", exc_info=True)
                 return False
             finally:
                 if s:
                     try:
                         s.close()
-                    except Exception:
+                    except (OSError, socket.error):
                         logging.debug("Exception occurred", exc_info=True)
                         pass
         else:
             # 未知协议默认放过
             return True
-    except Exception:
+    except (socket.timeout, OSError, ConnectionRefusedError):
         logging.debug("Exception occurred", exc_info=True)
         return True  # 探测失败不过滤，避免误杀
 
@@ -966,7 +971,7 @@ def tcp_verify(host, port, timeout=1.5):
         s.connect((host, port))
         s.close()
         return True
-    except Exception:
+    except (socket.timeout, OSError, ConnectionRefusedError):
         logging.debug("Exception occurred", exc_info=True)
         return False
 
@@ -983,7 +988,7 @@ def _tcp_ping(host, port, timeout=2.5):
         s.connect((host, port))
         s.close()
         return round((time.time() - start) * 1000, 1)
-    except Exception:
+    except (socket.timeout, OSError, ConnectionRefusedError):
         logging.debug("Exception occurred", exc_info=True)
         return 9999
 
@@ -997,7 +1002,7 @@ def ensure_clash_dir():
     if WORK_DIR.exists() and not WORK_DIR.is_dir():
         try:
             WORK_DIR.unlink()
-        except Exception:
+        except (OSError, PermissionError):
             logging.debug("Failed to unlink %s", WORK_DIR)
     WORK_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -1078,7 +1083,7 @@ class SmartRateLimiter:
                         if time.time() - item.get('ts', 0) < 86400:
                             self.ip_geo_cache[ip] = item
                 print(f"[SmartRateLimiter] 已加载 {len(self.ip_geo_cache)} 条IP地理缓存")
-        except Exception as e:
+        except (OSError, json.JSONDecodeError, ValueError) as e:
             logging.debug("加载IP地理缓存失败: %s", e)
 
     def save_geo_cache(self):
@@ -1092,7 +1097,7 @@ class SmartRateLimiter:
                 with open(cache_file, 'w', encoding='utf-8') as f:
                     json.dump(data, f, ensure_ascii=False)
                 print(f"[SmartRateLimiter] 已保存 {len(data)} 条IP地理缓存")
-        except Exception as e:
+        except (OSError, TypeError) as e:
             logging.debug("保存IP地理缓存失败: %s", e)
 
     def get_geo(self, ip):
@@ -1131,7 +1136,7 @@ def _ip_geo_batch(ips):
                     if item.get("status") == "success":
                         limiter.set_geo(item["query"], item)
                 print(f"   🌍 IP 地理位置查询：{len(batch)} 个（已缓存 {len(limiter.ip_geo_cache)}）")
-        except Exception as e:
+        except (requests.RequestException, ValueError) as e:
             print(f"   ⚠️ IP 地理位置查询失败: {e}")
         # 每批查询后保存缓存
         limiter.save_geo_cache()
@@ -1195,7 +1200,7 @@ def filter_quality(p):
         if mf_score < 10:  # 友好度低于10分的节点大概率不可用
             logging.debug("Filter: skip low mainland-friendly node %s (score=%s)", p.get('name', '?'), mf_score)
             return False
-    except Exception:
+    except (ValueError, KeyError, TypeError):
         logging.debug("mainland_friendly_score error for %s", p.get('name', '?'), exc_info=True)
         # 评分失败时不过滤，避免误杀
 
@@ -1248,7 +1253,7 @@ class ClashManager:
                 os.chmod(CLASH_PATH, 0o755)
             temp.unlink(missing_ok=True)
             return CLASH_PATH.exists()
-        except Exception:
+        except (requests.RequestException, OSError, gzip.BadGzipFile):
             logging.debug("Exception occurred", exc_info=True)
             return False
 
@@ -1280,6 +1285,17 @@ class ClashManager:
                 continue
             # None 值保留（yaml.dump 会写成 null，Clash 可处理）
             cleaned[k] = v
+        # BUGFIX v28.40: 校验并清理 REALITY short-id，防止 Clash 崩溃
+        if cleaned.get('reality-opts'):
+            ro = cleaned['reality-opts']
+            if isinstance(ro, dict):
+                sid = ro.get('short-id', '')
+                # Clash Meta 要求 short-id 为 8/16/32 字符十六进制，或空字符串
+                if sid and not re.fullmatch(r'[0-9a-fA-F]{8}|[0-9a-fA-F]{16}|[0-9a-fA-F]{32}', str(sid)):
+                    logging.warning("Clash: 移除无效 REALITY short-id '%s' from %s", sid, cleaned.get('name', '?'))
+                    del ro['short-id']
+                    if not ro:
+                        del cleaned['reality-opts']
         return cleaned
 
     def create_config(self, proxies):
@@ -1374,18 +1390,18 @@ class ClashManager:
                         # 打印首尾各 500 字符，YAML 错误通常在末尾
                         out_short = out[:500] + "\n...\n" + out[-500:] if len(out) > 1000 else out
                         print(f"   ❌ Clash 崩溃:\n{out_short}")
-                    except Exception:
+                    except (subprocess.TimeoutExpired, OSError):
                         print("   ❌ Clash 崩溃")
                     return False
                 try:
                     if requests.get(f"http://127.0.0.1:{CLASH_API_PORT}/version", timeout=2).status_code == 200:
                         print("   ✅ Clash API 就绪")
                         return True
-                except Exception:
+                except requests.RequestException:
                     logging.debug("Clash API version check failed")
             print("   ⏱️ Clash 启动超时")
             return False
-        except Exception as e:
+        except (OSError, subprocess.SubprocessError) as e:
             print(f"   💥 Clash 启动异常：{e}")
             return False
 
@@ -1399,7 +1415,7 @@ class ClashManager:
                 else:
                     self.process.terminate()
                 self.process.wait(timeout=5)
-            except Exception:
+            except (OSError, subprocess.SubprocessError):
                 logging.debug("Clash stop failed")
             self.process = None
 
@@ -1419,7 +1435,7 @@ class ClashManager:
                     if resp.status_code in [200, 204, 301, 302]:
                         result = {"success": True, "latency": round(lat, 1), "speed": 0.0, "error": ""}
                         break
-                except Exception as e:
+                except requests.RequestException as e:
                     logging.debug("Test URL failed for proxy %s: %s", name, str(e)[:50])
                     continue
             # 大陆端点测试（v28.23）
@@ -1431,7 +1447,7 @@ class ClashManager:
                         if r.status_code in [200, 204, 301, 302]:
                             ml_ok = True
                             break
-                    except Exception as e:
+                    except requests.RequestException as e:
                         logging.debug("Mainland test URL failed: %s", str(e)[:50])
                         continue
                 if not ml_ok:
@@ -1440,7 +1456,7 @@ class ClashManager:
                     logging.debug("Mainland test failed for %s", name)
             if not result["success"]:
                 result["error"] = "All test URLs failed"
-        except Exception as e:
+        except requests.RequestException as e:
             result["error"] = str(e)[:60]
         # 失败重试一次（减少网络抖动误杀）
         if retry and not result["success"]:
@@ -1636,7 +1652,7 @@ def format_proxy_to_link(p):
                 full = main_part + params_str
                 b64_full = base64.b64encode(full.encode()).decode()
                 return f"ssr://{b64_full}"
-            except Exception:
+            except (KeyError, ValueError, TypeError):
                 logging.debug("Exception occurred", exc_info=True)
                 return None  # v28.22: SSR 序列化失败时返回 None 而非注释行，避免客户端解析错误
 
@@ -1694,7 +1710,7 @@ def format_proxy_to_link(p):
             return f"{scheme}://{auth}{p['server']}:{p['port']}#{name_enc}"
 
         return None  # v28.22: 未知协议返回None而非注释行，避免客户端解析错误
-    except Exception:
+    except (KeyError, ValueError, TypeError):
         logging.debug("Exception occurred", exc_info=True)
         return None  # v28.22: 异常时返回None而非注释行
 
@@ -1710,7 +1726,7 @@ def main():
             _cidr_age_days = (time.time() - _cidr_file.stat().st_mtime) / 86400
             if _cidr_age_days > 30:
                 logging.warning("⚠️ CN_CIDR 数据已过期 (%.0f 天)，建议运行 gen_cn_cidr.py 更新", _cidr_age_days)
-    except Exception:
+    except (OSError, ValueError):
         logging.debug("Exception occurred", exc_info=True)
         pass  # 校验失败不影响主流程
 
@@ -1878,7 +1894,7 @@ def main():
                         return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
                 return {"proxy": proxy, "latency": float(lat), "is_asia": is_asia(proxy),
                         "hist_score": history_stability_score(host, port)}
-            except Exception:
+            except (OSError, ValueError, TypeError):
                 logging.debug("Exception occurred", exc_info=True)
                 return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
         # 提高并发数用于 TCP 测试（大幅提高）
@@ -1894,7 +1910,7 @@ def main():
                     completed += 1
                     if completed % 50 == 0:
                         print(f"   进度：{completed}/{len(nlist)} | 合格：{len(nres)}")
-                except Exception:
+                except (OSError, ValueError, TypeError):
                     logging.debug("Proxy test error for node")
 
         # v28.8: 利用 IP 地理位置优化排序（增强大陆友好性）
@@ -2023,7 +2039,7 @@ def main():
                                     break
                                 if done_count % 20 == 0:
                                     print(f"   进度：{done_count}/{len(batch_items)} | 合格：{len(final)}")
-                            except Exception:
+                            except (OSError, ValueError, TypeError):
                                 logging.debug("Batch proxy test error")
                     print(f"\n   第{batch_id}批完成：累计合格 {len(final)} 个\n")
                 except Exception as e:
@@ -2296,13 +2312,13 @@ TXT: <a href="{txt_html_url}">{txt_html_url}</a>
         try:
             session.close()
             print("✅ Requests session 已关闭")
-        except Exception:
+        except (OSError, ValueError):
             logging.debug("Exception occurred", exc_info=True)
             pass
         # v28.17: 程序退出时保存IP地理缓存
         try:
             limiter.save_geo_cache()
-        except Exception:
+        except (OSError, ValueError):
             logging.debug("Exception occurred", exc_info=True)
             pass
 

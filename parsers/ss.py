@@ -27,12 +27,12 @@ def parse_ss(node: str) -> dict | None:
             decoded = base64.b64decode(info_padded).decode("utf-8", errors="ignore")
             method_pwd, server_info = decoded.split("@", 1)
             method, pwd = method_pwd.split(":", 1)
-        except Exception:
+        except (ValueError, base64.binascii.Error):
             logger.debug("Base64 decode failed, trying plain text", exc_info=True)
             try:
                 method_pwd, server_info = info.split("@", 1)
                 method, pwd = method_pwd.split(":", 1)
-            except Exception:
+            except ValueError:
                 logger.debug("Plain text parse also failed", exc_info=True)
                 return None
         # v28.39: 安全拆分server和port
@@ -66,8 +66,8 @@ def parse_ss(node: str) -> dict | None:
         )
         # 向后兼容：返回 dict
         return node_obj.to_dict()
-    except Exception as e:
-        logger.debug(f"[parse_ss] 解析失败: {e}", exc_info=True)
+    except (ValueError, base64.binascii.Error) as e:
+        logger.debug("[parse_ss] 解析失败: %s", e, exc_info=True)
         return None
 
 
@@ -159,8 +159,8 @@ def parse_ssr(node: str) -> dict | None:
 
         # 向后兼容：返回 dict
         return node_obj.to_dict()
-    except Exception as e:
-        logger.debug(f"[parse_ssr] 解析失败: {e}", exc_info=True)
+    except (ValueError, base64.binascii.Error) as e:
+        logger.debug("[parse_ssr] 解析失败: %s", e, exc_info=True)
         return None
 
 

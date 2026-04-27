@@ -3285,7 +3285,8 @@ class ClashManager:
             with gzip.open(temp, "rb") as f_in:
                 with open(CLASH_PATH, "wb") as f_out:
                     shutil.copyfileobj(f_in, f_out)
-            os.chmod(CLASH_PATH, 0o755)
+            if os.name != 'nt':  # Windows 不支持 os.chmod 的 Unix 权限
+                os.chmod(CLASH_PATH, 0o755)
             temp.unlink(missing_ok=True)
             return CLASH_PATH.exists()
         except Exception:

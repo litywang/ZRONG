@@ -37,8 +37,15 @@ jobs:
 
       - name: Download GeoLite2 Database
         run: |
-          # 使用 GitHub 镜像下载 GeoLite2-City.mmdb
-          curl -L -o GeoLite2-City.mmdb.gz "https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-City.mmdb.gz"
+          # 使用 GitHub API 获取最新 release 的下载 URL
+          ASSET_URL=$(curl -sL "https://api.github.com/repos/P3TERX/GeoLite.mmdb/releases/latest" | grep -o '"browser_download_url": "[^"]*GeoLite2-City.mmdb.gz"' | cut -d'"' -f4)
+          if [ -z "$ASSET_URL" ]; then
+            echo "Failed to get download URL, trying direct fallback..."
+            ASSET_URL="https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite2-City.mmdb.gz"
+          fi
+          echo "Downloading from: $ASSET_URL"
+          curl -L -H "Accept: application/octet-stream" -o GeoLite2-City.mmdb.gz "$ASSET_URL"
+          file GeoLite2-City.mmdb.gz
           gunzip -f GeoLite2-City.mmdb.gz
           ls -lh GeoLite2-City.mmdb
 

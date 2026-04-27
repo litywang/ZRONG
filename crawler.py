@@ -98,6 +98,13 @@ import base64
 import hashlib
 import time
 import json
+
+# v28.45: GeoIP2 本地数据库支持（GitHub Actions 预下载）
+try:
+    import geoip2.database
+    _GEOIP2_AVAILABLE = True
+except ImportError:
+    _GEOIP2_AVAILABLE = False
 import socket
 import os
 import sys
@@ -1113,17 +1120,77 @@ class SmartRateLimiter:
 
 limiter = SmartRateLimiter()
 
+# v28.45: GeoIP2 本地数据库读取器（延迟初始化）
+_geoip2_reader = None
+
+def _get_geoip2_reader():
+    """获取 GeoIP2 读取器（延迟初始化 + 缓存）"""
+    global _geoip2_reader
+    if _geoip2_reader is not None:
+        return _geoip2_reader
+    if not _GEOIP2_AVAILABLE:
+        return None
+    # 查找可能的 mmdb 文件路径
+    mmdb_paths = [
+        Path(__file__).parent / "GeoLite2-City.mmdb",
+        Path("/usr/share/GeoIP/GeoLite2-City.mmdb"),
+        Path(os.environ.get("GEOIP_DB_PATH", "")) if os.environ.get("GEOIP_DB_PATH") else None,
+    ]
+    for p in mmdb_paths:
+        if p and p.exists():
+            try:
+                _geoip2_reader = geoip2.database.Reader(str(p))
+                print(f"[GeoIP2] 已加载本地数据库: {p}")
+                return _geoip2_reader
+            except (OSError, ValueError) as e:
+                logging.debug("GeoIP2 加载失败: %s", e)
+    return None
+
+
+def _geoip2_lookup(ip):
+    """使用 GeoIP2 本地数据库查询 IP 地理位置"""
+    reader = _get_geoip2_reader()
+    if reader is None:
+        return None
+    try:
+        rec = reader.city(ip)
+        cc = rec.country.iso_code
+        if cc:
+            return {"status": "success", "countryCode": cc.upper(), "query": ip}
+    except (geoip2.errors.AddressNotFoundError, ValueError, TypeError):
+        pass
+    except Exception as e:
+        logging.debug("GeoIP2 查询异常: %s", e)
+    return None
+
 
 # BUGFIX v28.39: 添加 _ip_geo_batch（主流程依赖）
 def _ip_geo_batch(ips):
-    """批量查询 IP 地理位置，使用 ip-api.com（免费，100条/批）"""
+    """批量查询 IP 地理位置，优先使用 GeoIP2 本地数据库，回退到 ip-api.com"""
     if not ips:
         return
     # 过滤已缓存和无效的
     to_query = [ip for ip in ips if limiter.get_geo(ip) is None and is_pure_ip(ip)]
     if not to_query:
         return
-    # ip-api.com 批量接口，每批最多 100 个
+
+    # v28.45: 优先使用 GeoIP2 本地数据库
+    geoip2_reader = _get_geoip2_reader()
+    if geoip2_reader is not None:
+        local_hits = 0
+        for ip in to_query:
+            geo = _geoip2_lookup(ip)
+            if geo:
+                limiter.set_geo(ip, geo)
+                local_hits += 1
+        print(f"   🌍 GeoIP2 本地查询：{local_hits}/{len(to_query)} 个命中")
+        # 全部命中则直接返回，无需网络查询
+        if local_hits == len(to_query):
+            return
+        # 过滤掉已本地查询的
+        to_query = [ip for ip in to_query if limiter.get_geo(ip) is None]
+
+    # 回退到 ip-api.com 批量接口（每批最多 100 个）
     BATCH = 100
     for i in range(0, len(to_query), BATCH):
         batch = to_query[i:i + BATCH]

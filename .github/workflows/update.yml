@@ -33,7 +33,14 @@ jobs:
           python-version: '3.12'
 
       - name: Install Dependencies
-        run: pip install --upgrade -q httpx[http2] pyyaml python-dotenv urllib3 requests cachetools tqdm
+        run: pip install --upgrade -q httpx[http2] pyyaml python-dotenv urllib3 requests cachetools tqdm geoip2
+
+      - name: Download GeoLite2 Database
+        run: |
+          # 使用 GitHub 镜像下载 GeoLite2-City.mmdb
+          curl -L -o GeoLite2-City.mmdb.gz "https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-City.mmdb.gz"
+          gunzip -f GeoLite2-City.mmdb.gz
+          ls -lh GeoLite2-City.mmdb
 
       - name: 更新中国 CIDR 数据
         run: python gen_cn_cidr.py

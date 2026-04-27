@@ -435,35 +435,50 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
     txt_count = 0
     completed = 0
 
+    # v28.46-fix1: 先收集所有结果再关闭 client，避免 task 访问已关闭 client
+    pending = set(tasks)
     try:
-        for coro in asyncio.as_completed(tasks):
-            # v28.39: 安全解构，避免未定义变量
-            local_nodes = {}
-            is_yaml = False
-            try:
-                local_nodes, is_yaml = await coro
-            except Exception as e:
-                logging.debug("Fetch task failed: %s", e)
+        while pending:
+            done, pending = await asyncio.wait(
+                pending, return_when=asyncio.FIRST_COMPLETED
+            )
+            for coro in done:
+                # v28.39: 安全解构，避免未定义变量
                 local_nodes = {}
                 is_yaml = False
-            completed += 1
+                try:
+                    local_nodes, is_yaml = await coro
+                except Exception as e:
+                    logging.debug("Fetch task failed: %s", e)
+                    local_nodes = {}
+                    is_yaml = False
+                completed += 1
 
-            for h, p in local_nodes.items():
-                if h not in nodes:
-                    nodes[h] = p
+                for h, p in local_nodes.items():
+                    if h not in nodes:
+                        nodes[h] = p
 
-            if is_yaml:
-                yaml_count += 1
-            else:
-                txt_count += 1
+                if is_yaml:
+                    yaml_count += 1
+                else:
+                    txt_count += 1
 
-            if completed % 50 == 0:
-                print(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
+                if completed % 50 == 0:
+                    print(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
 
+                if len(nodes) >= max_nodes:
+                    print(f"   已达上限 {max_nodes}，提前结束")
+                    break
             if len(nodes) >= max_nodes:
-                print(f"   ✅ 已达上限 {max_nodes}，提前结束")
                 break
     finally:
+        # 取消剩余未完成的任务
+        if pending:
+            for task in pending:
+                task.cancel()
+            # 等待取消完成（忽略 CancelledError）
+            await asyncio.gather(*pending, return_exceptions=True)
+        # 安全关闭 client
         import sys
         crawler = sys.modules.get('crawler')
         if crawler:
@@ -472,7 +487,7 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
                 try:
                     await async_client.aclose()
                 except Exception as e:
-                    print(f"   ⚠️ 关闭异步客户端时出错: {e}")
+                    logging.debug("关闭异步客户端时出错: %s", e)
                 crawler._async_http_client = None
 
     return nodes, yaml_count, txt_count

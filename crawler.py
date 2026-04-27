@@ -1191,20 +1191,30 @@ def _ip_geo_batch(ips):
         to_query = [ip for ip in to_query if limiter.get_geo(ip) is None]
 
     # 回退到 ip-api.com 批量接口（每批最多 100 个）
+    # v28.46-fix3: 使用 HTTPS + 重试，避免 Connection reset by peer
     BATCH = 100
     for i in range(0, len(to_query), BATCH):
         batch = to_query[i:i + BATCH]
-        try:
-            c = get_http_client()
-            r = c.post("http://ip-api.com/batch?fields=status,countryCode,query",
-                       json=batch, timeout=10)
-            if r.status_code == 200:
-                for item in r.json():
-                    if item.get("status") == "success":
-                        limiter.set_geo(item["query"], item)
-                print(f"   🌍 IP 地理位置查询：{len(batch)} 个（已缓存 {len(limiter.ip_geo_cache)}）")
-        except (requests.RequestException, httpx.HTTPError, ValueError) as e:
-            print(f"   ⚠️ IP 地理位置查询失败: {e}")
+        last_err = None
+        for attempt in range(3):
+            try:
+                c = get_http_client()
+                r = c.post("https://ip-api.com/batch?fields=status,countryCode,query",
+                           json=batch, timeout=15)
+                if r.status_code == 200:
+                    for item in r.json():
+                        if item.get("status") == "success":
+                            limiter.set_geo(item["query"], item)
+                    print(f"   IP 地理位置查询：{len(batch)} 个（已缓存 {len(limiter.ip_geo_cache)}）")
+                    break
+                elif r.status_code in (429, 503):
+                    time.sleep(2 ** attempt)
+                    continue
+            except (requests.RequestException, httpx.HTTPError, ValueError) as e:
+                last_err = e
+                time.sleep(1.5 ** attempt)
+        else:
+            logging.debug("IP 地理位置查询失败（已重试3次）: %s", last_err)
         # 每批查询后保存缓存
         limiter.save_geo_cache()
 

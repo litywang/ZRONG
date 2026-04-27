@@ -603,7 +603,7 @@ def mainland_friendly_score(p):
 
     # 1. 地理位置加成（权重最大）
     if is_asia(p):
-        score += 40
+        score += 50  # v28.47: 亚洲基础分 40→50
         # 港日韩新额外加分（最稳定的大陆友好地区）
         t = f"{p.get('name', '')} {p.get('server', '')}".lower()
         premium_regions = ["hk", "hongkong", "港", "tw", "taiwan", "台",
@@ -611,7 +611,7 @@ def mainland_friendly_score(p):
                            "sg", "singapore", "新加坡", "狮城",
                            "kr", "korea", "韩", "seoul"]
         if any(k in t for k in premium_regions):
-            score += 15
+            score += 20  # v28.47: 优质地区额外分 15→20
     else:
         # 非亚洲节点看IP地理位置
         server = p.get("server", "")

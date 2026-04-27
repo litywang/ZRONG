@@ -1920,12 +1920,13 @@ def main():
 
         # 6. TCP 测试（提高并发）
         print("⚡ 第一层：TCP 延迟测试...\n")
-        # v28.16: TCP测试队列优化——亚洲节点优先测试
+        # v28.47: TCP测试队列优化——亚洲节点优先测试，提高亚洲测试比例
         all_nodes_list = list(nodes.values())
         asia_nodes_list = [n for n in all_nodes_list if is_asia(n)]
         non_asia_nodes_list = [n for n in all_nodes_list if not is_asia(n)]
-        # 亚洲节点全部进入测试队列，非亚洲节点补充剩余名额
-        asia_quota = min(len(asia_nodes_list), MAX_TCP_TEST_NODES)
+        # v28.47: 亚洲节点优先，分配70%测试额度给亚洲
+        asia_tcp_ratio = 0.7
+        asia_quota = min(len(asia_nodes_list), int(MAX_TCP_TEST_NODES * asia_tcp_ratio))
         non_asia_quota = min(len(non_asia_nodes_list), MAX_TCP_TEST_NODES - asia_quota)
         nlist = asia_nodes_list[:asia_quota] + non_asia_nodes_list[:non_asia_quota]
         print(f"   📊 TCP测试队列：{len(asia_nodes_list[:asia_quota])} 亚洲"
@@ -1953,8 +1954,11 @@ def main():
                 lat = tcp_ping(host, port)
                 if lat >= 9999:
                     return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
-                # v28.9: 放宽丢包率检测（timeout 2.0 -> 3.0, attempts 3 -> 2）
-                ok, total, usable = packet_loss_check(host, port, timeout=3.0, attempts=2)
+                # v28.47: 亚洲节点放宽丢包检测，提高亚洲节点通过率
+                if is_asia(proxy):
+                    ok, total, usable = packet_loss_check(host, port, timeout=4.0, attempts=2)
+                else:
+                    ok, total, usable = packet_loss_check(host, port, timeout=3.0, attempts=2)
                 if not usable:
                     return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
                 # BUGFIX v28.20: TLS 握手检测扩展到所有常用 TLS 端口
@@ -1964,11 +1968,16 @@ def main():
                     tls_ok, _ = tls_handshake_ok(host, port, timeout=3.0)
                     if not tls_ok:
                         return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
-                # v28.19: 协议握手验证 - 扩展到所有协议类型
+                # v28.47: 协议握手验证 - 亚洲节点放宽验证
                 ptype = proxy.get("type", "").lower()
                 if ptype in ("ss", "ssr", "socks5", "http", "vmess", "vless", "trojan", "hysteria", "hysteria2", "tuic", "snell"):
-                    if not _proto_handshake_ok(host, port, ptype, proxy):
-                        return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
+                    if is_asia(proxy):
+                        # 亚洲节点握手失败不直接淘汰，降低延迟要求
+                        if not _proto_handshake_ok(host, port, ptype, proxy):
+                            logging.debug(f"亚洲节点 {host}:{port} 握手失败但保留")
+                    else:
+                        if not _proto_handshake_ok(host, port, ptype, proxy):
+                            return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
                 return {"proxy": proxy, "latency": float(lat), "is_asia": is_asia(proxy),
                         "hist_score": history_stability_score(host, port)}
             except (OSError, ValueError, TypeError):
@@ -2030,9 +2039,9 @@ def main():
             -PROTOCOL_SCORE.get(x["proxy"].get("type", ""), 0) / 10.0,  # 协议评分加权
             x["latency"]
         ))
-        # v28.14: 如果亚洲节点不足60%，调整排序策略强制提升
+        # v28.47: 如果亚洲节点不足70%，调整排序策略强制提升
         asia_count = sum(1 for n in nres if n["is_asia"])
-        if asia_count > 0 and asia_count < len(nres) * 0.6:
+        if asia_count > 0 and asia_count < len(nres) * 0.7:
             # 重新排序：亚洲节点全部置顶，非亚洲按延迟排序
             asia_nodes = [n for n in nres if n["is_asia"]]
             non_asia_nodes = [n for n in nres if not n["is_asia"]]
@@ -2090,9 +2099,10 @@ def main():
                                 item, p, r = future.result(timeout=8)
                                 done_count += 1
                                 k = f"{p['server']}:{p['port']}"
+                                # v28.47: 亚洲节点真实测速延迟放宽
                                 if r["success"] and (
                                     r["latency"] < MAX_PROXY_LATENCY
-                                    or (is_asia(p) and r["latency"] < MAX_PROXY_LATENCY * 1.5)
+                                    or (is_asia(p) and r["latency"] < MAX_PROXY_LATENCY * 2.0)
                                 ):
                                     srv = p.get("server", "")
                                     sni_val = p.get("sni", "") or p.get("servername", "")
@@ -2134,8 +2144,8 @@ def main():
                     k = f"{p['server']}:{p['port']}"
                     if k in tested:
                         continue
-                    if item["is_asia"] and item["latency"] < ASIA_TCP_RELAX:
-                        # v28.16: 亚洲TCP补充延迟放宽（800→ASIA_TCP_RELAX=1500）
+                    # v28.47: 亚洲TCP补充延迟进一步放宽
+                    if item["is_asia"] and item["latency"] < ASIA_TCP_RELAX * 1.5:
                         tested.add(k)  # BUGFIX: 标记避免重复检测
                         srv = p.get("server", "")
                         sni_val = p.get("sni", "") or p.get("servername", "")
@@ -2222,7 +2232,7 @@ def main():
         )
 
         target_asia = int(MAX_FINAL_NODES * TARGET_ASIA_RATIO)  # 柔性目标
-        max_asia = int(MAX_FINAL_NODES * 0.55)  # v28.21: 上限55%防过度集中
+        max_asia = int(MAX_FINAL_NODES * 0.65)  # v28.47: 上限65%，提高亚洲节点比例
         min_asia = min(ASIA_MIN_COUNT, MAX_FINAL_NODES)  # 保底数量
         target_non_asia = MAX_FINAL_NODES - target_asia
 

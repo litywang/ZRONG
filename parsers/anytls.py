@@ -22,23 +22,23 @@ def parse_anytls(node: str) -> dict | None:
             port=_safe_port(p_url.port),
             skip_cert_verify=True
         )
-        
+
         node_obj.name = p_url.fragment if p_url.fragment else f"AT-{generate_unique_id({'server': p_url.hostname, 'port': node_obj.port})}"
-        
+
         params = parse_qs(p_url.query)
         def gp(k):
             return params.get(k, [""])[0]
-        
+
         sni = gp("sni")
         if sni:
             node_obj.sni = sni
         elif p_url.hostname:
             node_obj.sni = p_url.hostname
-        
+
         fp = gp("fp")
         if fp:
             node_obj._extra["client-fingerprint"] = fp
-        
+
         return node_obj.to_dict() if node_obj.server else None
     except Exception as e:
         logger.debug(f"[parse_anytls] 解析失败: {e}", exc_info=True)

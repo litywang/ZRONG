@@ -137,7 +137,7 @@ def parse_ssr(node: str) -> dict | None:
             node_obj._extra["obfs-param"] = obfs_param
         if proto_param:
             node_obj._extra["protocol-param"] = proto_param
-        
+
         # 向后兼容：返回 dict
         return node_obj.to_dict()
     except Exception as e:

@@ -24,20 +24,21 @@ def parse_snell(node: str) -> dict | None:
             password=pwd,
             udp=True
         )
-        
+
         node_obj.name = p_url.fragment if p_url.fragment else f"SN-{generate_unique_id({'server': p_url.hostname, 'port': node_obj.port})}"
-        
+
         params = parse_qs(p_url.query)
-        def gp(k): return params.get(k, [""])[0]
-        
+        def gp(k):
+            return params.get(k, [""])[0]
+
         obfs = gp("obfs")
         if obfs:
             node_obj._extra["obfs-opts"] = {"mode": obfs}
-        
+
         version = gp("version")
         if version:
             node_obj._extra["version"] = int(version)
-        
+
         return node_obj.to_dict() if node_obj.server else None
     except Exception as e:
         logger.debug(f"[parse_snell] 解析失败: {e}", exc_info=True)

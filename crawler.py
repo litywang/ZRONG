@@ -123,7 +123,7 @@ urllib3_logger.propagate = False
 @dataclass
 class ProxyNode:
     """结构化代理节点数据模型，替代 dict 作为内部统一格式。
-    
+
     兼容 dict 回退：所有属性提供默认值，parse_* 函数返回的 dict 仍可透明使用。
     """
     # 核心字段（必须有）
@@ -171,7 +171,7 @@ class ProxyNode:
         """转换为 Clash 配置 dict 格式（供 create_config 使用）。"""
         name = self.name or f"{self.protocol.upper()}-{self.server}:{self.port}"
         p = {"name": name, "type": self.protocol, "server": self.server, "port": self.port, "udp": True, "skip-cert-verify": self.skip_cert_verify}
-        
+
         if self.protocol in ("ss", "ss2022"):
             p.update({"cipher": self.cipher or "aes-128-gcm", "password": self.password})
         elif self.protocol == "vmess":
@@ -233,12 +233,12 @@ class ProxyNode:
                 p["client-fingerprint"] = self._extra["client-fingerprint"]
         elif self.protocol == "snell":
             p.update({"password": self.password or ""})
-        
+
         # 合并 _extra 中的其他字段（用于 ssr 等特殊字段）
         for k, v in self._extra.items():
             if k not in p:
                 p[k] = v
-        
+
         return p
 
     @staticmethod
@@ -1303,7 +1303,7 @@ class ClashManager:
         names = []
         seen = set()
         cleaned_proxies = [self._clean_proxy_for_clash(p) for p in filtered]
-        
+
         # BUG[4-02] 修复：必填字段验证
         required_fields = {"name", "type", "server", "port"}
         valid_proxies = []
@@ -1321,11 +1321,11 @@ class ClashManager:
                 logging.warning("Clash: 跳过端口无效 %s 的节点 %s", p.get("port"), p.get("name", "?"))
                 continue
             valid_proxies.append(p)
-        
+
         if not valid_proxies:
             print("   ⚠️ 所有节点均缺少必填字段或端口无效，无法生成 Clash 配置")
             return False
-        
+
         for i, p in enumerate(valid_proxies):
             name = p["name"]
             if name in seen:
@@ -1481,6 +1481,7 @@ class NodeNamer:
         self.counters = {}
 
     def to_fancy(self, t):
+
         return ''.join(self.FANCY.get(c.upper(), c) for c in t)
 
     def generate(self, flag, lat, speed=None, tcp=False, server=None, sni=None):

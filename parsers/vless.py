@@ -19,14 +19,15 @@ def parse_vless(node: str) -> dict | None:
         if not uuid:
             return None
         params = parse_qs(p_url.query)
-        def gp(k): return params.get(k, [""])[0]
+        def gp(k):
+            return params.get(k, [""])[0]
         sec = gp("security")
 
         # 从 URL fragment 提取原始名称
         original_name = p_url.fragment if p_url.fragment else f"VL-{generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'uuid': uuid})}"
 
         port_val = _safe_port(p_url.port)
-        
+
         node_obj = ProxyNode(
             protocol="vless",
             server=p_url.hostname,
@@ -35,7 +36,7 @@ def parse_vless(node: str) -> dict | None:
             uuid=uuid,
             skip_cert_verify=True
         )
-        
+
         if sec in ["tls", "reality"]:
             node_obj.tls = True
             node_obj.sni = gp("sni") or node_obj.server
@@ -52,7 +53,7 @@ def parse_vless(node: str) -> dict | None:
         else:
             node_obj.vless_opts = node_obj.vless_opts or {}
             node_obj.vless_opts["client-fingerprint"] = "chrome"
-        
+
         flow = gp("flow")
         _VALID_FLOWS = {'', 'xtls-rprx-vision', 'xtls-rprx-vision-udp443'}
         if flow not in _VALID_FLOWS:
@@ -62,7 +63,7 @@ def parse_vless(node: str) -> dict | None:
         if flow:
             node_obj.vless_opts = node_obj.vless_opts or {}
             node_obj.vless_opts["flow"] = flow
-        
+
         tp = gp("type")
         if tp == "ws":
             node_obj.network = "ws"
@@ -77,7 +78,7 @@ def parse_vless(node: str) -> dict | None:
             node_obj.network = "grpc"
             if gp("serviceName"):
                 node_obj.grpc_opts = {"grpc-service-name": gp("serviceName")}
-        
+
         # 向后兼容：返回 dict
         return node_obj.to_dict()
     except Exception as e:

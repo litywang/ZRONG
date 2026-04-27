@@ -19,7 +19,8 @@ def parse_trojan(node: str) -> dict | None:
         if not pwd:
             return None
         params = parse_qs(p_url.query)
-        def gp(k): return params.get(k, [""])[0]
+        def gp(k):
+            return params.get(k, [""])[0]
 
         # 从 URL fragment 提取原始名称
         original_name = p_url.fragment if p_url.fragment else f"TJ-{generate_unique_id({'server': p_url.hostname, 'port': _safe_port(p_url.port), 'password': pwd})}"
@@ -33,7 +34,7 @@ def parse_trojan(node: str) -> dict | None:
             skip_cert_verify=True
         )
         node_obj.sni = gp("sni") or node_obj.server
-        
+
         # BUGFIX v28.20: 解析 WS/GRPC 传输层参数
         ttype = gp("type")
         if ttype == "ws":
@@ -49,15 +50,15 @@ def parse_trojan(node: str) -> dict | None:
             node_obj.network = "grpc"
             if gp("serviceName"):
                 node_obj.grpc_opts = {"grpc-service-name": gp("serviceName")}
-        
+
         alpn = gp("alpn")
         if alpn:
             node_obj._extra["alpn"] = [a.strip() for a in alpn.split(",")]
-        
+
         fp = gp("fp")
         if fp:
             node_obj._extra["client-fingerprint"] = fp
-        
+
         return node_obj.to_dict()
     except Exception as e:
         logger.debug(f"[parse_trojan] 解析失败: {e}", exc_info=True)
@@ -76,7 +77,8 @@ def parse_trojan_go(node: str) -> dict | None:
         if not pwd:
             return None
         params = parse_qs(p_url.query)
-        def gp(k): return params.get(k, [""])[0]
+        def gp(k):
+            return params.get(k, [""])[0]
 
         node_obj = ProxyNode(
             protocol="trojan",
@@ -87,7 +89,7 @@ def parse_trojan_go(node: str) -> dict | None:
             skip_cert_verify=True
         )
         node_obj.sni = gp("sni") or node_obj.server
-        
+
         # trojan-go ws 扩展
         ttype = gp("type")
         if ttype == "ws":
@@ -99,11 +101,11 @@ def parse_trojan_go(node: str) -> dict | None:
                 wo["headers"] = {"Host": gp("host")}
             if wo:
                 node_obj.ws_opts = wo
-        
+
         fp = gp("fp")
         if fp:
             node_obj._extra["client-fingerprint"] = fp
-        
+
         return node_obj.to_dict()
     except Exception as e:
         logger.debug(f"[parse_trojan_go] 解析失败: {e}", exc_info=True)

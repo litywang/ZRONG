@@ -18,7 +18,8 @@ def parse_tuic(node: str) -> dict | None:
         uuid_val = p_url.username or ""
         tuic_password = p_url.password or uuid_val
         params = parse_qs(p_url.query)
-        def gp(k): return params.get(k, [""])[0]
+        def gp(k):
+            return params.get(k, [""])[0]
 
         node_obj = ProxyNode(
             protocol="tuic",
@@ -28,19 +29,19 @@ def parse_tuic(node: str) -> dict | None:
             password=tuic_password,
             skip_cert_verify=True
         )
-        
+
         sni = gp("sni")
         if sni:
             node_obj.sni = sni
-        
+
         fp = gp("fp")
         if fp:
             node_obj._extra["client-fingerprint"] = fp
-        
+
         alpn = gp("alpn")
         if alpn:
             node_obj._extra["alpn"] = [a.strip() for a in alpn.split(",")]
-        
+
         return node_obj.to_dict() if node_obj.server else None
     except Exception as e:
         logger.debug(f"[parse_tuic] 解析失败: {e}", exc_info=True)

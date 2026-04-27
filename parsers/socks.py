@@ -25,12 +25,12 @@ def parse_http_proxy(node: str) -> dict | None:
             port=_safe_port(p_url.port, 443 if ptype == "https" else 80),
         )
         node_obj.name = p_url.fragment if p_url.fragment else f"HT-{generate_unique_id({'server': p_url.hostname, 'port': node_obj.port})}"
-        
+
         if username:
             node_obj._extra["username"] = username
         if password:
             node_obj._extra["password"] = password
-        
+
         d = node_obj.to_dict()
         if username:
             d["username"] = username
@@ -60,12 +60,12 @@ def parse_socks(node: str) -> dict | None:
             port=_safe_port(p_url.port, 1080),
         )
         node_obj.name = p_url.fragment if p_url.fragment else f"SK-{generate_unique_id({'server': p_url.hostname, 'port': node_obj.port})}"
-        
+
         if username:
             node_obj._extra["username"] = username
         if password:
             node_obj._extra["password"] = password
-        
+
         d = node_obj.to_dict()
         if username:
             d["username"] = username

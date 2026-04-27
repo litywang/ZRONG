@@ -429,7 +429,8 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
 
     print(f"🌐 异步抓取 {len(all_urls)} 个订阅源...")
 
-    tasks = [fetch_with_limit(url) for url in all_urls]
+    # v28.47-fix1: 创建 task 对象而非传递 coroutine
+    tasks = [asyncio.create_task(fetch_with_limit(url)) for url in all_urls]
     nodes = {}
     yaml_count = 0
     txt_count = 0
@@ -442,12 +443,12 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
             done, pending = await asyncio.wait(
                 pending, return_when=asyncio.FIRST_COMPLETED
             )
-            for coro in done:
+            for task in done:
                 # v28.39: 安全解构，避免未定义变量
                 local_nodes = {}
                 is_yaml = False
                 try:
-                    local_nodes, is_yaml = await coro
+                    local_nodes, is_yaml = await task
                 except Exception as e:
                     logging.debug("Fetch task failed: %s", e)
                     local_nodes = {}

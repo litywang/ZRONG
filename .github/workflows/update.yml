@@ -37,10 +37,22 @@ jobs:
 
       - name: Download GeoLite2 Database
         run: |
-          # 使用 gh CLI 下载最新 release asset（处理 GitHub 重定向）
-          gh release download --repo P3TERX/GeoLite.mmdb --pattern "GeoLite2-City.mmdb.gz" --dir .
-          file GeoLite2-City.mmdb.gz
-          gunzip -f GeoLite2-City.mmdb.gz
+          # 先查看 release assets 列表，找到正确的文件名
+          echo "Fetching release assets list..."
+          ASSET_NAME=$(gh release view --repo P3TERX/GeoLite.mmdb --json assets -q '.assets[].name' | grep -i "GeoLite2-City.*\.mmdb\.gz" | head -1)
+          if [ -z "$ASSET_NAME" ]; then
+            echo "Trying alternative pattern..."
+            ASSET_NAME=$(gh release view --repo P3TERX/GeoLite.mmdb --json assets -q '.assets[].name' | grep -i "city.*\.gz" | head -1)
+          fi
+          if [ -z "$ASSET_NAME" ]; then
+            echo "ERROR: Could not find GeoLite2-City asset in release"
+            gh release view --repo P3TERX/GeoLite.mmdb --json assets -q '.assets[].name'
+            exit 1
+          fi
+          echo "Found asset: $ASSET_NAME"
+          gh release download --repo P3TERX/GeoLite.mmdb --pattern "$ASSET_NAME" --dir .
+          file "$ASSET_NAME"
+          gunzip -f "$ASSET_NAME"
           ls -lh GeoLite2-City.mmdb
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

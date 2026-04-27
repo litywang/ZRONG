@@ -575,7 +575,7 @@ def is_china_mainland(p):
                     if cc == "CN":
                         return True
             except Exception:
-                pass  # limiter 未就绪时跳过
+                logging.debug("is_china_mainland limiter not ready", exc_info=True)
         return False
     except Exception:
         logging.debug("is_china_mainland error", exc_info=True)

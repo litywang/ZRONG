@@ -1136,7 +1136,7 @@ def _ip_geo_batch(ips):
                     if item.get("status") == "success":
                         limiter.set_geo(item["query"], item)
                 print(f"   🌍 IP 地理位置查询：{len(batch)} 个（已缓存 {len(limiter.ip_geo_cache)}）")
-        except (requests.RequestException, httpx.ReadError, httpx.ReadTimeout, ValueError) as e:
+        except (requests.RequestException, httpx.HTTPError, ValueError) as e:
             print(f"   ⚠️ IP 地理位置查询失败: {e}")
         # 每批查询后保存缓存
         limiter.save_geo_cache()
@@ -2042,7 +2042,7 @@ def main():
                             except (OSError, ValueError, TypeError):
                                 logging.debug("Batch proxy test error")
                     print(f"\n   第{batch_id}批完成：累计合格 {len(final)} 个\n")
-                except Exception as e:
+                except (OSError, subprocess.SubprocessError, ValueError) as e:
                     print(f"   ❌ Clash 崩溃: {e}")
                     clash.stop()
                     break
@@ -2297,11 +2297,11 @@ TXT: <a href="{txt_html_url}">{txt_html_url}</a>
                     timeout=10
                 )
                 print("✅ Telegram通知已发送")
-            except Exception as e:
+            except (requests.RequestException, OSError, ValueError) as e:
                 print(f"⚠️ Telegram推送失败：{e}")
         print("🎉 任务完成！")
 
-    except Exception as e:
+    except (OSError, ValueError, TypeError, KeyboardInterrupt) as e:
         print(f"\n❌ 程序异常：{e}")
         import traceback
         traceback.print_exc()
@@ -2329,7 +2329,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\n⚠️ 用户中断执行")
         sys.exit(1)
-    except Exception as e:
+    except (OSError, ValueError, TypeError) as e:
         print(f"\n❌ 程序异常：{e}")
         import traceback
         traceback.print_exc()

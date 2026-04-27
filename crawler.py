@@ -1136,7 +1136,7 @@ def _ip_geo_batch(ips):
                     if item.get("status") == "success":
                         limiter.set_geo(item["query"], item)
                 print(f"   🌍 IP 地理位置查询：{len(batch)} 个（已缓存 {len(limiter.ip_geo_cache)}）")
-        except (requests.RequestException, httpx.ReadError, ValueError) as e:
+        except (requests.RequestException, httpx.ReadError, httpx.ReadTimeout, ValueError) as e:
             print(f"   ⚠️ IP 地理位置查询失败: {e}")
         # 每批查询后保存缓存
         limiter.save_geo_cache()

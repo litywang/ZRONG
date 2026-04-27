@@ -49,6 +49,6 @@ def parse_snell(node: str) -> dict | None:
             node_obj._extra["version"] = int(version)
 
         return node_obj.to_dict() if node_obj.server else None
-    except Exception as e:
+    except (ValueError, TypeError, AttributeError, UnicodeDecodeError) as e:
         logger.debug(f"[parse_snell] 解析失败: {e}", exc_info=True)
         return None

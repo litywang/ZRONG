@@ -94,6 +94,6 @@ def parse_vless(node: str) -> dict | None:
 
         # 向后兼容：返回 dict
         return node_obj.to_dict()
-    except Exception as e:
+    except (ValueError, TypeError, AttributeError, UnicodeDecodeError) as e:
         logger.debug(f"VLESS解析失败: {e}", exc_info=True)
         return None

@@ -60,7 +60,7 @@ def parse_trojan(node: str) -> dict | None:
             node_obj._extra["client-fingerprint"] = fp
 
         return node_obj.to_dict()
-    except Exception as e:
+    except (ValueError, TypeError, AttributeError, UnicodeDecodeError) as e:
         logger.debug(f"[parse_trojan] 解析失败: {e}", exc_info=True)
         return None
 
@@ -107,7 +107,7 @@ def parse_trojan_go(node: str) -> dict | None:
             node_obj._extra["client-fingerprint"] = fp
 
         return node_obj.to_dict()
-    except Exception as e:
+    except (ValueError, TypeError, AttributeError, UnicodeDecodeError) as e:
         logger.debug(f"[parse_trojan_go] 解析失败: {e}", exc_info=True)
         return None
 

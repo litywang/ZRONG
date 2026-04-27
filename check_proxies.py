@@ -26,7 +26,7 @@ def validate_proxies_yaml(filepath="proxies.yaml"):
         return True, cfg, "[OK] 格式验证通过"
     except FileNotFoundError:
         return False, None, f"[FAIL] 文件不存在: {filepath}"
-    except Exception as e:
+    except (yaml.YAMLError, PermissionError, OSError) as e:
         return False, None, f"[FAIL] 验证失败: {e}"
 
 ok, cfg, msg = validate_proxies_yaml()

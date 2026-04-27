@@ -15,7 +15,7 @@ try:
         'https://raw.githubusercontent.com/gaoyifan/china-operator-ip/ip-lists/china.txt',
         timeout=15
     ).read().decode()
-except Exception as e:
+except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e:
     print(f"[gen_cn_cidr] Download failed: {e}")
     raise
 

@@ -1159,7 +1159,7 @@ def _geoip2_lookup(ip):
             return {"status": "success", "countryCode": cc.upper(), "query": ip}
     except (geoip2.errors.AddressNotFoundError, ValueError, TypeError):
         pass
-    except Exception as e:
+    except (OSError, ImportError) as e:
         logging.debug("GeoIP2 查询异常: %s", e)
     return None
 

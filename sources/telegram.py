@@ -71,7 +71,7 @@ def get_telegram_pages(channel: str) -> int:
             return 1  # 至少有一页
 
         return 0
-    except Exception as e:
+    except (requests.RequestException, ValueError) as e:
         print(f"⚠️ {channel} 页码获取失败：{str(e)[:50]}")
         return 0
 
@@ -213,7 +213,7 @@ def crawl_telegram_page(url: str, limits: int = 25) -> Dict[str, dict]:
 
         return collections
 
-    except Exception as e:
+    except (requests.RequestException, ValueError) as e:
         print(f"   ❌ 爬取异常：{str(e)[:50]}")
         return {}
 
@@ -244,7 +244,7 @@ def crawl_single_channel(channel: str, pages: int = 2, limits: int = 20) -> tupl
             time.sleep(random.uniform(0.1, 0.3))
 
         return channel_subs, channel, "ok"
-    except Exception as e:
+    except (requests.RequestException, ValueError) as e:
         # v28.39: 确保 channel_subs 已定义
         if 'channel_subs' not in locals():
             channel_subs = {}
@@ -273,7 +273,7 @@ def crawl_telegram_channels(channels: List[str], pages: int = 2, limits: int = 2
             # v28.39: 安全解构，避免未定义变量
             try:
                 channel_subs, channel, status = future.result()
-            except Exception as e:
+            except (concurrent.futures.CancelledError, RuntimeError) as e:
                 logger.debug("Channel crawl failed: %s", e)
                 channel_subs = {}
                 channel = futures[future]

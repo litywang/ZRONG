@@ -84,7 +84,7 @@ def parse_vmess(node: str) -> dict | None:
 
         # 向后兼容：返回 dict
         return node_obj.to_dict() if node_obj.server and node_obj.uuid else None
-    except Exception as e:
+    except (json.JSONDecodeError, base64.binascii.Error, UnicodeDecodeError, KeyError, ValueError) as e:
         logger.debug(f"VMess解析失败: {e}", exc_info=True)
         return None
 

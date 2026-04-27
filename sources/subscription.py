@@ -449,7 +449,7 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
                 is_yaml = False
                 try:
                     local_nodes, is_yaml = await task
-                except Exception as e:
+                except (asyncio.CancelledError, ConnectionError, TimeoutError) as e:
                     logging.debug("Fetch task failed: %s", e)
                     local_nodes = {}
                     is_yaml = False
@@ -487,7 +487,7 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
             if async_client:
                 try:
                     await async_client.aclose()
-                except Exception as e:
+                except (OSError, RuntimeError) as e:
                     logging.debug("关闭异步客户端时出错: %s", e)
                 crawler._async_http_client = None
 

@@ -40,7 +40,7 @@ def parse_anytls(node: str) -> dict | None:
             node_obj._extra["client-fingerprint"] = fp
 
         return node_obj.to_dict() if node_obj.server else None
-    except Exception as e:
+    except (ValueError, TypeError, AttributeError, UnicodeDecodeError) as e:
         logger.debug(f"[parse_anytls] 解析失败: {e}", exc_info=True)
         return None
 

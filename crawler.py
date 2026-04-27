@@ -1331,7 +1331,7 @@ class ClashManager:
             "log-level": "error", "external-controller": f"127.0.0.1:{CLASH_API_PORT}",
             "secret": "",  # nosec B105: Clash API local only
             "ipv6": False, "unified-delay": True, "tcp-concurrent": True,
-            "proxies": cleaned_proxies,
+            "proxies": valid_proxies,
             "proxy-groups": [{"name": "TEST", "type": "select", "proxies": names}],
             "rules": ["MATCH,TEST"]
         }

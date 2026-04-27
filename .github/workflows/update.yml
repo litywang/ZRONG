@@ -90,7 +90,8 @@ jobs:
           git add proxies.yaml subscription.txt cn_cidr_data.py
           git status
           git diff --staged --stat
-          git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M') [v28.22]" || echo "Nothing to commit"
+          git pull --rebase origin main || echo "Rebase failed, will push anyway"
+          git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M') [v28.35]" || echo "Nothing to commit"
           git push https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}.git HEAD:main
 
       - name: Upload Logs on Failure

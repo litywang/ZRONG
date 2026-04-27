@@ -27,9 +27,18 @@ NON_PROXY_PORTS = {2377, 2376, 2375, 9200, 9300, 27017, 27018, 27019, 6379, 1121
 
 
 def generate_unique_id(proxy):
-    """生成节点唯一ID（与 crawler.py 原逻辑一致）"""
-    key = f"{proxy.get('server', '')}:{proxy.get('port', '')}:{proxy.get('uuid', proxy.get('password', ''))}"
-    return hashlib.md5(key.encode(), usedforsecurity=False).hexdigest()[:8].upper()
+    """生成节点唯一ID（与 crawler.py 原逻辑一致）
+    ✅ v28.37: 包含协议类型和路径，避免不同协议/路径的节点被误去重
+    """
+    protocol = proxy.get('type', proxy.get('protocol', 'unknown'))
+    server = proxy.get('server', '')
+    port = proxy.get('port', 0)
+    auth = proxy.get('uuid') or proxy.get('password') or ''
+    path = proxy.get('path', '')
+    network = proxy.get('network', 'tcp')
+    
+    key = f"{protocol}|{server}|{port}|{auth}|{path}|{network}"
+    return hashlib.md5(key.encode(), usedforsecurity=False).hexdigest()[:12].upper()
 
 
 def _safe_port(val, default=443):

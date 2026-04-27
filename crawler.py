@@ -1493,8 +1493,8 @@ class NodeNamer:
         code, region = get_region(flag, server=server, sni=sni)
         self.counters[region] = self.counters.get(region, 0) + 1
         num = self.counters[region]
-        # v26: 添加后缀 -Anftlity
-        return f"{code}{num}-Anftlity"
+        # v28.37: 使用哥特体后缀 𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+        return f"{code}{num}-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
 
 
 # ⭐ 协议链接转换（扩展版）

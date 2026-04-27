@@ -26,7 +26,8 @@ def parse_anytls(node: str) -> dict | None:
         node_obj.name = p_url.fragment if p_url.fragment else f"AT-{generate_unique_id({'server': p_url.hostname, 'port': node_obj.port})}"
         
         params = parse_qs(p_url.query)
-        def gp(k): return params.get(k, [""])[0]
+        def gp(k):
+            return params.get(k, [""])[0]
         
         sni = gp("sni")
         if sni:

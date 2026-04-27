@@ -37,17 +37,13 @@ jobs:
 
       - name: Download GeoLite2 Database
         run: |
-          # 使用 GitHub API 获取最新 release 的下载 URL
-          ASSET_URL=$(curl -sL "https://api.github.com/repos/P3TERX/GeoLite.mmdb/releases/latest" | grep -o '"browser_download_url": "[^"]*GeoLite2-City.mmdb.gz"' | cut -d'"' -f4)
-          if [ -z "$ASSET_URL" ]; then
-            echo "Failed to get download URL, trying direct fallback..."
-            ASSET_URL="https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite2-City.mmdb.gz"
-          fi
-          echo "Downloading from: $ASSET_URL"
-          curl -L -H "Accept: application/octet-stream" -o GeoLite2-City.mmdb.gz "$ASSET_URL"
+          # 使用 gh CLI 下载最新 release asset（处理 GitHub 重定向）
+          gh release download --repo P3TERX/GeoLite.mmdb --pattern "GeoLite2-City.mmdb.gz" --dir .
           file GeoLite2-City.mmdb.gz
           gunzip -f GeoLite2-City.mmdb.gz
           ls -lh GeoLite2-City.mmdb
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 更新中国 CIDR 数据
         run: python gen_cn_cidr.py

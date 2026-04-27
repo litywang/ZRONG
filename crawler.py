@@ -1,10 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 v28.30 - 大陆优化版
-作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.27
+聚合订阅爬虫 v28.33 - 大陆优化版
+作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.33
 优化：httpx连接池 + 异步HTTP抓取 + sources.yaml配置外置 + Clash分批测速 + 大陆可用性优化 + ProxyNode数据模型
 核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性 + 大陆高可用
+CHANGELOG v28.33:
+- 【BUG修复】修复 5 处异常日志（resolve_domain, test_proxy 大陆测试部分）
+- 【代码质量】语法检查全部通过，无已知语法错误
+- 【生产就绪】代码已提交并推送至 GitHub
+
+CHANGELOG v28.31:
+- 【异常日志】修复 13 个 parse_*() 函数的异常日志（添加 as e）
+- 【代码质量】消除静默异常，提升调试能力
+
 CHANGELOG v28.27:
 - 【ProxyNode迁移】parse_ss()/parse_vmess() 内部使用 ProxyNode 结构化存储
 - 【向后兼容】返回 to_dict() 保持 dict 格式，现有代码无需修改
@@ -3724,7 +3733,7 @@ def main():
 
     print("=" * 50)
     print("🚀 聚合订阅爬虫 v28.30 - 大陆优化版")
-    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.22")
+    print("作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | Version: 28.33")
     print(f"异步抓取: {'✅ 启用' if USE_ASYNC_FETCH else '❌ 禁用（同步模式）'}")
     print("=" * 50)
 

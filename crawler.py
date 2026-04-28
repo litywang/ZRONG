@@ -598,10 +598,10 @@ HIGH_PORT_BONUS_THRESHOLD = 10000
 COMMON_PORT_PENALTY = {80: 300, 443: 200, 8080: 100, 8443: 100}
 
 # v28.14: 提高亚洲优先级权重
-ASIA_PRIORITY_BONUS = int(os.getenv("ASIA_PRIORITY_BONUS", "35"))  # v28.21: 柔性配额（80→35），质量优先于凑数
-TARGET_ASIA_RATIO = float(os.getenv("TARGET_ASIA_RATIO", "0.45"))  # v28.21: 柔性45%（原60%强制导致低质凑数）
+ASIA_PRIORITY_BONUS = int(os.getenv("ASIA_PRIORITY_BONUS", "40"))  # v28.49: 提高亚洲优先级（35→40）
+TARGET_ASIA_RATIO = float(os.getenv("TARGET_ASIA_RATIO", "0.55"))  # v28.49: 提高亚洲目标比例（45%→55%）
 ASIA_TCP_RELAX = 1500    # v28.16: 亚洲TCP补充延迟放宽到1500ms
-ASIA_MIN_COUNT = int(os.getenv("ASIA_MIN_COUNT", "40"))  # v28.21: 亚洲保底数量
+ASIA_MIN_COUNT = int(os.getenv("ASIA_MIN_COUNT", "50"))  # v28.49: 提高亚洲保底数量（40→50）
 
 # ===== 并发配置 ======
 MAX_CONCURRENT_FETCH = 3
@@ -1921,14 +1921,19 @@ def main():
 
         # 6. TCP 测试（提高并发）
         print("[SPEED] 第一层：TCP 延迟测试...\n")
-        # v28.47: TCP测试队列优化——亚洲节点优先测试，提高亚洲测试比例
+        # v28.49: TCP测试队列优化——亚洲节点优先测试，提高亚洲测试比例
         all_nodes_list = list(nodes.values())
         asia_nodes_list = [n for n in all_nodes_list if is_asia(n)]
         non_asia_nodes_list = [n for n in all_nodes_list if not is_asia(n)]
-        # v28.47: 亚洲节点优先，分配70%测试额度给亚洲
-        asia_tcp_ratio = 0.7
+        # v28.49: 亚洲节点优先，分配80%测试额度给亚洲（原为70%）
+        asia_tcp_ratio = 0.80
         asia_quota = min(len(asia_nodes_list), int(MAX_TCP_TEST_NODES * asia_tcp_ratio))
         non_asia_quota = min(len(non_asia_nodes_list), MAX_TCP_TEST_NODES - asia_quota)
+        # v28.49: 亚洲节点保底——至少测试120个亚洲节点（如果存在）
+        asia_min_test = min(120, len(asia_nodes_list))
+        if asia_quota < asia_min_test:
+            asia_quota = asia_min_test
+            non_asia_quota = min(len(non_asia_nodes_list), MAX_TCP_TEST_NODES - asia_quota)
         nlist = asia_nodes_list[:asia_quota] + non_asia_nodes_list[:non_asia_quota]
         print(f"   [STAT] TCP测试队列：{len(asia_nodes_list[:asia_quota])} 亚洲"
               f" + {len(non_asia_nodes_list[:non_asia_quota])} 非亚洲 = {len(nlist)} 总计")
@@ -2032,7 +2037,7 @@ def main():
                 score += 30
             return score
 
-        # v28.14: 增强排序逻辑，大幅优先亚洲节点
+        # v28.49: 增强排序逻辑，大幅优先亚洲节点
         nres.sort(key=lambda x: (
             -_geo_score(x),  # IP 地理位置加权（亚洲加分，非友好区域扣分）
             -x["is_asia"],
@@ -2040,9 +2045,9 @@ def main():
             -PROTOCOL_SCORE.get(x["proxy"].get("type", ""), 0) / 10.0,  # 协议评分加权
             x["latency"]
         ))
-        # v28.47: 如果亚洲节点不足70%，调整排序策略强制提升
+        # v28.49: 如果亚洲节点不足75%，调整排序策略强制提升（原为70%）
         asia_count = sum(1 for n in nres if n["is_asia"])
-        if asia_count > 0 and asia_count < len(nres) * 0.7:
+        if asia_count > 0 and asia_count < len(nres) * 0.75:
             # 重新排序：亚洲节点全部置顶，非亚洲按延迟排序
             asia_nodes = [n for n in nres if n["is_asia"]]
             non_asia_nodes = [n for n in nres if not n["is_asia"]]
@@ -2100,10 +2105,10 @@ def main():
                                 item, p, r = future.result(timeout=8)
                                 done_count += 1
                                 k = f"{p['server']}:{p['port']}"
-                                # v28.47: 亚洲节点真实测速延迟放宽
+                                # v28.49: 亚洲节点真实测速延迟放宽（2.0→2.5倍）
                                 if r["success"] and (
                                     r["latency"] < MAX_PROXY_LATENCY
-                                    or (is_asia(p) and r["latency"] < MAX_PROXY_LATENCY * 2.0)
+                                    or (is_asia(p) and r["latency"] < MAX_PROXY_LATENCY * 2.5)
                                 ):
                                     srv = p.get("server", "")
                                     sni_val = p.get("sni", "") or p.get("servername", "")
@@ -2194,6 +2199,9 @@ def main():
             proto_score = PROTOCOL_SCORE.get(p.get("type", ""), 0) / 10.0  # normalize
             # v28.23: 大陆友好性综合评分（替代纯 region_bonus）
             mf_score = mainland_friendly_score(p)
+            # v28.49: 亚洲节点额外加分（提高亚洲排序优先级）
+            if asia > 0:
+                mf_score += 15
             # v28.23: 源权重加成（国内友好源来的节点额外加分）
             src_weight = p.get("_src_weight", 3)  # 默认权重3
             # 兼容旧 region_bonus 逻辑（IP geo 额外惩罚不友好地区）
@@ -2221,7 +2229,7 @@ def main():
             # sort: asia > mainland_friendly > src_weight > reality > proto > region_penalty > latency
             return (-asia, -mf_score, -src_weight, -reality, -proto_score, -region_bonus, lat_from_name)
 
-        # v28.16: 配额制节点选择（修复 v28.14 前置+排序互斥BUG）
+        # v28.49: 配额制节点选择——提高亚洲比例
         # 分组排序后再按配额合并，柔性配额：保底+上限
         asia_final = sorted(
             [p for p in final if is_asia(p)],
@@ -2233,7 +2241,7 @@ def main():
         )
 
         target_asia = int(MAX_FINAL_NODES * TARGET_ASIA_RATIO)  # 柔性目标
-        max_asia = int(MAX_FINAL_NODES * 0.65)  # v28.47: 上限65%，提高亚洲节点比例
+        max_asia = int(MAX_FINAL_NODES * 0.75)  # v28.49: 上限75%
         min_asia = min(ASIA_MIN_COUNT, MAX_FINAL_NODES)  # 保底数量
         target_non_asia = MAX_FINAL_NODES - target_asia
 

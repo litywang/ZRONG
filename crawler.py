@@ -561,13 +561,20 @@ MAX_FINAL_NODES = int(os.getenv("MAX_FINAL_NODES", "150"))       # v28.4: 150够
 MAX_LATENCY = int(os.getenv("MAX_LATENCY", "5000"))              # v28.8: 放宽到5s（大陆网络环境需要更宽松阈值）
 MIN_PROXY_SPEED = float(os.getenv("MIN_PROXY_SPEED", "30"))  # v28.21: 30KB/s保活（原0过松）
 MAX_PROXY_LATENCY = int(os.getenv("MAX_PROXY_LATENCY", "5000"))  # v28.8: 放宽到5s（大陆网络环境需要更宽松阈值）
-TEST_URL = "http://www.gstatic.com/generate_204"  # v28.3: 恢复gstatic.com（国际出口才是代理核心指标）
-# v28.19: 国际测速URL（代理核心指标：能否访问国际网站）
+# v28.55: 调整探针地址为国内服务，核心验证大陆可达性
+TEST_URL = "https://myip.ipip.net/json"  # 国内IP查询服务，验证节点大陆可达性
+# 测速URL优先国内服务，未通过国内测速的节点直接淘汰
 TEST_URLS = [
+    "https://myip.ipip.net/json",
     "https://www.baidu.com",
     "https://www.taobao.com",
     "https://www.qq.com",
+    "https://ip.3322.org",
+]
+# 原国际测速地址降级为备用（仅国内地址全部失败时启用）
+TEST_URLS_BACKUP = [
     "https://www.gstatic.com/generate_204",
+    "https://www.google.com",
 ]
 
 CLASH_PORT = int(os.getenv("CLASH_PORT", "17890"))  # v28.23: 可配置
@@ -578,11 +585,14 @@ NODE_NAME_PREFIX = "Anftlity"
 # v28.23: 大陆端点测试（通过代理访问大陆CDN，验证实际可用性）
 ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "1") == "1"
 MAINLAND_TEST_URLS = [
+    "https://myip.ipip.net/json",
     "https://www.bilibili.com",
     "https://speedtest.chinatelecom.com.cn",
     "https://www.taobao.com",
     "https://dns.alidns.com",
 ]
+# v28.55: 大陆测试改为强制项，未通过则直接淘汰节点
+ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "1") == "1"  # 默认强制开启
 MAINLAND_SCORE_THRESHOLD = int(os.getenv("MAINLAND_SCORE_THRESHOLD", "30"))
 
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "80"))  # v28.21: 50→80，Actions 可承受
@@ -1688,6 +1698,28 @@ class ClashManager:
             seen.add(name)
             names.append(name)
             p["name"] = name
+        # 大陆路由规则：环境变量 CN_DIRECT=1 启用
+        cn_direct = os.getenv("CN_DIRECT", "0") == "1"
+        rules = []
+        if cn_direct:
+            # 大陆域名后缀直连
+            rules += [
+                "DOMAIN-SUFFIX,cn,DIRECT",
+                "DOMAIN-SUFFIX,com.cn,DIRECT",
+                "DOMAIN-SUFFIX,edu.cn,DIRECT",
+                "DOMAIN-SUFFIX,net.cn,DIRECT",
+                "DOMAIN-SUFFIX,org.cn,DIRECT",
+                # 中国大陆 GEOIP 直连
+                "GEOIP,CN,DIRECT",
+                # 局域网/本地地址直连
+                "IP-CIDR,192.168.0.0/16,DIRECT",
+                "IP-CIDR,10.0.0.0/8,DIRECT",
+                "IP-CIDR,172.16.0.0/12,DIRECT",
+                "IP-CIDR,127.0.0.0/8,DIRECT",
+            ]
+        # 剩余流量走 TEST 代理组
+        rules.append("MATCH,TEST")
+
         config = {
             "port": CLASH_PORT, "socks-port": CLASH_PORT + 1, "allow-lan": False, "mode": "rule",
             "log-level": "error", "external-controller": f"127.0.0.1:{CLASH_API_PORT}",
@@ -1695,7 +1727,7 @@ class ClashManager:
             "ipv6": False, "unified-delay": True, "tcp-concurrent": True,
             "proxies": valid_proxies,
             "proxy-groups": [{"name": "TEST", "type": "select", "proxies": names}],
-            "rules": ["MATCH,TEST"]
+            "rules": rules
         }
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
             yaml.dump(config, f, allow_unicode=True, Dumper=yaml.SafeDumper)
@@ -1864,17 +1896,18 @@ class NodeNamer:
 
         return ''.join(self.FANCY.get(c.upper(), c) for c in t)
 
-    def generate(self, flag, lat, speed=None, tcp=False, server=None, sni=None):
-        """【v27】简短命名，含区域emoji + 编号 + 哥特体后缀
-        flag: 原始节点名称（或emoji字符串）
-        server: 节点server字段，用于域名fallback
-        sni: 节点sni字段，用于域名fallback（优先级高于server）
-        """
+    def generate(self, flag, lat=None, score=None, speed=None, tcp=False, server=None, sni=None):
+        """【v28.55】命名包含区域emoji + 编号 + 延迟 + 评分 + 哥特体后缀"""
         code, region = get_region(flag, server=server, sni=sni)
         self.counters[region] = self.counters.get(region, 0) + 1
         num = self.counters[region]
-        # v28.39: 使用哥特体后缀 𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-        return f"{code}{num}-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
+        # 延迟信息（仅保留整数）
+        lat_str = f"{int(lat)}ms" if lat is not None and lat < 9999 else "N/A"
+        # 大陆友好评分（保留1位小数）
+        score_str = f"s{score:.1f}" if score is not None else ""
+        # 哥特体后缀
+        gothic = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
+        return f"{code}{num}-{lat_str}{score_str}-{gothic}"
 
 
 # [STAR] 协议链接转换（扩展版）

@@ -173,10 +173,29 @@ class ProxyNode:
     _extra: Dict[str, Any] = field(default_factory=dict)
 
     def dedup_key(self) -> str:
-        """生成去重键（基于协议/服务器/端口/认证信息）。"""
+        """生成去重键（六元组：协议/服务器/端口/认证/路径/主机）。
+        
+        v28.51: 扩展为六元组去重，区分同一服务器不同配置变体。
+        """
         uid = self.uuid or self.password or ""
+        # host 来源优先级：ws-opts.host > servername > sni > host
+        host = ""
+        if self.ws_opts and isinstance(self.ws_opts, dict):
+            host = self.ws_opts.get("host", "")
+        if not host:
+            host = self.vless_opts.get("host", "") if self.vless_opts else ""
+        if not host:
+            host = self.h2_opts.get("host", [""])[0] if self.h2_opts else ""
+        if not host:
+            host = self.sni or self.host or ""
+        # path 来源优先级：ws-opts.path > h2-opts.path > path
+        path = self.path or ""
+        if not path and self.ws_opts and isinstance(self.ws_opts, dict):
+            path = self.ws_opts.get("path", "")
+        if not path and self.h2_opts and isinstance(self.h2_opts, dict):
+            path = self.h2_opts.get("path", "")
         return hashlib.md5(
-            f"{self.protocol}|{self.server}|{self.port}|{uid}|{self.path}|{self.sni}".encode(),
+            f"{self.protocol}|{self.server}|{self.port}|{uid}|{path}|{host}".encode(),
             usedforsecurity=False,
         ).hexdigest()
 

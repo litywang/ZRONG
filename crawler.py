@@ -635,6 +635,105 @@ DNS_CACHE_TTL = 300
 _HISTORY_SCORES = {}
 _HISTORY_SCORES_LOCK = threading.Lock()  # v28.22: 线程安全锁
 
+# v28.53: 节点历史可用性追踪（node_history.json）
+NODE_HISTORY_FILE = Path("node_history.json")
+_NODE_HISTORY = {}
+_NODE_HISTORY_LOCK = threading.Lock()
+
+
+def _load_node_history():
+    """加载节点历史记录。"""
+    global _NODE_HISTORY
+    if NODE_HISTORY_FILE.exists():
+        try:
+            with open(NODE_HISTORY_FILE, "r", encoding="utf-8") as f:
+                _NODE_HISTORY = json.load(f)
+        except (json.JSONDecodeError, OSError, ValueError):
+            _NODE_HISTORY = {}
+    else:
+        _NODE_HISTORY = {}
+
+
+def _save_node_history():
+    """保存节点历史记录。"""
+    try:
+        with open(NODE_HISTORY_FILE, "w", encoding="utf-8") as f:
+            json.dump(_NODE_HISTORY, f, ensure_ascii=False, indent=2)
+    except (OSError, ValueError):
+        logging.debug("Save node history failed", exc_info=True)
+
+
+def _update_node_history(proxy: dict, success: bool):
+    """更新单个节点的历史记录。
+    
+    Args:
+        proxy: 节点配置字典
+        success: 本次测试是否成功
+    """
+    # 节点指纹作为唯一键
+    uid = proxy.get("uuid", "")
+    pwd = proxy.get("password", "")
+    auth = uid or pwd or ""
+    host = proxy.get("sni", "") or proxy.get("servername", "") or proxy.get("server", "")
+    path = ""
+    ws_opts = proxy.get("ws-opts", {})
+    if isinstance(ws_opts, dict):
+        path = ws_opts.get("path", "")
+    key = hashlib.md5(
+        f"{proxy.get('type', '')}|{proxy.get('server', '')}|{proxy.get('port', 0)}|{auth}|{path}|{host}".encode(),
+        usedforsecurity=False,
+    ).hexdigest()
+    
+    now = datetime.now().isoformat()
+    with _NODE_HISTORY_LOCK:
+        if key not in _NODE_HISTORY:
+            _NODE_HISTORY[key] = {
+                "first_seen": now,
+                "last_seen": now,
+                "success_count": 0,
+                "fail_count": 0,
+                "availability": 0.0,
+            }
+        rec = _NODE_HISTORY[key]
+        rec["last_seen"] = now
+        if success:
+            rec["success_count"] += 1
+        else:
+            rec["fail_count"] += 1
+        total = rec["success_count"] + rec["fail_count"]
+        rec["availability"] = round(rec["success_count"] / total, 3) if total > 0 else 0.0
+
+
+def _get_node_history_score(proxy: dict) -> float:
+    """获取节点历史可用性评分（0-20分）。
+    
+    高可用性节点获得额外加分，新节点中性评分。
+    """
+    uid = proxy.get("uuid", "")
+    pwd = proxy.get("password", "")
+    auth = uid or pwd or ""
+    host = proxy.get("sni", "") or proxy.get("servername", "") or proxy.get("server", "")
+    path = ""
+    ws_opts = proxy.get("ws-opts", {})
+    if isinstance(ws_opts, dict):
+        path = ws_opts.get("path", "")
+    key = hashlib.md5(
+        f"{proxy.get('type', '')}|{proxy.get('server', '')}|{proxy.get('port', 0)}|{auth}|{path}|{host}".encode(),
+        usedforsecurity=False,
+    ).hexdigest()
+    
+    with _NODE_HISTORY_LOCK:
+        rec = _NODE_HISTORY.get(key)
+        if not rec:
+            return 10.0  # 新节点：中性评分
+        avail = rec["availability"]
+        total = rec["success_count"] + rec["fail_count"]
+        # 可用性评分：根据历史可用率加权
+        # 样本量越大，评分越可信
+        confidence = min(total / 10.0, 1.0)  # 10次以上达到最大置信度
+        score = avail * 20.0 * confidence + 10.0 * (1 - confidence)
+        return round(score, 1)
+
 # ===== 网络基准 ======
 _NETWORK_BASELINE = {"latency": 9999, "verified": False}
 
@@ -1854,6 +1953,9 @@ def format_proxy_to_link(p):
 def main():
     st = time.time()
 
+    # v28.53: 加载节点历史记录
+    _load_node_history()
+
     # v28.22: CN CIDR 数据有效期校验（gen_cn_cidr.py 每次运行会重新生成 cn_cidr_data.py，所以不能在那里加函数）
     try:
         _cidr_file = Path(__file__).parent / "cn_cidr_data.py"
@@ -2056,6 +2158,11 @@ def main():
                     result = future.result(timeout=2)  # 缩短超时
                     if result["latency"] < MAX_LATENCY:
                         nres.append(result)
+                        # v28.53: TCP测试通过，更新历史记录
+                        _update_node_history(result["proxy"], success=True)
+                    else:
+                        # v28.53: TCP测试失败，更新历史记录
+                        _update_node_history(result["proxy"], success=False)
                     completed += 1
                     if completed % 50 == 0:
                         print(f"   进度：{completed}/{len(nlist)} | 合格：{len(nres)}")
@@ -2183,7 +2290,12 @@ def main():
                                     )
                                     final.append(p)
                                     tested.add(k)  # v28.12: restore
+                                    # v28.53: 真实测速通过，更新历史记录
+                                    _update_node_history(p, success=True)
                                     print(f"   [OK] {p['name']}")
+                                else:
+                                    # v28.53: 真实测速失败，更新历史记录
+                                    _update_node_history(p, success=False)
                                 if len(final) >= MAX_FINAL_NODES:
                                     batch_enough = True  # BUGFIX: 通知外层 while 退出
                                     break
@@ -2283,8 +2395,10 @@ def main():
             m = re.search(r"\d+", p.get("name", ""))
             if m:
                 lat_from_name = int(m.group(0))
-            # sort: asia > mainland_friendly > src_weight > reality > proto > region_penalty > latency
-            return (-asia, -mf_score, -src_weight, -reality, -proto_score, -region_bonus, lat_from_name)
+            # v28.53: 融合历史可用性评分（0-20分）
+            hist_score = _get_node_history_score(p)
+            # sort: asia > mainland_friendly > src_weight > reality > proto > region_penalty > hist > latency
+            return (-asia, -mf_score, -src_weight, -reality, -proto_score, -region_bonus, -hist_score, lat_from_name)
 
         # v28.49: 配额制节点选择——提高亚洲比例
         # 分组排序后再按配额合并，柔性配额：保底+上限
@@ -2512,6 +2626,11 @@ TXT: <a href="{txt_html_url}">{txt_html_url}</a>
         # v28.17: 程序退出时保存IP地理缓存
         try:
             limiter.save_geo_cache()
+        except (OSError, ValueError):
+            logging.debug("Exception occurred", exc_info=True)
+        # v28.53: 程序退出时保存节点历史记录
+        try:
+            _save_node_history()
         except (OSError, ValueError):
             logging.debug("Exception occurred", exc_info=True)
 

@@ -85,6 +85,8 @@ CHANGELOG v28.17:
 - 【Bandit修复】B110/B112全部加日志，B323/B105加nosec
 """
 
+import signal
+import sys
 from urllib.parse import urlparse, unquote, parse_qs
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -2114,10 +2116,21 @@ def format_proxy_to_link(p):
 def main():
     st = time.time()
 
-    # v28.53: 加载节点历史记录
+        # v28.53: 加载节点历史记录
     _load_node_history()
     # v28.54: 加载源历史记录
     _load_source_history()
+
+    # 注册信号处理（优化：自动保存数据）
+    def _signal_handler(sig, frame):
+        print(f"\n[EXIT] 捕获信号 {sig}，保存运行数据...")
+        _save_node_history()
+        _save_source_history()
+        limiter.save_geo_cache()
+        sys.exit(0)
+    signal.signal(signal.SIGINT, _signal_handler)
+    signal.signal(signal.SIGTERM, _signal_handler)
+    print("[OK] 信号处理已注册（自动保存数据）")
 
     # v28.22: CN CIDR 数据有效期校验（gen_cn_cidr.py 每次运行会重新生成 cn_cidr_data.py，所以不能在那里加函数）
     try:

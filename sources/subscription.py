@@ -504,7 +504,8 @@ async def async_fetch_urls(urls: List[str], mirror_pool: List[str] = None) -> Di
         mirror_pool = _get_config()['SUB_MIRRORS']
 
     client = _get_async_http_client()
-    tasks = [async_fetch_url(client, url, mirror_pool) for url in urls]
+    # v28.50: 创建 task 对象而非传递 coroutine
+    tasks = [asyncio.create_task(async_fetch_url(client, url, mirror_pool)) for url in urls]
 
     try:
         from tqdm.asyncio import tqdm as async_tqdm

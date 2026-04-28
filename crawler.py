@@ -1324,9 +1324,24 @@ class ClashManager:
             with open(temp, "wb") as f:
                 for chunk in resp.iter_content(chunk_size=8192):
                     f.write(chunk)
-            with gzip.open(temp, "rb") as f_in:
-                with open(CLASH_PATH, "wb") as f_out:
-                    shutil.copyfileobj(f_in, f_out)
+            # v28.50: 使用独立变量确保文件句柄可关闭
+            f_in = None
+            f_out = None
+            try:
+                f_in = gzip.open(temp, "rb")
+                f_out = open(CLASH_PATH, "wb")
+                shutil.copyfileobj(f_in, f_out)
+            finally:
+                if f_in:
+                    try:
+                        f_in.close()
+                    except OSError:
+                        pass
+                if f_out:
+                    try:
+                        f_out.close()
+                    except OSError:
+                        pass
             if os.name != 'nt':  # Windows 不支持 os.chmod 的 Unix 权限
                 os.chmod(CLASH_PATH, 0o755)
             temp.unlink(missing_ok=True)
@@ -1460,17 +1475,34 @@ class ClashManager:
             self.process = subprocess.Popen(cmd, **popen_kwargs)
             # v28.39: 初始化 out 避免未定义
             out = ""
-            for i in range(30):
-                time.sleep(1)
-                if self.process.poll() is not None:
+            # v28.50: 确保进程管道正确关闭
+            try:
+                for i in range(30):
+                    time.sleep(1)
+                    if self.process.poll() is not None:
+                        try:
+                            out, _ = self.process.communicate(timeout=5)
+                            # 打印首尾各 500 字符，YAML 错误通常在末尾
+                            out_short = out[:500] + "\n...\n" + out[-500:] if len(out) > 1000 else out
+                            print(f"   [FAIL] Clash 崩溃:\n{out_short}")
+                        except (subprocess.TimeoutExpired, OSError):
+                            print("   [FAIL] Clash 崩溃")
+                        return False
                     try:
-                        out, _ = self.process.communicate(timeout=5)
-                        # 打印首尾各 500 字符，YAML 错误通常在末尾
-                        out_short = out[:500] + "\n...\n" + out[-500:] if len(out) > 1000 else out
-                        print(f"   [FAIL] Clash 崩溃:\n{out_short}")
-                    except (subprocess.TimeoutExpired, OSError):
-                        print("   [FAIL] Clash 崩溃")
-                    return False
+                        if requests.get(f"http://127.0.0.1:{CLASH_API_PORT}/version", timeout=2).status_code == 200:
+                            print("   [OK] Clash API 就绪")
+                            return True
+                    except requests.RequestException:
+                        logging.debug("Clash API version check failed")
+                print("   [TIMEOUT] Clash 启动超时")
+                return False
+            finally:
+                # 确保 stdout/stderr 管道关闭
+                if self.process and self.process.stdout:
+                    try:
+                        self.process.stdout.close()
+                    except OSError:
+                        pass
                 try:
                     if requests.get(f"http://127.0.0.1:{CLASH_API_PORT}/version", timeout=2).status_code == 200:
                         print("   [OK] Clash API 就绪")
@@ -1482,6 +1514,12 @@ class ClashManager:
         except (OSError, subprocess.SubprocessError) as e:
             print(f"   [ERROR] Clash 启动异常：{e}")
             return False
+        # v28.50: 启动成功时关闭管道避免泄漏
+        if self.process and self.process.stdout:
+            try:
+                self.process.stdout.close()
+            except OSError:
+                pass
 
     def stop(self):
         if self.process:

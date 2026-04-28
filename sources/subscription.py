@@ -427,7 +427,7 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
         async with sem:
             return await async_fetch_and_parse(client, url)
 
-    print(f"🌐 异步抓取 {len(all_urls)} 个订阅源...")
+    print(f"[WEB] 异步抓取 {len(all_urls)} 个订阅源...")
 
     # v28.47-fix1: 创建 task 对象而非传递 coroutine
     tasks = [asyncio.create_task(fetch_with_limit(url)) for url in all_urls]
@@ -508,7 +508,7 @@ async def async_fetch_urls(urls: List[str], mirror_pool: List[str] = None) -> Di
 
     try:
         from tqdm.asyncio import tqdm as async_tqdm
-        results = await async_tqdm.gather(*tasks, desc="🌐 异步抓取")
+        results = await async_tqdm.gather(*tasks, desc="[WEB] 异步抓取")
     except ImportError:
         results = await asyncio.gather(*tasks)
 

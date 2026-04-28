@@ -72,7 +72,7 @@ def get_telegram_pages(channel: str) -> int:
 
         return 0
     except (requests.RequestException, ValueError) as e:
-        print(f"⚠️ {channel} 页码获取失败：{str(e)[:50]}")
+        print(f"[WARN] {channel} 页码获取失败：{str(e)[:50]}")
         return 0
 
 
@@ -207,14 +207,14 @@ def crawl_telegram_page(url: str, limits: int = 25) -> Dict[str, dict]:
             collections[link] = {"origin": "TELEGRAM"}
 
         if collections:
-            print(f"   ✅ 该页面发现 {len(collections)} 个有效订阅链接")
+            print(f"   [OK] 该页面发现 {len(collections)} 个有效订阅链接")
         else:
-            print(f"   ⚠️ 该页面未发现有效订阅链接：{url[:60]}")
+            print(f"   [WARN] 该页面未发现有效订阅链接：{url[:60]}")
 
         return collections
 
     except (requests.RequestException, ValueError) as e:
-        print(f"   ❌ 爬取异常：{str(e)[:50]}")
+        print(f"   [FAIL] 爬取异常：{str(e)[:50]}")
         return {}
 
 

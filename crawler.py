@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 # v28.34: 从 parsers 包导入协议解析器
 from parsers import (
     parse_vmess, parse_vless, parse_trojan, parse_trojan_go,
@@ -572,7 +573,7 @@ MAX_RETRIES = int(os.getenv("CLASH_TEST_RETRY", "2"))  # v28.21: 1→2，重试�
 # 订阅源抓取并发（降速防封）
 FETCH_WORKERS = int(os.getenv("FETCH_WORKERS", "150"))  # v28.21: 30→150，抓取并发提升
 
-# ⚡ GitHub Fork 发现限制（最大耗时来源）
+# [SPEED] GitHub Fork 发现限制（最大耗时来源）
 MAX_FORK_REPOS = int(os.getenv("MAX_FORK_REPOS", "60"))  # v25: 提升fork发现量（原30）
 MAX_FORK_URLS = 1500  # Fork URL总数上限
 
@@ -1158,7 +1159,7 @@ def _geoip2_lookup(ip):
         if cc:
             return {"status": "success", "countryCode": cc.upper(), "query": ip}
     except (geoip2.errors.AddressNotFoundError, ValueError, TypeError):
-        pass
+        logging.debug("GeoIP2 未找到 IP %s 或数据格式异常", ip)
     except (OSError, ImportError) as e:
         logging.debug("GeoIP2 查询异常: %s", e)
     return None
@@ -1183,7 +1184,7 @@ def _ip_geo_batch(ips):
             if geo:
                 limiter.set_geo(ip, geo)
                 local_hits += 1
-        print(f"   🌍 GeoIP2 本地查询：{local_hits}/{len(to_query)} 个命中")
+        print(f"   [GEO] GeoIP2 本地查询：{local_hits}/{len(to_query)} 个命中")
         # 全部命中则直接返回，无需网络查询
         if local_hits == len(to_query):
             return
@@ -1234,7 +1235,7 @@ session = create_session()
 
 
 
-# ⭐ 节点解析器（保持不变）
+# [STAR] 节点解析器（保持不变）
 # v28.34: 协议解析器已迁移到 parsers/ 包
 # 请从 parsers 包导入:
 # from parsers import (parse_vmess, parse_vless, parse_trojan, parse_trojan_go,
@@ -1283,7 +1284,7 @@ def filter_quality(p):
 
     return True
 
-# ⭐ Clash 管理（保持不变）
+# [STAR] Clash 管理（保持不变）
 class ClashManager:
     def __init__(self):
         self.process = None
@@ -1389,7 +1390,7 @@ class ClashManager:
                 continue
             filtered.append(p)
         if not filtered:
-            print("   ⚠️ 所有节点协议均不支持，无法生成 Clash 配置")
+            print("   [WARN] 所有节点协议均不支持，无法生成 Clash 配置")
             return False
         # BUGFIX: 移除内部双重截断，调用方已用 batch_size 限制了 proxies 数量
         # 原代码 proxies[:MAX_PROXY_TEST_NODES] 出现两次，与外层 batch_size 职责重叠
@@ -1416,7 +1417,7 @@ class ClashManager:
             valid_proxies.append(p)
 
         if not valid_proxies:
-            print("   ⚠️ 所有节点均缺少必填字段或端口无效，无法生成 Clash 配置")
+            print("   [WARN] 所有节点均缺少必填字段或端口无效，无法生成 Clash 配置")
             return False
 
         for i, p in enumerate(valid_proxies):
@@ -1466,20 +1467,20 @@ class ClashManager:
                         out, _ = self.process.communicate(timeout=5)
                         # 打印首尾各 500 字符，YAML 错误通常在末尾
                         out_short = out[:500] + "\n...\n" + out[-500:] if len(out) > 1000 else out
-                        print(f"   ❌ Clash 崩溃:\n{out_short}")
+                        print(f"   [FAIL] Clash 崩溃:\n{out_short}")
                     except (subprocess.TimeoutExpired, OSError):
-                        print("   ❌ Clash 崩溃")
+                        print("   [FAIL] Clash 崩溃")
                     return False
                 try:
                     if requests.get(f"http://127.0.0.1:{CLASH_API_PORT}/version", timeout=2).status_code == 200:
-                        print("   ✅ Clash API 就绪")
+                        print("   [OK] Clash API 就绪")
                         return True
                 except requests.RequestException:
                     logging.debug("Clash API version check failed")
-            print("   ⏱️ Clash 启动超时")
+            print("   [TIMEOUT] Clash 启动超时")
             return False
         except (OSError, subprocess.SubprocessError) as e:
-            print(f"   💥 Clash 启动异常：{e}")
+            print(f"   [ERROR] Clash 启动异常：{e}")
             return False
 
     def stop(self):
@@ -1542,7 +1543,7 @@ class ClashManager:
         return result
 
 
-# ⭐ 节点命名（优化版：无后缀）
+# [STAR] 节点命名（优化版：无后缀）
 class NodeNamer:
     FANCY = {
         'A': '𝔄',
@@ -1592,7 +1593,7 @@ class NodeNamer:
         return f"{code}{num}-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
 
 
-# ⭐ 协议链接转换（扩展版）
+# [STAR] 协议链接转换（扩展版）
 def format_proxy_to_link(p):
     """将代理对象转换为协议链接"""
     try:
@@ -1792,7 +1793,7 @@ def format_proxy_to_link(p):
         return None  # v28.22: 异常时返回None而非注释行
 
 
-# ⭐ 主程序（集成 Fork 发现）
+# [STAR] 主程序（集成 Fork 发现）
 def main():
     st = time.time()
 
@@ -1802,10 +1803,10 @@ def main():
         if _cidr_file.exists():
             _cidr_age_days = (time.time() - _cidr_file.stat().st_mtime) / 86400
             if _cidr_age_days > 30:
-                logging.warning("⚠️ CN_CIDR 数据已过期 (%.0f 天)，建议运行 gen_cn_cidr.py 更新", _cidr_age_days)
+                logging.warning("[WARN] CN_CIDR 数据已过期 (%.0f 天)，建议运行 gen_cn_cidr.py 更新", _cidr_age_days)
     except (OSError, ValueError):
         logging.debug("Exception occurred", exc_info=True)
-        pass  # 校验失败不影响主流程
+        # 校验失败不影响主流程
 
     clash = ClashManager()
     namer = NodeNamer()
@@ -1815,49 +1816,49 @@ def main():
     USE_ASYNC_FETCH = os.getenv("USE_ASYNC_FETCH", "0") == "1"
 
     print("=" * 50)
-    print("🚀 聚合订阅爬虫 v28.39 - 大陆优化版")
+    print("[START] 聚合订阅爬虫 v28.39 - 大陆优化版")
     print("作者：Anftlity | Version: 28.33")
-    print(f"异步抓取: {'✅ 启用' if USE_ASYNC_FETCH else '❌ 禁用（同步模式）'}")
+    print(f"异步抓取: {'[OK] 启用' if USE_ASYNC_FETCH else '[FAIL] 禁用（同步模式）'}")
     print("=" * 50)
 
     all_urls = []
 
     try:
         # 1. Telegram 频道爬取（最高优先级）
-        print("\n📱 爬取 Telegram 频道（优先）...\n")
+        print("\n[TG] 爬取 Telegram 频道（优先）...\n")
         tg_subs = crawl_telegram_channels(TELEGRAM_CHANNELS, pages=1, limits=20)
         tg_urls = list(set([strip_url(u) for u in tg_subs.keys()]))
-        print(f"✅ Telegram 订阅：{len(tg_urls)} 个\n")
+        print(f"[OK] Telegram 订阅：{len(tg_urls)} 个\n")
 
         # 2. Telegram 订阅 URL 加入队列（最高优先级）
         all_urls.extend(tg_urls)
-        print(f"✅ Telegram 订阅已加入队列：{len(tg_urls)} 个\n")
+        print(f"[OK] Telegram 订阅已加入队列：{len(tg_urls)} 个\n")
 
         # 3. GitHub Fork 发现（中等优先级）
-        print("\n🔍 GitHub Fork 发现...\n")
+        print("\n[SEARCH] GitHub Fork 发现...\n")
         fork_subs = discover_github_forks()
         all_urls.extend(fork_subs)
-        print(f"✅ Fork 来源：{len(fork_subs)} 个\n")
+        print(f"[OK] Fork 来源：{len(fork_subs)} 个\n")
 
         # 4. 固定订阅源（最低优先级，放最后）
-        print("\n📥 加载固定订阅源（补充）...\n")
+        print("\n[LOAD] 加载固定订阅源（补充）...\n")
         fixed_urls = [strip_url(u) for u in CANDIDATE_URLS if strip_url(u)]
         all_urls.extend(fixed_urls)
-        print(f"✅ 固定订阅源：{len(fixed_urls)} 个（跳过验证）\n")
+        print(f"[OK] 固定订阅源：{len(fixed_urls)} 个（跳过验证）\n")
 
         # 5. 去重
         all_urls = list(set(all_urls))
-        print(f"📊 总订阅源：{len(all_urls)} 个\n")
+        print(f"[STAT] 总订阅源：{len(all_urls)} 个\n")
 
         # 6. 抓取节点（按all_urls顺序，Telegram已在前面）
-        print("📥 抓取节点...\n")
+        print("[LOAD] 抓取节点...\n")
         nodes = {}
         yaml_count = 0
         txt_count = 0
 
         if USE_ASYNC_FETCH:
             # v29 异步抓取路径
-            print("🌐 使用异步抓取模式...")
+            print("[WEB] 使用异步抓取模式...")
             nodes, yaml_count, txt_count = asyncio.run(
                 async_fetch_nodes(all_urls, MAX_FETCH_NODES)
             )
@@ -1883,25 +1884,25 @@ def main():
                     if len(nodes) >= MAX_FETCH_NODES:
                         break
 
-        print(f"✅ 唯一节点：{len(nodes)} 个 (YAML源: {yaml_count}, TXT源: {txt_count})\n")
+        print(f"[OK] 唯一节点：{len(nodes)} 个 (YAML源: {yaml_count}, TXT源: {txt_count})\n")
 
         if not nodes:
-            print("❌ 无有效节点!")
+            print("[FAIL] 无有效节点!")
             return
 
         # 5.5 节点质量过滤（借鉴 wzdnzd/aggregator）
-        print("🔍 节点质量过滤...\n")
+        print("[SEARCH] 节点质量过滤...\n")
         before_filter = len(nodes)
         nodes = {h: p for h, p in nodes.items() if filter_quality(p)}
         after_filter = len(nodes)
-        print(f"✅ 质量过滤：{before_filter} → {after_filter} 个（排除 {before_filter - after_filter} 个低质量节点）\n")
+        print(f"[OK] 质量过滤：{before_filter} → {after_filter} 个（排除 {before_filter - after_filter} 个低质量节点）\n")
 
         if not nodes:
-            print("❌ 过滤后无有效节点!")
+            print("[FAIL] 过滤后无有效节点!")
             return
 
         # 5.6 预查询 IP 地理位置（批量，用于节点区域识别）
-        print("🌍 预查询 IP 地理位置...\n")
+        print("[GEO] 预查询 IP 地理位置...\n")
         all_servers = set()
         for p in nodes.values():
             srv = p.get("server", "")
@@ -1919,7 +1920,7 @@ def main():
         _ip_geo_batch(list(all_servers)[:500])  # 最多查 500 个
 
         # 6. TCP 测试（提高并发）
-        print("⚡ 第一层：TCP 延迟测试...\n")
+        print("[SPEED] 第一层：TCP 延迟测试...\n")
         # v28.47: TCP测试队列优化——亚洲节点优先测试，提高亚洲测试比例
         all_nodes_list = list(nodes.values())
         asia_nodes_list = [n for n in all_nodes_list if is_asia(n)]
@@ -1929,7 +1930,7 @@ def main():
         asia_quota = min(len(asia_nodes_list), int(MAX_TCP_TEST_NODES * asia_tcp_ratio))
         non_asia_quota = min(len(non_asia_nodes_list), MAX_TCP_TEST_NODES - asia_quota)
         nlist = asia_nodes_list[:asia_quota] + non_asia_nodes_list[:non_asia_quota]
-        print(f"   📊 TCP测试队列：{len(asia_nodes_list[:asia_quota])} 亚洲"
+        print(f"   [STAT] TCP测试队列：{len(asia_nodes_list[:asia_quota])} 亚洲"
               f" + {len(non_asia_nodes_list[:non_asia_quota])} 非亚洲 = {len(nlist)} 总计")
         nres = []
 
@@ -2050,10 +2051,10 @@ def main():
         # v28.14: 重新计算亚洲数量（排序后可能已调整）
         asia_count = sum(1 for n in nres if n["is_asia"])
         tcp_asia_pct = round(asia_count * 100 / max(len(nres), 1), 1)
-        print(f"✅ 第一层合格：{len(nres)} 个（亚洲：{asia_count}，占比：{tcp_asia_pct}%）\n")
+        print(f"[OK] 第一层合格：{len(nres)} 个（亚洲：{asia_count}，占比：{tcp_asia_pct}%）\n")
 
         # 7. 真实测速 + TCP 保底（保留）
-        print("🚀 真实代理测速（分批）...\n")
+        print("[START] 真实代理测速（分批）...\n")
         final = []
         tested = set()
         proxy_ok = False
@@ -2076,10 +2077,10 @@ def main():
                     break
 
                 tprox = [item["proxy"] for item in batch_items]
-                print(f"📦 第{batch_id}批：{len(tprox)} 个节点...\n")
+                print(f"[PACKAGE] 第{batch_id}批：{len(tprox)} 个节点...\n")
 
                 if not clash.create_config(tprox) or not clash.start():
-                    print("   ❌ Clash 启动失败，跳过本批")
+                    print("   [FAIL] Clash 启动失败，跳过本批")
                     clash.stop()
                     break
 
@@ -2120,7 +2121,7 @@ def main():
                                     )
                                     final.append(p)
                                     tested.add(k)  # v28.12: restore
-                                    print(f"   ✅ {p['name']}")
+                                    print(f"   [OK] {p['name']}")
                                 if len(final) >= MAX_FINAL_NODES:
                                     batch_enough = True  # BUGFIX: 通知外层 while 退出
                                     break
@@ -2130,13 +2131,13 @@ def main():
                                 logging.debug("Batch proxy test error")
                     print(f"\n   第{batch_id}批完成：累计合格 {len(final)} 个\n")
                 except (OSError, subprocess.SubprocessError, ValueError) as e:
-                    print(f"   ❌ Clash 崩溃: {e}")
+                    print(f"   [FAIL] Clash 崩溃: {e}")
                     clash.stop()
                     break
 
             # TCP 补充
             if len(final) < MAX_FINAL_NODES:
-                print(f"\n⚠️ 测速合格 {len(final)} 个/{MAX_FINAL_NODES} 目标，使用 TCP 补充...\n")
+                print(f"\n[WARN] 测速合格 {len(final)} 个/{MAX_FINAL_NODES} 目标，使用 TCP 补充...\n")
                 for item in nres:
                     if len(final) >= MAX_FINAL_NODES:
                         break
@@ -2242,28 +2243,28 @@ def main():
             actual_asia = len(asia_final)
             actual_non_asia = min(len(non_asia_final), MAX_FINAL_NODES - actual_asia)
             final = asia_final + non_asia_final[:actual_non_asia]
-            print(f"   ⚠️ 亚洲节点不足保底{min_asia}个，全部保留{actual_asia}个"
+            print(f"   [WARN] 亚洲节点不足保底{min_asia}个，全部保留{actual_asia}个"
                   f" + 非亚洲{actual_non_asia}个")
         elif len(asia_final) <= target_asia:
             # 亚洲在保底~目标之间，全部保留高质量亚洲
             actual_non_asia = min(len(non_asia_final), MAX_FINAL_NODES - len(asia_final))
             final = asia_final + non_asia_final[:actual_non_asia]
-            print(f"   ✅ 亚洲{len(asia_final)}个(柔性区间) + 非亚洲{actual_non_asia}个")
+            print(f"   [OK] 亚洲{len(asia_final)}个(柔性区间) + 非亚洲{actual_non_asia}个")
         elif len(asia_final) <= max_asia:
             # 亚洲在目标~上限之间，按目标配额
             final = asia_final[:target_asia] + non_asia_final[:target_non_asia]
-            print(f"   ✅ 亚洲配额{target_asia}个 + 非亚洲配额{target_non_asia}个")
+            print(f"   [OK] 亚洲配额{target_asia}个 + 非亚洲配额{target_non_asia}个")
         else:
             # 亚洲过多，截到上限，非亚洲用剩余
             actual_non_asia = min(len(non_asia_final), MAX_FINAL_NODES - max_asia)
             final = asia_final[:max_asia] + non_asia_final[:actual_non_asia]
-            print(f"   ✅ 亚洲截断{max_asia}个(上限) + 非亚洲{actual_non_asia}个")
+            print(f"   [OK] 亚洲截断{max_asia}个(上限) + 非亚洲{actual_non_asia}个")
 
-        print(f"\n✅ 最终：{len(final)} 个")
-        print(f"📊 真实测速：{'✅' if proxy_ok else '❌'}\n")
+        print(f"\n[OK] 最终：{len(final)} 个")
+        print(f"[STAT] 真实测速：{'[OK]' if proxy_ok else '[FAIL]'}\n")
 
         # 8. 输出配置（保留）
-        print("📝 生成配置...\n")
+        print("[NOTE] 生成配置...\n")
         final_names = {}
         unique_final = []
         for p in final:
@@ -2293,16 +2294,16 @@ def main():
             cleaned_final.append(cleaned)
 
         cfg = {"proxies": cleaned_final,
-               "proxy-groups": [{"name": "🚀 Auto",
+               "proxy-groups": [{"name": "[START] Auto",
                                  "type": "url-test",
                                  "proxies": [p["name"] for p in cleaned_final],
                                  "url": TEST_URL,
                                  "interval": 300,
                                  "tolerance": 50},
-                                {"name": "🌍 Select",
+                                {"name": "[GEO] Select",
                                  "type": "select",
-                                 "proxies": ["🚀 Auto"] + [p["name"] for p in cleaned_final]}],
-               "rules": ["MATCH,🌍 Select"]}
+                                 "proxies": ["[START] Auto"] + [p["name"] for p in cleaned_final]}],
+               "rules": ["MATCH,[GEO] Select"]}
         with open("proxies.yaml", "w", encoding="utf-8") as f:
             yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False, Dumper=yaml.SafeDumper)
 
@@ -2327,7 +2328,7 @@ def main():
             min_lat = 0
 
         print("\n" + "=" * 180)
-        print("📊 统计结果")
+        print("[STAT] 统计结果")
         print("=" * 180)
         print(f"• Fork 来源：{len(fork_subs)}")
         print(f"• Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总：{len(all_urls)}")
@@ -2349,13 +2350,13 @@ def main():
                 yaml_html_url = f"{repo_path}proxies.yaml"
                 txt_html_url = f"{repo_path}subscription.txt"
 
-                start_icon = "🚀"
-                end_icon = "🎉"
+                start_icon = "[START]"
+                end_icon = "[CELEBRATE]"
                 update_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
                 msg = f"""{start_icon}<b>节点更新完成</b>{end_icon}
 
-📊 <b>统计数据:</b>
+[STAT] <b>统计数据:</b>
 • Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总订阅：{len(all_urls)}
 • Fork 来源：{len(fork_subs)}
 • 原始：{len(nodes)} | TCP: {len(nres)} | 最终：<code>{len(unique_final)}</code> 个
@@ -2364,18 +2365,18 @@ def main():
 • 平均耗时：{tt:.1f} 秒
 ━━━━━━━━━━━━━━━━━━━━━━━
 
-💾 <b>直链下载:</b>
+[SAVE] <b>直链下载:</b>
 YAML: <code>{yaml_raw_url}</code>
 TXT: <code>{txt_raw_url}</code>
 
-🌐 <b>网页查看:</b>
+[WEB] <b>网页查看:</b>
 YAML: <a href="{yaml_html_url}">{yaml_html_url}</a>
 TXT: <a href="{txt_html_url}">{txt_html_url}</a>
 
 ━━━━━━━━━━━━━━━━━━━━━━━
 
-🌐 <b>支持协议:</b> VMess | VLESS | Trojan | SS | Hysteria2 | Hysteria | TUIC | WireGuard
-👨‍💻 <b>作者:</b> Anftlity
+[WEB] <b>支持协议:</b> VMess | VLESS | Trojan | SS | Hysteria2 | Hysteria | TUIC | WireGuard
+[PERSON]‍[PC] <b>作者:</b> Anftlity
 
 <b>更新时间:</b> {update_time}"""
                 requests.post(
@@ -2383,13 +2384,13 @@ TXT: <a href="{txt_html_url}">{txt_html_url}</a>
                     json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"},
                     timeout=10
                 )
-                print("✅ Telegram通知已发送")
+                print("[OK] Telegram通知已发送")
             except (requests.RequestException, OSError, ValueError) as e:
-                print(f"⚠️ Telegram推送失败：{e}")
-        print("🎉 任务完成！")
+                print(f"[WARN] Telegram推送失败：{e}")
+        print("[CELEBRATE] 任务完成！")
 
     except (OSError, ValueError, TypeError, KeyboardInterrupt) as e:
-        print(f"\n❌ 程序异常：{e}")
+        print(f"\n[FAIL] 程序异常：{e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
@@ -2398,26 +2399,24 @@ TXT: <a href="{txt_html_url}">{txt_html_url}</a>
         # ISSUE-3-05: 关闭 requests session，避免资源泄漏
         try:
             session.close()
-            print("✅ Requests session 已关闭")
+            print("[OK] Requests session 已关闭")
         except (OSError, ValueError):
             logging.debug("Exception occurred", exc_info=True)
-            pass
         # v28.17: 程序退出时保存IP地理缓存
         try:
             limiter.save_geo_cache()
         except (OSError, ValueError):
             logging.debug("Exception occurred", exc_info=True)
-            pass
 
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n⚠️ 用户中断执行")
+        print("\n[WARN] 用户中断执行")
         sys.exit(1)
     except (OSError, ValueError, TypeError) as e:
-        print(f"\n❌ 程序异常：{e}")
+        print(f"\n[FAIL] 程序异常：{e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

@@ -28,7 +28,7 @@ NON_PROXY_PORTS = {2377, 2376, 2375, 9200, 9300, 27017, 27018, 27019, 6379, 1121
 
 def generate_unique_id(proxy):
     """生成节点唯一ID（与 crawler.py 原逻辑一致）
-    ✅ v28.39: 包含协议类型和路径，避免不同协议/路径的节点被误去重
+    [OK] v28.39: 包含协议类型和路径，避免不同协议/路径的节点被误去重
     """
     protocol = proxy.get('type', proxy.get('protocol', 'unknown'))
     server = proxy.get('server', '')
@@ -98,7 +98,7 @@ def _cc_to_flag(cc):
         return ''.join(chr(0x1F1E6 + ord(c) - ord('A')) for c in cc.upper()[:2])
     except (ValueError, TypeError):
         logging.debug("Exception occurred", exc_info=True)
-        return "🌐"
+        return "[WEB]"
 
 
 
@@ -301,7 +301,7 @@ def get_region(name, server=None, sni=None):
     # 默认处理：无法识别地区，尝试基于 server 推测，否则给个合理的默认
     # 尝试匹配常见的通用模式
     if match(["private", "vpn", "proxy", "network"]):
-        return "🌐", "NET"  # 网络通用
+        return "[WEB]", "NET"  # 网络通用
 
     # v27 FIX: 移除数字检查限制，对所有节点都尝试从域名后缀反推
     # 优先检查 sni（通常是CDN域名，含更多信息），再检查 server
@@ -478,7 +478,7 @@ def get_region(name, server=None, sni=None):
     if sni and not is_pure_ip(sni):
         pass  # SNI 域名已在上面 TLD 匹配中处理过
 
-    return "🌐", "NET"
+    return "[WEB]", "NET"
 
 
 

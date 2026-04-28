@@ -86,14 +86,14 @@ def discover_github_forks() -> List[str]:
     Returns:
         候选订阅 URL 列表
     """
-    print("🔍 动态发现 GitHub Fork...")
+    print("[SEARCH] 动态发现 GitHub Fork...")
 
     session = _get_session()
     config = _get_config()
     base_repos = config['GITHUB_BASE_REPOS']
 
     if not base_repos:
-        print("   ⚠️ GITHUB_BASE_REPOS 为空，跳过 Fork 发现")
+        print("   [WARN] GITHUB_BASE_REPOS 为空，跳过 Fork 发现")
         return []
 
     # 并行获取所有 base repo 的 fork 列表
@@ -104,9 +104,9 @@ def discover_github_forks() -> List[str]:
             forks = future.result()
             all_forks.extend(forks)
             if forks:
-                print(f"   📦 {futures[future]}: {len(forks)} forks")
+                print(f"   [PACKAGE] {futures[future]}: {len(forks)} forks")
 
-    print(f"   📊 共获取 {len(all_forks)} 个 fork...")
+    print(f"   [STAT] 共获取 {len(all_forks)} 个 fork...")
 
     # 批量构建所有潜在 URL
     all_urls_to_check = []
@@ -125,5 +125,5 @@ def discover_github_forks() -> List[str]:
         all_urls_to_check = all_urls_to_check[:config['MAX_FORK_URLS']]
 
     print(f"   🔗 构建 {len(all_urls_to_check)} 个潜在 URL（跳过验证，直接拉取）...")
-    print(f"✅ GitHub Fork 共发现 {len(all_urls_to_check)} 个候选来源\n")
+    print(f"[OK] GitHub Fork 共发现 {len(all_urls_to_check)} 个候选来源\n")
     return all_urls_to_check

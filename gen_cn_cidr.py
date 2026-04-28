@@ -8,15 +8,15 @@ import urllib.request
 from pathlib import Path
 from datetime import datetime
 
-print("[gen_cn_cidr] Fetching CN CIDR from APNIC...")
+logging.debug("[gen_cn_cidr] Fetching CN CIDR from APNIC...")
 
 try:
     data = urllib.request.urlopen(
         'https://raw.githubusercontent.com/gaoyifan/china-operator-ip/ip-lists/china.txt',
         timeout=15
-    ).read().decode()
+    ).read().decode('utf-8')
 except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e:
-    print(f"[gen_cn_cidr] Download failed: {e}")
+    logging.debug(f"[gen_cn_cidr] Download failed: {e}")
     raise
 
 lines = [line.strip() for line in data.strip().split('\n') if line.strip() and not line.startswith('#')]
@@ -34,4 +34,4 @@ with open(output_path, 'w', encoding='utf-8') as f:
         f.write(f'    ipaddress.ip_network("{line}"),\n')
     f.write(']\n')
 
-print(f"[gen_cn_cidr] Done: {len(lines)} CIDR blocks -> {output_path}")
+logging.debug(f"[gen_cn_cidr] Done: {len(lines)} CIDR blocks -> {output_path}")

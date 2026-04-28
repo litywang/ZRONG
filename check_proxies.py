@@ -30,12 +30,12 @@ def validate_proxies_yaml(filepath="proxies.yaml"):
         return False, None, f"[FAIL] 验证失败: {e}"
 
 ok, cfg, msg = validate_proxies_yaml()
-print(msg)
+logging.debug(msg)
 if not ok:
     sys.exit(1)
 
 proxies = cfg.get('proxies', [])
-print(f'Total proxies: {len(proxies)}')
+logging.debug(f'Total proxies: {len(proxies)}')
 
 # 统计区域分布
 from collections import Counter
@@ -48,29 +48,29 @@ for p in proxies:
         flag = name[:2]
         regions[flag] += 1
 
-print('\nRegion distribution:')
+logging.debug('\nRegion distribution:')
 for flag, count in regions.most_common(15):
-    print(f'  {flag}: {count}')
+    logging.debug(f'  {flag}: {count}')
 
 # 检查前5个节点
-print('\nFirst 5 nodes:')
+logging.debug('\nFirst 5 nodes:')
 for i, p in enumerate(proxies[:5]):
     ptype = p.get('type', '')
     server = p.get('server', '')
     port = p.get('port', '')
     name = p.get('name', '')
-    print(f'  {i+1}. {ptype} {server}:{port} | {name}')
+    logging.debug(f'  {i+1}. {ptype} {server}:{port} | {name}')
     # 检查关键字段
     if ptype == 'vmess':
         uuid = p.get('uuid', '')
         tls = p.get('tls', '')
-        print(f'     uuid={uuid[:8]}... tls={tls}')
+        logging.debug(f'     uuid={uuid[:8]}... tls={tls}')
     elif ptype == 'vless':
         uuid = p.get('uuid', '')
         flow = p.get('flow', '')
         tls = p.get('tls', '')
-        print(f'     uuid={uuid[:8]}... flow={flow} tls={tls}')
+        logging.debug(f'     uuid={uuid[:8]}... flow={flow} tls={tls}')
     elif ptype == 'trojan':
         pwd = p.get('password', '')
         sni = p.get('sni', '')
-        print(f'     pwd={pwd[:8]}... sni={sni}')
+        logging.debug(f'     pwd={pwd[:8]}... sni={sni}')

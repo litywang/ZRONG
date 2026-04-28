@@ -332,10 +332,10 @@ def retry_on_exception(max_retries=2, backoff=1.0, jitter=0.5,
                     last_exc = e
                     if attempt < max_retries:
                         wait = backoff * (attempt + 1) + random.uniform(0, jitter)
-                        print(f"   [retry] {func.__name__} attempt {attempt+1}/{max_retries} failed: {e}, waiting {wait:.1f}s")
+                        logging.debug(f"[retry] {func.__name__} attempt {attempt+1}/{max_retries} failed: {e}, waiting {wait:.1f}s")
                         time.sleep(wait)
             if last_exc is not None:
-                print(f"   [retry] {func.__name__} exhausted {max_retries} retries")
+                logging.debug(f"[retry] {func.__name__} exhausted {max_retries} retries")
             return return_on_fail
         return wrapper
     return decorator
@@ -384,6 +384,37 @@ def get_async_http_client():
     return _async_http_client
 
 
+async def close_async_http_client():
+    """v28.52: 关闭全局异步HTTP客户端，修复RESOURCE_LEAK"""
+    global _async_http_client
+    if _async_http_client is not None:
+        try:
+            await _async_http_client.aclose()
+            logging.debug("异步HTTP客户端已关闭")
+        except (OSError, RuntimeError, asyncio.TimeoutError) as e:
+            logging.warning(f"关闭异步HTTP客户端失败: {e}", exc_info=True)
+        finally:
+            _async_http_client = None
+
+
+def sync_close_async_http_client():
+    """v28.55: 同步包装器，用于非异步上下文关闭异步客户端"""
+    if _async_http_client is not None:
+        try:
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            if loop.is_running():
+                # 如果事件循环正在运行，创建任务
+                asyncio.create_task(close_async_http_client())
+            else:
+                loop.run_until_complete(close_async_http_client())
+        except (OSError, RuntimeError, asyncio.TimeoutError):
+            logging.debug("同步关闭异步客户端失败")
+
+
 # threading, random, datetime 已在文件顶部导入
 # ==================== 配置区 ====================
 # v28.3: 可用率修复 — 恢复gstatic.com，改MAX_FINAL_NODES控制TCP补充上限
@@ -406,13 +437,13 @@ if _cfg_path.exists():
             _yaml_urls = [u for u in _yaml_urls if u]
             # github_base_repos 只保留纯字符串格式
             _yaml_repos = [str(r) for r in _yaml_repos if r]
-        print(f"[sources.yaml] loaded {len(_yaml_urls)} urls / {len(_yaml_chans)} tg channels / {len(_yaml_repos)} github repos")
+        logging.debug(f"[sources.yaml] loaded {len(_yaml_urls)} urls / {len(_yaml_chans)} tg channels / {len(_yaml_repos)} github repos")
     except FileNotFoundError:
-        print("[sources.yaml] not found, using empty config")
+        logging.debug("[sources.yaml] not found, using empty config")
     except yaml.YAMLError as _e:
-        print(f"[sources.yaml] YAML parse error, using empty config: {_e}")
+        logging.debug(f"[sources.yaml] YAML parse error, using empty config: {_e}")
     except PermissionError:
-        print("[sources.yaml] permission denied, using empty config")
+        logging.debug("[sources.yaml] permission denied, using empty config")
 
 
 def _source_weight(url: str) -> int:
@@ -1348,7 +1379,7 @@ class SmartRateLimiter:
                         # 检查TTL
                         if time.time() - item.get('ts', 0) < 86400:
                             self.ip_geo_cache[ip] = item
-                print(f"[SmartRateLimiter] 已加载 {len(self.ip_geo_cache)} 条IP地理缓存")
+                logging.debug(f"[SmartRateLimiter] 已加载 {len(self.ip_geo_cache)} 条IP地理缓存")
         except (OSError, json.JSONDecodeError, ValueError) as e:
             logging.debug("加载IP地理缓存失败: %s", e)
 
@@ -1362,7 +1393,7 @@ class SmartRateLimiter:
                     data[ip] = dict(item, ts=time.time())
                 with open(cache_file, 'w', encoding='utf-8') as f:
                     json.dump(data, f, ensure_ascii=False)
-                print(f"[SmartRateLimiter] 已保存 {len(data)} 条IP地理缓存")
+                logging.debug(f"[SmartRateLimiter] 已保存 {len(data)} 条IP地理缓存")
         except (OSError, TypeError) as e:
             logging.debug("保存IP地理缓存失败: %s", e)
 
@@ -1399,7 +1430,7 @@ def _get_geoip2_reader():
         if p and p.exists():
             try:
                 _geoip2_reader = geoip2.database.Reader(str(p))
-                print(f"[GeoIP2] 已加载本地数据库: {p}")
+                logging.debug(f"[GeoIP2] 已加载本地数据库: {p}")
                 return _geoip2_reader
             except (OSError, ValueError) as e:
                 logging.debug("GeoIP2 加载失败: %s", e)
@@ -1442,7 +1473,7 @@ def _ip_geo_batch(ips):
             if geo:
                 limiter.set_geo(ip, geo)
                 local_hits += 1
-        print(f"   [GEO] GeoIP2 本地查询：{local_hits}/{len(to_query)} 个命中")
+        logging.debug(f"[GEO] GeoIP2 本地查询：{local_hits}/{len(to_query)} 个命中")
         # 全部命中则直接返回，无需网络查询
         if local_hits == len(to_query):
             return
@@ -1464,7 +1495,7 @@ def _ip_geo_batch(ips):
                     for item in r.json():
                         if item.get("status") == "success":
                             limiter.set_geo(item["query"], item)
-                    print(f"   IP 地理位置查询：{len(batch)} 个（已缓存 {len(limiter.ip_geo_cache)}）")
+                    logging.debug(f"   IP 地理位置查询：{len(batch)} 个（已缓存 {len(limiter.ip_geo_cache)}）")
                     break
                 elif r.status_code in (429, 503):
                     time.sleep(2 ** attempt)
@@ -1593,13 +1624,13 @@ class ClashManager:
                 if f_in:
                     try:
                         f_in.close()
-                    except OSError:
-                        pass
+                    except OSError as e:
+                        logging.debug(f"关闭输入文件失败: {e}", exc_info=True)
                 if f_out:
                     try:
                         f_out.close()
-                    except OSError:
-                        pass
+                    except OSError as e:
+                        logging.debug(f"关闭输出文件失败: {e}", exc_info=True)
             if os.name != 'nt':  # Windows 不支持 os.chmod 的 Unix 权限
                 os.chmod(CLASH_PATH, 0o755)
             temp.unlink(missing_ok=True)
@@ -1663,7 +1694,7 @@ class ClashManager:
                 continue
             filtered.append(p)
         if not filtered:
-            print("   [WARN] 所有节点协议均不支持，无法生成 Clash 配置")
+            logging.debug("   [WARN] 所有节点协议均不支持，无法生成 Clash 配置")
             return False
         # BUGFIX: 移除内部双重截断，调用方已用 batch_size 限制了 proxies 数量
         # 原代码 proxies[:MAX_PROXY_TEST_NODES] 出现两次，与外层 batch_size 职责重叠
@@ -1690,7 +1721,7 @@ class ClashManager:
             valid_proxies.append(p)
 
         if not valid_proxies:
-            print("   [WARN] 所有节点均缺少必填字段或端口无效，无法生成 Clash 配置")
+            logging.warning("所有节点均缺少必填字段或端口无效，无法生成 Clash 配置")
             return False
 
         for i, p in enumerate(valid_proxies):
@@ -1764,42 +1795,42 @@ class ClashManager:
                             out, _ = self.process.communicate(timeout=5)
                             # 打印首尾各 500 字符，YAML 错误通常在末尾
                             out_short = out[:500] + "\n...\n" + out[-500:] if len(out) > 1000 else out
-                            print(f"   [FAIL] Clash 崩溃:\n{out_short}")
+                            logging.debug(f"   [FAIL] Clash 崩溃:\n{out_short}")
                         except (subprocess.TimeoutExpired, OSError):
-                            print("   [FAIL] Clash 崩溃")
+                            logging.debug("   [FAIL] Clash 崩溃")
                         return False
                     try:
                         if requests.get(f"http://127.0.0.1:{CLASH_API_PORT}/version", timeout=2).status_code == 200:
-                            print("   [OK] Clash API 就绪")
+                            logging.debug("   [OK] Clash API 就绪")
                             return True
                     except requests.RequestException:
                         logging.debug("Clash API version check failed")
-                print("   [TIMEOUT] Clash 启动超时")
+                logging.debug("   [TIMEOUT] Clash 启动超时")
                 return False
             finally:
                 # 确保 stdout/stderr 管道关闭
                 if self.process and self.process.stdout:
                     try:
                         self.process.stdout.close()
-                    except OSError:
-                        pass
+                    except OSError as e:
+                        logging.debug(f"关闭 stdout 管道失败: {e}", exc_info=True)
                 try:
                     if requests.get(f"http://127.0.0.1:{CLASH_API_PORT}/version", timeout=2).status_code == 200:
-                        print("   [OK] Clash API 就绪")
+                        logging.debug("   [OK] Clash API 就绪")
                         return True
                 except requests.RequestException:
                     logging.debug("Clash API version check failed")
-            print("   [TIMEOUT] Clash 启动超时")
+            logging.debug("   [TIMEOUT] Clash 启动超时")
             return False
         except (OSError, subprocess.SubprocessError) as e:
-            print(f"   [ERROR] Clash 启动异常：{e}")
+            logging.debug(f"   [ERROR] Clash 启动异常：{e}")
             return False
         # v28.50: 启动成功时关闭管道避免泄漏
         if self.process and self.process.stdout:
             try:
                 self.process.stdout.close()
-            except OSError:
-                pass
+            except OSError as e:
+                logging.debug(f"关闭 stdout 管道失败: {e}", exc_info=True)
 
     def stop(self):
         if self.process:
@@ -2123,14 +2154,14 @@ def main():
 
     # 注册信号处理（优化：自动保存数据）
     def _signal_handler(sig, frame):
-        print(f"\n[EXIT] 捕获信号 {sig}，保存运行数据...")
+        logging.debug(f"[EXIT] 捕获信号 {sig}，保存运行数据...")
         _save_node_history()
         _save_source_history()
         limiter.save_geo_cache()
         sys.exit(0)
     signal.signal(signal.SIGINT, _signal_handler)
     signal.signal(signal.SIGTERM, _signal_handler)
-    print("[OK] 信号处理已注册（自动保存数据）")
+    logging.debug("[OK] 信号处理已注册（自动保存数据）")
 
     # v28.22: CN CIDR 数据有效期校验（gen_cn_cidr.py 每次运行会重新生成 cn_cidr_data.py，所以不能在那里加函数）
     try:
@@ -2150,48 +2181,48 @@ def main():
     # v29: 异步抓取模式（可选启用）
     USE_ASYNC_FETCH = os.getenv("USE_ASYNC_FETCH", "0") == "1"
 
-    print("=" * 50)
-    print("[START] 聚合订阅爬虫 v28.39 - 大陆优化版")
-    print("作者：Anftlity | Version: 28.33")
-    print(f"异步抓取: {'[OK] 启用' if USE_ASYNC_FETCH else '[FAIL] 禁用（同步模式）'}")
-    print("=" * 50)
+    logging.info("=" * 50)
+    logging.info("[START] 聚合订阅爬虫 v28.39 - 大陆优化版")
+    logging.info("作者：Anftlity | Version: 28.33")
+    logging.info(f"异步抓取: {'[OK] 启用' if USE_ASYNC_FETCH else '[FAIL] 禁用（同步模式）'}")
+    logging.info("=" * 50)
 
     all_urls = []
 
     try:
         # 1. Telegram 频道爬取（最高优先级）
-        print("\n[TG] 爬取 Telegram 频道（优先）...\n")
+        logging.info("[TG] 爬取 Telegram 频道（优先）...")
         tg_subs = crawl_telegram_channels(TELEGRAM_CHANNELS, pages=1, limits=20)
         tg_urls = list(set([strip_url(u) for u in tg_subs.keys()]))
-        print(f"[OK] Telegram 订阅：{len(tg_urls)} 个\n")
+        logging.debug(f"[OK] Telegram 订阅：{len(tg_urls)} 个\n")
 
         # 2. Telegram 订阅 URL 加入队列（最高优先级）
         all_urls.extend(tg_urls)
-        print(f"[OK] Telegram 订阅已加入队列：{len(tg_urls)} 个\n")
+        logging.debug(f"[OK] Telegram 订阅已加入队列：{len(tg_urls)} 个\n")
 
         # 3. GitHub Fork 发现（中等优先级）
-        print("\n[SEARCH] GitHub Fork 发现...\n")
+        logging.info("[SEARCH] GitHub Fork 发现...")
         fork_subs = discover_github_forks()
         all_urls.extend(fork_subs)
-        print(f"[OK] Fork 来源：{len(fork_subs)} 个\n")
+        logging.info(f"[OK] Fork 来源：{len(fork_subs)} 个")
 
         # 4. 固定订阅源（最低优先级，放最后）
-        print("\n[LOAD] 加载固定订阅源（补充）...\n")
+        logging.info("[LOAD] 加载固定订阅源（补充）...")
         fixed_urls = [strip_url(u) for u in CANDIDATE_URLS if strip_url(u)]
         all_urls.extend(fixed_urls)
-        print(f"[OK] 固定订阅源：{len(fixed_urls)} 个（跳过验证）\n")
+        logging.info(f"[OK] 固定订阅源：{len(fixed_urls)} 个（跳过验证）")
 
         # 5. 去重
         all_urls = list(set(all_urls))
-        print(f"[STAT] 总订阅源：{len(all_urls)} 个\n")
+        logging.info(f"[STAT] 总订阅源：{len(all_urls)} 个")
 
         # v28.54: 按动态权重排序订阅源（高权重源优先抓取）
         url_weights = {u: _dynamic_source_weight(u) for u in all_urls}
         all_urls.sort(key=lambda u: -url_weights[u])
-        print(f"[STAT] 源权重排序完成（最高权重: {url_weights[all_urls[0]]:.1f}）\n")
+        logging.info(f"[STAT] 源权重排序完成（最高权重: {url_weights[all_urls[0]]:.1f}")
 
         # 6. 抓取节点（按all_urls顺序，Telegram已在前面）
-        print("[LOAD] 抓取节点...\n")
+        logging.info("[LOAD] 抓取节点...")
         nodes = {}
         yaml_count = 0
         txt_count = 0
@@ -2200,7 +2231,7 @@ def main():
 
         if USE_ASYNC_FETCH:
             # v29 异步抓取路径
-            print("[WEB] 使用异步抓取模式...")
+            logging.info("[WEB] 使用异步抓取模式...")
             nodes, yaml_count, txt_count = asyncio.run(
                 async_fetch_nodes(all_urls, MAX_FETCH_NODES)
             )
@@ -2231,7 +2262,7 @@ def main():
                         else:
                             txt_count += 1
                     if completed % 50 == 0:
-                        print(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
+                        logging.debug(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
                     if len(nodes) >= MAX_FETCH_NODES:
                         break
 
@@ -2239,25 +2270,25 @@ def main():
         for url, (success, node_count, asia_count) in url_results.items():
             _update_source_history(url, success, node_count, asia_count)
 
-        print(f"[OK] 唯一节点：{len(nodes)} 个 (YAML源: {yaml_count}, TXT源: {txt_count})\n")
+        logging.debug(f"[OK] 唯一节点：{len(nodes)} 个 (YAML源: {yaml_count}, TXT源: {txt_count})\n")
 
         if not nodes:
-            print("[FAIL] 无有效节点!")
+            logging.warning("[FAIL] 无有效节点!")
             return
 
         # 5.5 节点质量过滤（借鉴 wzdnzd/aggregator）
-        print("[SEARCH] 节点质量过滤...\n")
+        logging.info("[SEARCH] 节点质量过滤...")
         before_filter = len(nodes)
         nodes = {h: p for h, p in nodes.items() if filter_quality(p)}
         after_filter = len(nodes)
-        print(f"[OK] 质量过滤：{before_filter} → {after_filter} 个（排除 {before_filter - after_filter} 个低质量节点）\n")
+        logging.info(f"[OK] 质量过滤：{before_filter} → {after_filter} 个（排除 {before_filter - after_filter} 个低质量节点)")
 
         if not nodes:
-            print("[FAIL] 过滤后无有效节点!")
+            logging.warning("[FAIL] 过滤后无有效节点!")
             return
 
         # 5.6 预查询 IP 地理位置（批量，用于节点区域识别）
-        print("[GEO] 预查询 IP 地理位置...\n")
+        logging.info("[GEO] 预查询 IP 地理位置...")
         all_servers = set()
         for p in nodes.values():
             srv = p.get("server", "")
@@ -2275,7 +2306,7 @@ def main():
         _ip_geo_batch(list(all_servers)[:500])  # 最多查 500 个
 
         # 6. TCP 测试（提高并发）
-        print("[SPEED] 第一层：TCP 延迟测试...\n")
+        logging.info("[SPEED] 第一层：TCP 延迟测试...")
         # v28.49: TCP测试队列优化——亚洲节点优先测试，提高亚洲测试比例
         all_nodes_list = list(nodes.values())
         asia_nodes_list = [n for n in all_nodes_list if is_asia(n)]
@@ -2290,7 +2321,7 @@ def main():
             asia_quota = asia_min_test
             non_asia_quota = min(len(non_asia_nodes_list), MAX_TCP_TEST_NODES - asia_quota)
         nlist = asia_nodes_list[:asia_quota] + non_asia_nodes_list[:non_asia_quota]
-        print(f"   [STAT] TCP测试队列：{len(asia_nodes_list[:asia_quota])} 亚洲"
+        logging.info(f"   [STAT] TCP测试队列：{len(asia_nodes_list[:asia_quota])} 亚洲"
               f" + {len(non_asia_nodes_list[:non_asia_quota])} 非亚洲 = {len(nlist)} 总计")
         nres = []
 
@@ -2361,7 +2392,7 @@ def main():
                         _update_node_history(result["proxy"], success=False)
                     completed += 1
                     if completed % 50 == 0:
-                        print(f"   进度：{completed}/{len(nlist)} | 合格：{len(nres)}")
+                        logging.debug(f"   进度：{completed}/{len(nlist)} | 合格：{len(nres)}")
                 except (OSError, ValueError, TypeError):
                     logging.debug("Proxy test error for node")
 
@@ -2412,14 +2443,14 @@ def main():
             asia_nodes = [n for n in nres if n["is_asia"]]
             non_asia_nodes = [n for n in nres if not n["is_asia"]]
             nres = asia_nodes + non_asia_nodes
-            print("   强制亚洲置顶：{} 亚洲 + {} 非亚洲".format(len(asia_nodes), len(non_asia_nodes)))
+            logging.info("   强制亚洲置顶：{} 亚洲 + {} 非亚洲".format(len(asia_nodes), len(non_asia_nodes)))
         # v28.14: 重新计算亚洲数量（排序后可能已调整）
         asia_count = sum(1 for n in nres if n["is_asia"])
         tcp_asia_pct = round(asia_count * 100 / max(len(nres), 1), 1)
-        print(f"[OK] 第一层合格：{len(nres)} 个（亚洲：{asia_count}，占比：{tcp_asia_pct}%）\n")
+        logging.debug(f"[OK] 第一层合格：{len(nres)} 个（亚洲：{asia_count}，占比：{tcp_asia_pct}%）\n")
 
         # 7. 真实测速 + TCP 保底（保留）
-        print("[START] 真实代理测速（分批）...\n")
+        logging.info("[START] 真实代理测速（分批）...")
         final = []
         tested = set()
         proxy_ok = False
@@ -2442,10 +2473,10 @@ def main():
                     break
 
                 tprox = [item["proxy"] for item in batch_items]
-                print(f"[PACKAGE] 第{batch_id}批：{len(tprox)} 个节点...\n")
+                logging.info(f"[PACKAGE] 第{batch_id}批：{len(tprox)} 个节点...")
 
                 if not clash.create_config(tprox) or not clash.start():
-                    print("   [FAIL] Clash 启动失败，跳过本批")
+                    logging.warning("   [FAIL] Clash 启动失败，跳过本批")
                     clash.stop()
                     break
 
@@ -2488,7 +2519,7 @@ def main():
                                     tested.add(k)  # v28.12: restore
                                     # v28.53: 真实测速通过，更新历史记录
                                     _update_node_history(p, success=True)
-                                    print(f"   [OK] {p['name']}")
+                                    logging.info(f"   [OK] {p['name']}")
                                 else:
                                     # v28.53: 真实测速失败，更新历史记录
                                     _update_node_history(p, success=False)
@@ -2496,18 +2527,18 @@ def main():
                                     batch_enough = True  # BUGFIX: 通知外层 while 退出
                                     break
                                 if done_count % 20 == 0:
-                                    print(f"   进度：{done_count}/{len(batch_items)} | 合格：{len(final)}")
+                                    logging.info(f"   进度：{done_count}/{len(batch_items)} | 合格：{len(final)}")
                             except (OSError, ValueError, TypeError):
                                 logging.debug("Batch proxy test error")
-                    print(f"\n   第{batch_id}批完成：累计合格 {len(final)} 个\n")
+                    logging.debug(f"\n   第{batch_id}批完成：累计合格 {len(final)} 个\n")
                 except (OSError, subprocess.SubprocessError, ValueError) as e:
-                    print(f"   [FAIL] Clash 崩溃: {e}")
+                    logging.debug(f"   [FAIL] Clash 崩溃: {e}")
                     clash.stop()
                     break
 
             # TCP 补充
             if len(final) < MAX_FINAL_NODES:
-                print(f"\n[WARN] 测速合格 {len(final)} 个/{MAX_FINAL_NODES} 目标，使用 TCP 补充...\n")
+                logging.warning(f"\n[WARN] 测速合格 {len(final)} 个/{MAX_FINAL_NODES} 目标，使用 TCP 补充...")
                 for item in nres:
                     if len(final) >= MAX_FINAL_NODES:
                         break
@@ -2532,7 +2563,7 @@ def main():
                             fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val
                         ) + "[TCP]"
                         final.append(p)
-                        print(f"   [TCP] {p['name']}")
+                        logging.info(f"   [TCP] {p['name']}")
                     elif item["latency"] < 800:
                         # v28.16: 非亚洲TCP补充延迟提高（500→800）
                         tested.add(k)  # BUGFIX: 标记避免重复检测
@@ -2550,7 +2581,7 @@ def main():
                             fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val
                         ) + "[TCP]"
                         final.append(p)
-                        print(f"   [TCP] {p['name']}")
+                        logging.info(f"   [TCP] {p['name']}")
                     else:
                         tested.add(k)
 
@@ -2618,28 +2649,28 @@ def main():
             actual_asia = len(asia_final)
             actual_non_asia = min(len(non_asia_final), MAX_FINAL_NODES - actual_asia)
             final = asia_final + non_asia_final[:actual_non_asia]
-            print(f"   [WARN] 亚洲节点不足保底{min_asia}个，全部保留{actual_asia}个"
+            logging.debug(f"   [WARN] 亚洲节点不足保底{min_asia}个，全部保留{actual_asia}个"
                   f" + 非亚洲{actual_non_asia}个")
         elif len(asia_final) <= target_asia:
             # 亚洲在保底~目标之间，全部保留高质量亚洲
             actual_non_asia = min(len(non_asia_final), MAX_FINAL_NODES - len(asia_final))
             final = asia_final + non_asia_final[:actual_non_asia]
-            print(f"   [OK] 亚洲{len(asia_final)}个(柔性区间) + 非亚洲{actual_non_asia}个")
+            logging.debug(f"   [OK] 亚洲{len(asia_final)}个(柔性区间) + 非亚洲{actual_non_asia}个")
         elif len(asia_final) <= max_asia:
             # 亚洲在目标~上限之间，按目标配额
             final = asia_final[:target_asia] + non_asia_final[:target_non_asia]
-            print(f"   [OK] 亚洲配额{target_asia}个 + 非亚洲配额{target_non_asia}个")
+            logging.debug(f"   [OK] 亚洲配额{target_asia}个 + 非亚洲配额{target_non_asia}个")
         else:
             # 亚洲过多，截到上限，非亚洲用剩余
             actual_non_asia = min(len(non_asia_final), MAX_FINAL_NODES - max_asia)
             final = asia_final[:max_asia] + non_asia_final[:actual_non_asia]
-            print(f"   [OK] 亚洲截断{max_asia}个(上限) + 非亚洲{actual_non_asia}个")
+            logging.debug(f"   [OK] 亚洲截断{max_asia}个(上限) + 非亚洲{actual_non_asia}个")
 
-        print(f"\n[OK] 最终：{len(final)} 个")
-        print(f"[STAT] 真实测速：{'[OK]' if proxy_ok else '[FAIL]'}\n")
+        logging.debug(f"\n[OK] 最终：{len(final)} 个")
+        logging.debug(f"[STAT] 真实测速：{'[OK]' if proxy_ok else '[FAIL]'}\n")
 
         # 8. 输出配置（保留）
-        print("[NOTE] 生成配置...\n")
+        logging.debug("[NOTE] 生成配置...\n")
         final_names = {}
         unique_final = []
         for p in final:
@@ -2670,7 +2701,7 @@ def main():
 
         # v28.54: 输出源权重统计
         if _SOURCE_HISTORY:
-            print("\n[STAT] 源权重统计（Top 10）:")
+            logging.debug("\n[STAT] 源权重统计（Top 10）:")
             sorted_sources = sorted(
                 _SOURCE_HISTORY.items(),
                 key=lambda x: _dynamic_source_weight(x[0]),
@@ -2679,7 +2710,7 @@ def main():
             for url, rec in sorted_sources:
                 w = _dynamic_source_weight(url)
                 success_rate = rec["success_count"] / max(rec["success_count"] + rec["fail_count"], 1)
-                print(f"   • 权重{w:.1f} | 成功率{success_rate:.0%} | {url[:60]}...")
+                logging.debug(f"   • 权重{w:.1f} | 成功率{success_rate:.0%} | {url[:60]}...")
 
         # v28.52: 大陆路由规则（CN_DIRECT=1 启用）
         _cn_direct = os.getenv("CN_DIRECT", "1") == "1"
@@ -2757,18 +2788,18 @@ def main():
         if min_lat == 9999:
             min_lat = 0
 
-        print("\n" + "=" * 180)
-        print("[STAT] 统计结果")
-        print("=" * 180)
-        print(f"• Fork 来源：{len(fork_subs)}")
-        print(f"• Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总：{len(all_urls)}")
-        print(f"• 原始：{len(nodes)} | TCP: {len(nres)} | 最终：{len(unique_final)}")
+        logging.debug("\n" + "=" * 180)
+        logging.debug("[STAT] 统计结果")
+        logging.debug("=" * 180)
+        logging.debug(f"• Fork 来源：{len(fork_subs)}")
+        logging.debug(f"• Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总：{len(all_urls)}")
+        logging.debug(f"• 原始：{len(nodes)} | TCP: {len(nres)} | 最终：{len(unique_final)}")
         # v28.13: 修复亚洲占比计算（避免除零，使用更精确的计算）
         asia_pct = round(asia_ct * 100 / max(len(unique_final), 1), 1)
-        print(f"• 亚洲：{asia_ct} 个 ({asia_pct}%)")
-        print(f"• 最低延迟：{min_lat:.1f} ms")
-        print(f"• 耗时：{tt:.1f} 秒")
-        print("=" * 180 + "\n")
+        logging.debug(f"• 亚洲：{asia_ct} 个 ({asia_pct}%)")
+        logging.debug(f"• 最低延迟：{min_lat:.1f} ms")
+        logging.debug(f"• 耗时：{tt:.1f} 秒")
+        logging.debug("=" * 180 + "\n")
 
         # 9. Telegram 推送（保留）
         if BOT_TOKEN and CHAT_ID and REPO_NAME:
@@ -2814,22 +2845,28 @@ TXT: <a href="{txt_html_url}">{txt_html_url}</a>
                     json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"},
                     timeout=10
                 )
-                print("[OK] Telegram通知已发送")
+                logging.debug("[OK] Telegram通知已发送")
             except (requests.RequestException, OSError, ValueError) as e:
-                print(f"[WARN] Telegram推送失败：{e}")
-        print("[CELEBRATE] 任务完成！")
+                logging.debug(f"[WARN] Telegram推送失败：{e}")
+        logging.debug("[CELEBRATE] 任务完成！")
 
     except (OSError, ValueError, TypeError, KeyboardInterrupt) as e:
-        print(f"\n[FAIL] 程序异常：{e}")
+        logging.debug(f"\n[FAIL] 程序异常：{e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
     finally:
         clash.stop()
+        # v28.55: 程序退出时关闭异步HTTP客户端
+        try:
+            sync_close_async_http_client()
+            logging.debug("[OK] 异步HTTP客户端已关闭")
+        except (OSError, RuntimeError, asyncio.TimeoutError):
+            logging.debug("关闭异步HTTP客户端失败", exc_info=True)
         # ISSUE-3-05: 关闭 requests session，避免资源泄漏
         try:
             session.close()
-            print("[OK] Requests session 已关闭")
+            logging.debug("[OK] Requests session 已关闭")
         except (OSError, ValueError):
             logging.debug("Exception occurred", exc_info=True)
         # v28.17: 程序退出时保存IP地理缓存
@@ -2853,10 +2890,10 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n[WARN] 用户中断执行")
+        logging.debug("\n[WARN] 用户中断执行")
         sys.exit(1)
     except (OSError, ValueError, TypeError) as e:
-        print(f"\n[FAIL] 程序异常：{e}")
+        logging.debug(f"\n[FAIL] 程序异常：{e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

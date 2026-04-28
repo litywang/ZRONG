@@ -427,7 +427,7 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
         async with sem:
             return await async_fetch_and_parse(client, url)
 
-    print(f"[WEB] 异步抓取 {len(all_urls)} 个订阅源...")
+    logging.debug(f"[WEB] 异步抓取 {len(all_urls)} 个订阅源...")
 
     # v28.47-fix1: 创建 task 对象而非传递 coroutine
     tasks = [asyncio.create_task(fetch_with_limit(url)) for url in all_urls]
@@ -465,10 +465,10 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
                     txt_count += 1
 
                 if completed % 50 == 0:
-                    print(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
+                    logging.debug(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
 
                 if len(nodes) >= max_nodes:
-                    print(f"   已达上限 {max_nodes}，提前结束")
+                    logging.debug(f"   已达上限 {max_nodes}，提前结束")
                     break
             if len(nodes) >= max_nodes:
                 break

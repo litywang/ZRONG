@@ -68,7 +68,7 @@ def fetch_forks(base: str, session=None, config=None) -> List[dict]:
                 if reset and attempt == 0:
                     wait_time = max(reset - int(time.time()), 1)
                     wait_time = min(wait_time, 30)
-                    print(f"   ⏳ GitHub API 限流，等待 {wait_time}s...")
+                    logging.debug(f"   ⏳ GitHub API 限流，等待 {wait_time}s...")
                     time.sleep(wait_time)
                     continue
                 logging.debug("GitHub API rate limited: %s", base)
@@ -86,14 +86,14 @@ def discover_github_forks() -> List[str]:
     Returns:
         候选订阅 URL 列表
     """
-    print("[SEARCH] 动态发现 GitHub Fork...")
+    logging.debug("[SEARCH] 动态发现 GitHub Fork...")
 
     session = _get_session()
     config = _get_config()
     base_repos = config['GITHUB_BASE_REPOS']
 
     if not base_repos:
-        print("   [WARN] GITHUB_BASE_REPOS 为空，跳过 Fork 发现")
+        logging.debug("   [WARN] GITHUB_BASE_REPOS 为空，跳过 Fork 发现")
         return []
 
     # 并行获取所有 base repo 的 fork 列表
@@ -104,9 +104,9 @@ def discover_github_forks() -> List[str]:
             forks = future.result()
             all_forks.extend(forks)
             if forks:
-                print(f"   [PACKAGE] {futures[future]}: {len(forks)} forks")
+                logging.debug(f"   [PACKAGE] {futures[future]}: {len(forks)} forks")
 
-    print(f"   [STAT] 共获取 {len(all_forks)} 个 fork...")
+    logging.debug(f"   [STAT] 共获取 {len(all_forks)} 个 fork...")
 
     # 批量构建所有潜在 URL
     all_urls_to_check = []
@@ -124,6 +124,6 @@ def discover_github_forks() -> List[str]:
         random.shuffle(all_urls_to_check)
         all_urls_to_check = all_urls_to_check[:config['MAX_FORK_URLS']]
 
-    print(f"   🔗 构建 {len(all_urls_to_check)} 个潜在 URL（跳过验证，直接拉取）...")
-    print(f"[OK] GitHub Fork 共发现 {len(all_urls_to_check)} 个候选来源\n")
+    logging.debug(f"   🔗 构建 {len(all_urls_to_check)} 个潜在 URL（跳过验证，直接拉取）...")
+    logging.debug(f"[OK] GitHub Fork 共发现 {len(all_urls_to_check)} 个候选来源\n")
     return all_urls_to_check

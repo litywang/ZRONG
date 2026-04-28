@@ -8,12 +8,12 @@ with open('sources.yaml', 'r', encoding='utf-8') as f:
 urls = data.get('candidate_urls', [])
 tg_channels = data.get('telegram_channels', [])
 
-print("=" * 60)
-print("当前源配置分析")
-print("=" * 60)
-print(f"\n固定URL源: {len(urls)} 个")
-print(f"Telegram频道: {len(tg_channels)} 个")
-print(f"GitHub Repos: {len(data.get('github_repos', []))} 个")
+logging.debug("=" * 60)
+logging.debug("当前源配置分析")
+logging.debug("=" * 60)
+logging.debug(f"\n固定URL源: {len(urls)} 个")
+logging.debug(f"Telegram频道: {len(tg_channels)} 个")
+logging.debug(f"GitHub Repos: {len(data.get('github_repos', []))} 个")
 
 # 分析URL源的地区特征
 asia_keywords = ['hk', 'tw', 'jp', 'sg', 'kr', 'asia', 'hongkong', 'taiwan', 'japan', 
@@ -29,12 +29,12 @@ for url in urls:
     else:
         unknown_sources.append(url)
 
-print(f"\n含亚洲关键词的源: {len(asia_sources)} 个")
-print(f"无明显地区特征的源: {len(unknown_sources)} 个")
+logging.debug(f"\n含亚洲关键词的源: {len(asia_sources)} 个")
+logging.debug(f"无明显地区特征的源: {len(unknown_sources)} 个")
 
-print("\n" + "=" * 60)
-print("建议添加的亚洲优质源")
-print("=" * 60)
+logging.debug("\n" + "=" * 60)
+logging.debug("建议添加的亚洲优质源")
+logging.debug("=" * 60)
 
 # 推荐的亚洲节点源
 recommended = [
@@ -61,6 +61,6 @@ recommended = [
     "https://raw.githubusercontent.com/freefq/free/master/v2",
 ]
 
-print(f"\n推荐源数量: {len(recommended)} 个")
+logging.debug(f"\n推荐源数量: {len(recommended)} 个")
 for url in recommended[:10]:
-    print(f"  - {url}")
+    logging.debug(f"  - {url}")

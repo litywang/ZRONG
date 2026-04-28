@@ -72,7 +72,7 @@ def get_telegram_pages(channel: str) -> int:
 
         return 0
     except (requests.RequestException, ValueError) as e:
-        print(f"[WARN] {channel} 页码获取失败：{str(e)[:50]}")
+        logging.debug(f"[WARN] {channel} 页码获取失败：{str(e)[:50]}")
         return 0
 
 
@@ -207,14 +207,14 @@ def crawl_telegram_page(url: str, limits: int = 25) -> Dict[str, dict]:
             collections[link] = {"origin": "TELEGRAM"}
 
         if collections:
-            print(f"   [OK] 该页面发现 {len(collections)} 个有效订阅链接")
+            logging.debug(f"   [OK] 该页面发现 {len(collections)} 个有效订阅链接")
         else:
-            print(f"   [WARN] 该页面未发现有效订阅链接：{url[:60]}")
+            logging.debug(f"   [WARN] 该页面未发现有效订阅链接：{url[:60]}")
 
         return collections
 
     except (requests.RequestException, ValueError) as e:
-        print(f"   [FAIL] 爬取异常：{str(e)[:50]}")
+        logging.debug(f"   [FAIL] 爬取异常：{str(e)[:50]}")
         return {}
 
 
@@ -284,6 +284,6 @@ def crawl_telegram_channels(channels: List[str], pages: int = 2, limits: int = 2
                     all_subscribes[link] = meta
 
             tg_count = len([c for c in all_subscribes.values() if c.get("origin") == "TELEGRAM"])
-            print(f"📄 [{completed}/{len(channels)}] {channel}: {len(channel_subs)} 个 | 总计: {tg_count}")
+            logging.debug(f"📄 [{completed}/{len(channels)}] {channel}: {len(channel_subs)} 个 | 总计: {tg_count}")
 
     return all_subscribes

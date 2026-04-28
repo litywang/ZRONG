@@ -640,6 +640,11 @@ NODE_HISTORY_FILE = Path("node_history.json")
 _NODE_HISTORY = {}
 _NODE_HISTORY_LOCK = threading.Lock()
 
+# v28.54: 智能源权重系统（source_history.json）
+SOURCE_HISTORY_FILE = Path("source_history.json")
+_SOURCE_HISTORY = {}
+_SOURCE_HISTORY_LOCK = threading.Lock()
+
 
 def _load_node_history():
     """加载节点历史记录。"""
@@ -654,6 +659,28 @@ def _load_node_history():
         _NODE_HISTORY = {}
 
 
+def _load_source_history():
+    """加载源历史记录。"""
+    global _SOURCE_HISTORY
+    if SOURCE_HISTORY_FILE.exists():
+        try:
+            with open(SOURCE_HISTORY_FILE, "r", encoding="utf-8") as f:
+                _SOURCE_HISTORY = json.load(f)
+        except (json.JSONDecodeError, OSError, ValueError):
+            _SOURCE_HISTORY = {}
+    else:
+        _SOURCE_HISTORY = {}
+
+
+def _save_source_history():
+    """保存源历史记录。"""
+    try:
+        with open(SOURCE_HISTORY_FILE, "w", encoding="utf-8") as f:
+            json.dump(_SOURCE_HISTORY, f, ensure_ascii=False, indent=2)
+    except (OSError, ValueError):
+        logging.debug("Save source history failed", exc_info=True)
+
+
 def _save_node_history():
     """保存节点历史记录。"""
     try:
@@ -661,6 +688,107 @@ def _save_node_history():
             json.dump(_NODE_HISTORY, f, ensure_ascii=False, indent=2)
     except (OSError, ValueError):
         logging.debug("Save node history failed", exc_info=True)
+
+
+def _update_source_history(url: str, success: bool, node_count: int = 0, asia_count: int = 0):
+    """更新单个源的历史记录。
+    
+    Args:
+        url: 订阅源 URL
+        success: 本次抓取是否成功
+        node_count: 本次抓取的节点数
+        asia_count: 本次抓取的亚洲节点数
+    """
+    now = datetime.now().isoformat()
+    with _SOURCE_HISTORY_LOCK:
+        if url not in _SOURCE_HISTORY:
+            _SOURCE_HISTORY[url] = {
+                "first_seen": now,
+                "last_seen": now,
+                "success_count": 0,
+                "fail_count": 0,
+                "total_nodes": 0,
+                "total_asia_nodes": 0,
+                "fetch_count": 0,
+                "history": [],  # 最近10次记录
+            }
+        rec = _SOURCE_HISTORY[url]
+        rec["last_seen"] = now
+        rec["fetch_count"] += 1
+        if success:
+            rec["success_count"] += 1
+        else:
+            rec["fail_count"] += 1
+        if node_count > 0:
+            rec["total_nodes"] += node_count
+            rec["total_asia_nodes"] += asia_count
+            # 保留最近10次记录
+            rec["history"].append({
+                "time": now,
+                "nodes": node_count,
+                "asia_nodes": asia_count,
+            })
+            if len(rec["history"]) > 10:
+                rec["history"] = rec["history"][-10:]
+
+
+def _dynamic_source_weight(url: str) -> float:
+    """计算动态源权重（1-20分）。
+    
+    融合静态规则 + 历史表现动态计算：
+    - 静态规则：URL 关键词硬编码（1-10分）
+    - 动态因子：成功率、亚洲比例、新鲜度、趋势
+    
+    公式：static * (0.4 + success_rate * 1.2) * (0.8 + asia_rate * 0.4) * recency * trend
+    """
+    # 1. 静态基础分（1-10）
+    static = float(_source_weight(url))
+    
+    with _SOURCE_HISTORY_LOCK:
+        rec = _SOURCE_HISTORY.get(url)
+        if not rec:
+            # 无历史数据：返回静态分 * 中性因子（1.0）
+            return round(static * 1.0, 1)
+        
+        # 2. 成功率因子（0.4 - 1.6）
+        total_fetches = rec["success_count"] + rec["fail_count"]
+        success_rate = rec["success_count"] / total_fetches if total_fetches > 0 else 0.5
+        success_factor = 0.4 + success_rate * 1.2
+        
+        # 3. 亚洲比例因子（0.8 - 1.2）
+        total_nodes = rec["total_nodes"]
+        asia_rate = rec["total_asia_nodes"] / total_nodes if total_nodes > 0 else 0.3
+        asia_factor = 0.8 + asia_rate * 0.4
+        
+        # 4. 新鲜度因子（0.4 - 1.3）
+        last_seen = datetime.fromisoformat(rec["last_seen"])
+        days_since = (datetime.now() - last_seen).total_seconds() / 86400
+        if days_since < 1:
+            recency = 1.3
+        elif days_since < 7:
+            recency = 1.0
+        elif days_since < 30:
+            recency = 0.7
+        else:
+            recency = 0.4
+        
+        # 5. 趋势因子（0.7 - 1.9）
+        history = rec.get("history", [])
+        if len(history) >= 3:
+            recent = sum(h["nodes"] for h in history[-3:]) / 3.0
+            older = sum(h["nodes"] for h in history[:-3]) / max(len(history) - 3, 1)
+            if older > 0:
+                trend = 0.7 + min(recent / older, 1.2) * 1.0
+            else:
+                trend = 1.0
+        else:
+            trend = 1.0
+        
+        # 综合计算
+        weight = static * success_factor * asia_factor * recency * trend
+        # 限制在 1-20 范围
+        weight = max(1.0, min(20.0, weight))
+        return round(weight, 1)
 
 
 def _update_node_history(proxy: dict, success: bool):
@@ -1955,6 +2083,8 @@ def main():
 
     # v28.53: 加载节点历史记录
     _load_node_history()
+    # v28.54: 加载源历史记录
+    _load_source_history()
 
     # v28.22: CN CIDR 数据有效期校验（gen_cn_cidr.py 每次运行会重新生成 cn_cidr_data.py，所以不能在那里加函数）
     try:
@@ -2009,11 +2139,18 @@ def main():
         all_urls = list(set(all_urls))
         print(f"[STAT] 总订阅源：{len(all_urls)} 个\n")
 
+        # v28.54: 按动态权重排序订阅源（高权重源优先抓取）
+        url_weights = {u: _dynamic_source_weight(u) for u in all_urls}
+        all_urls.sort(key=lambda u: -url_weights[u])
+        print(f"[STAT] 源权重排序完成（最高权重: {url_weights[all_urls[0]]:.1f}）\n")
+
         # 6. 抓取节点（按all_urls顺序，Telegram已在前面）
         print("[LOAD] 抓取节点...\n")
         nodes = {}
         yaml_count = 0
         txt_count = 0
+        # v28.54: 追踪每个 URL 的抓取结果用于更新源历史
+        url_results = {}  # url -> (success, node_count, asia_count)
 
         if USE_ASYNC_FETCH:
             # v29 异步抓取路径
@@ -2021,16 +2158,25 @@ def main():
             nodes, yaml_count, txt_count = asyncio.run(
                 async_fetch_nodes(all_urls, MAX_FETCH_NODES)
             )
+            # v28.54: 异步路径暂无法精确追踪每个URL的结果，使用近似统计
+            for url in all_urls:
+                url_results[url] = (True, 0, 0)  # 占位，后续按批次统计
         else:
             # v28.x 同步抓取路径（保留）
             with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as ex:
                 futures = {ex.submit(fetch_and_parse, u): u for u in all_urls}
                 completed = 0
                 for future in as_completed(futures):
+                    url = futures[future]
                     completed += 1
                     local_nodes, is_yaml = future.result()
+                    node_count = len(local_nodes)
+                    asia_count = sum(1 for p in local_nodes.values() if is_asia(p))
+                    url_results[url] = (node_count > 0, node_count, asia_count)
                     for h, p in local_nodes.items():
                         if h not in nodes:
+                            # v28.54: 使用动态权重覆盖静态权重
+                            p["_src_weight"] = _dynamic_source_weight(url)
                             nodes[h] = p
                     # BUGFIX: 仅在有节点时才计入 yaml/txt 统计
                     if local_nodes:
@@ -2042,6 +2188,10 @@ def main():
                         print(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
                     if len(nodes) >= MAX_FETCH_NODES:
                         break
+
+        # v28.54: 更新所有源的历史记录
+        for url, (success, node_count, asia_count) in url_results.items():
+            _update_source_history(url, success, node_count, asia_count)
 
         print(f"[OK] 唯一节点：{len(nodes)} 个 (YAML源: {yaml_count}, TXT源: {txt_count})\n")
 
@@ -2371,8 +2521,8 @@ def main():
             # v28.49: 亚洲节点额外加分（提高亚洲排序优先级）
             if asia > 0:
                 mf_score += 15
-            # v28.23: 源权重加成（国内友好源来的节点额外加分）
-            src_weight = p.get("_src_weight", 3)  # 默认权重3
+            # v28.54: 使用动态源权重（1-20分），替代静态权重
+            src_weight = p.get("_src_weight", 3)
             # 兼容旧 region_bonus 逻辑（IP geo 额外惩罚不友好地区）
             region_bonus = 0
             srv = p.get("server", "")
@@ -2471,6 +2621,19 @@ def main():
         for p in unique_final:
             cleaned = {k: v for k, v in p.items() if not k.startswith('_') and k in CLASH_FIELDS}
             cleaned_final.append(cleaned)
+
+        # v28.54: 输出源权重统计
+        if _SOURCE_HISTORY:
+            print("\n[STAT] 源权重统计（Top 10）:")
+            sorted_sources = sorted(
+                _SOURCE_HISTORY.items(),
+                key=lambda x: _dynamic_source_weight(x[0]),
+                reverse=True
+            )[:10]
+            for url, rec in sorted_sources:
+                w = _dynamic_source_weight(url)
+                success_rate = rec["success_count"] / max(rec["success_count"] + rec["fail_count"], 1)
+                print(f"   • 权重{w:.1f} | 成功率{success_rate:.0%} | {url[:60]}...")
 
         # v28.52: 大陆路由规则（CN_DIRECT=1 启用）
         _cn_direct = os.getenv("CN_DIRECT", "1") == "1"
@@ -2631,6 +2794,11 @@ TXT: <a href="{txt_html_url}">{txt_html_url}</a>
         # v28.53: 程序退出时保存节点历史记录
         try:
             _save_node_history()
+        except (OSError, ValueError):
+            logging.debug("Exception occurred", exc_info=True)
+        # v28.54: 程序退出时保存源历史记录
+        try:
+            _save_source_history()
         except (OSError, ValueError):
             logging.debug("Exception occurred", exc_info=True)
 

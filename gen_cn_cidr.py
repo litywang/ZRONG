@@ -4,6 +4,7 @@
 v28.1: 跨平台路径 + 完整导入
 """
 import ipaddress
+import logging
 import urllib.request
 from pathlib import Path
 from datetime import datetime

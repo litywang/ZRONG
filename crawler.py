@@ -2358,6 +2358,48 @@ def main():
             cleaned = {k: v for k, v in p.items() if not k.startswith('_') and k in CLASH_FIELDS}
             cleaned_final.append(cleaned)
 
+        # v28.52: 大陆路由规则（CN_DIRECT=1 启用）
+        _cn_direct = os.getenv("CN_DIRECT", "1") == "1"
+        _rules = []
+        if _cn_direct:
+            # 中国大陆域名后缀直连
+            _cn_domains = [
+                "cn", "com.cn", "net.cn", "org.cn", "gov.cn", "edu.cn",
+                "taobao.com", "tmall.com", "jd.com", "baidu.com", "bilibili.com",
+                "qq.com", "weibo.com", "alipay.com", "alicdn.com", "aliyun.com",
+                "weixin.qq.com", "163.com", "126.com", "sina.com.cn", "sohu.com",
+                "youku.com", "douyin.com", "xiaohongshu.com", "zhihu.com",
+                "cnblogs.com", "csdn.net", "jianshu.com", "oschina.net",
+                "gitee.com", "coding.net", "tencent.com", "tencentcloud.com",
+                "alibaba.com", "alibaba-inc.com", "antgroup.com", "ele.me",
+                "meituan.com", "dianping.com", "58.com", "ganji.com",
+                "autohome.com.cn", "xcar.com.cn", "pcauto.com.cn",
+                "ithome.com", "sspai.com", "geekpark.net", "36kr.com",
+                "chinaunicom.com", "10010.com", "189.cn", "10086.cn",
+                "bankcomm.com", "icbc.com.cn", "ccb.com", "boc.cn",
+                "aliyuncs.com", "qcloud.com", "qiniu.com", "upaiyun.com",
+            ]
+            for _domain in _cn_domains:
+                _rules.append(f"DOMAIN-SUFFIX,{_domain},DIRECT")
+            # GeoIP 中国大陆直连
+            _rules.append("GEOIP,CN,DIRECT")
+            # 局域网直连
+            _rules.append("IP-CIDR,127.0.0.0/8,DIRECT")
+            _rules.append("IP-CIDR,172.16.0.0/12,DIRECT")
+            _rules.append("IP-CIDR,192.168.0.0/16,DIRECT")
+            _rules.append("IP-CIDR,10.0.0.0/8,DIRECT")
+            _rules.append("IP-CIDR,100.64.0.0/10,DIRECT")
+            _rules.append("IP-CIDR,169.254.0.0/16,DIRECT")
+            _rules.append("IP-CIDR,224.0.0.0/4,DIRECT")
+            _rules.append("IP-CIDR,240.0.0.0/4,DIRECT")
+            _rules.append("IP-CIDR,255.255.255.255/32,DIRECT")
+            # 常见国内DNS直连
+            _rules.append("DOMAIN-SUFFIX,dns.alidns.com,DIRECT")
+            _rules.append("DOMAIN-SUFFIX,doh.pub,DIRECT")
+            _rules.append("DOMAIN-SUFFIX,dns.pub,DIRECT")
+        # 兜底：其余走代理
+        _rules.append("MATCH,[GEO] Select")
+
         cfg = {"proxies": cleaned_final,
                "proxy-groups": [{"name": "[START] Auto",
                                  "type": "url-test",
@@ -2368,7 +2410,7 @@ def main():
                                 {"name": "[GEO] Select",
                                  "type": "select",
                                  "proxies": ["[START] Auto"] + [p["name"] for p in cleaned_final]}],
-               "rules": ["MATCH,[GEO] Select"]}
+               "rules": _rules}
         with open("proxies.yaml", "w", encoding="utf-8") as f:
             yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False, Dumper=yaml.SafeDumper)
 

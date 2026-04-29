@@ -1,5 +1,5 @@
 # sources/subscription.py - 订阅源抓取模块
-# v28.39: 从 crawler.py 解耦
+# v28.53: 重构，使用 sources.config 替代 sys.modules hack
 
 import os
 import re
@@ -13,75 +13,7 @@ from typing import Dict, List, Tuple, Optional
 
 import httpx
 import yaml
-
-
-def _get_http_client():
-    """延迟导入同步 HTTP 客户端"""
-    import sys
-    crawler = sys.modules.get('crawler')
-    if crawler is None:
-        import importlib
-        crawler = importlib.import_module('crawler')
-    return crawler.get_http_client()
-
-
-def _get_async_http_client():
-    """延迟导入异步 HTTP 客户端"""
-    import sys
-    crawler = sys.modules.get('crawler')
-    if crawler is None:
-        import importlib
-        crawler = importlib.import_module('crawler')
-    return crawler.get_async_http_client()
-
-
-def _get_config():
-    """获取 crawler.py 中的配置常量"""
-    import sys
-    crawler = sys.modules.get('crawler')
-    if crawler is None:
-        import importlib
-        crawler = importlib.import_module('crawler')
-    return {
-        'HEADERS_POOL': getattr(crawler, 'HEADERS_POOL', [{}]),
-        'SUB_MIRRORS': getattr(crawler, 'SUB_MIRRORS', []),
-        'TIMEOUT': getattr(crawler, 'TIMEOUT', 12),
-        'MAX_FETCH_NODES': getattr(crawler, 'MAX_FETCH_NODES', 5000),
-        'FETCH_WORKERS': getattr(crawler, 'FETCH_WORKERS', 150),
-    }
-
-
-def _get_limiter():
-    """获取限流器"""
-    import sys
-    crawler = sys.modules.get('crawler')
-    if crawler is None:
-        import importlib
-        crawler = importlib.import_module('crawler')
-    return crawler.limiter
-
-
-def _source_weight(url: str) -> int:
-    """根据URL特征推断源权重（1-10），国内友好源得分更高"""
-    u = url.lower()
-    domestic_keywords = [
-        "ermaozi", "peasoft", "aiboboxx", "mfuu", "freefq", "kxswa",
-        "llywhn", "adiwzx", "changfengoss", "mymysub", "yeahwu",
-        "mksshare", "bulianglin", "yiiss", "free18", "shaoyouvip",
-        "yonggekkk", "vxiaodong", "wxloststar",
-    ]
-    for kw in domestic_keywords:
-        if kw in u:
-            return 8
-    aggregator_keywords = ["mahdibland", "epodonios", "barry-far"]
-    for kw in aggregator_keywords:
-        if kw in u:
-            return 5
-    if "vless" in u or "hysteria2" in u:
-        return 7
-    if "trojan" in u:
-        return 6
-    return 3
+from . import config
 
 
 # ===== URL 工具函数 =====
@@ -219,14 +151,39 @@ def parse_yaml_proxies(content: str) -> List[dict]:
         return []
 
 
+# ===== 源权重 =====
+
+def _source_weight(url: str) -> int:
+    """根据URL特征推断源权重（1-10），国内友好源得分更高"""
+    u = url.lower()
+    domestic_keywords = [
+        "ermaozi", "peasoft", "aiboboxx", "mfuu", "freefq", "kxswa",
+        "llywhn", "adiwzx", "changfengoss", "mymysub", "yeahwu",
+        "mksshare", "bulianglin", "yiiss", "free18", "shaoyouvip",
+        "yonggekkk", "vxiaodong", "wxloststar",
+    ]
+    for kw in domestic_keywords:
+        if kw in u:
+            return 8
+    aggregator_keywords = ["mahdibland", "epodonios", "barry-far"]
+    for kw in aggregator_keywords:
+        if kw in u:
+            return 5
+    if "vless" in u or "hysteria2" in u:
+        return 7
+    if "trojan" in u:
+        return 6
+    return 3
+
+
 # ===== 同步抓取 =====
 
 def fetch(url: str) -> str:
     """同步抓取单个 URL（GitHub URL 多镜像池遍历 + HTTP/2 + 重试）"""
-    limiter = _get_limiter()
-    client = _get_http_client()
-    config = _get_config()
-    headers = random.choice(config['HEADERS_POOL'])
+    limiter = config.limiter()
+    client = config.get_http_client()
+    cfg = config.config()
+    headers = random.choice(cfg.get('HEADERS_POOL', [{}]))
     is_github = "github" in url.lower() or "raw.githubusercontent" in url
 
     limiter.wait(url)
@@ -245,7 +202,7 @@ def fetch(url: str) -> str:
 
     # GitHub: 镜像池 + 原始URL兜底
     all_urls = []
-    for mirror in config['SUB_MIRRORS']:
+    for mirror in cfg.get('SUB_MIRRORS', []):
         if mirror:
             mirror_host = mirror.rstrip("/").replace("https://", "")
             all_urls.append(url.replace("raw.githubusercontent.com", mirror_host))
@@ -270,13 +227,12 @@ def fetch(url: str) -> str:
 
 def fetch_and_parse(url: str) -> Tuple[Dict, bool]:
     """同步获取并解析单个 URL 的节点（用于 ThreadPoolExecutor）"""
-    import sys
-    crawler = sys.modules.get('crawler')
-    if crawler is None:
-        import importlib
-        crawler = importlib.import_module('crawler')
-    parse_node = crawler.parse_node
-    ProxyNode = crawler.ProxyNode
+    parse_node_fn = config.parse_node()
+    ProxyNode_cls = config.ProxyNode()
+
+    if parse_node_fn is None or ProxyNode_cls is None:
+        logging.debug("parse_node or ProxyNode not available")
+        return {}, False
 
     local_nodes = {}
     c = fetch(url)
@@ -288,7 +244,7 @@ def fetch_and_parse(url: str) -> Tuple[Dict, bool]:
     if is_yaml_content(c):
         yaml_nodes = parse_yaml_proxies(c)
         for p in yaml_nodes:
-            h = ProxyNode.from_dict(p).dedup_key()
+            h = ProxyNode_cls.from_dict(p).dedup_key()
             if h not in local_nodes:
                 p["_src_weight"] = src_weight
                 local_nodes[h] = p
@@ -300,9 +256,9 @@ def fetch_and_parse(url: str) -> Tuple[Dict, bool]:
         line = line.strip()
         if not line or line.startswith("#"):
             continue
-        p = parse_node(line)
+        p = parse_node_fn(line)
         if p:
-            h = ProxyNode.from_dict(p).dedup_key()
+            h = ProxyNode_cls.from_dict(p).dedup_key()
             if h not in local_nodes:
                 p["_src_weight"] = src_weight
                 local_nodes[h] = p
@@ -324,10 +280,10 @@ def _get_async_sem():
 async def async_fetch_url(client: httpx.AsyncClient, url: str, mirror_pool: List[str] = None) -> str:
     """异步抓取单个 URL（带镜像池）"""
     if mirror_pool is None:
-        mirror_pool = _get_config()['SUB_MIRRORS']
+        mirror_pool = config.SUB_MIRRORS()
 
     sem = _get_async_sem()
-    headers = random.choice(_get_config()['HEADERS_POOL'])
+    headers = random.choice(config.HEADERS_POOL())
     is_github = "github" in url.lower() or "raw.githubusercontent" in url
 
     if not is_github:
@@ -375,13 +331,12 @@ async def async_fetch_url(client: httpx.AsyncClient, url: str, mirror_pool: List
 
 async def async_fetch_and_parse(client: httpx.AsyncClient, url: str) -> Tuple[Dict, bool]:
     """异步获取并解析单个 URL 的节点"""
-    import sys
-    crawler = sys.modules.get('crawler')
-    if crawler is None:
-        import importlib
-        crawler = importlib.import_module('crawler')
-    parse_node = crawler.parse_node
-    ProxyNode = crawler.ProxyNode
+    parse_node_fn = config.parse_node()
+    ProxyNode_cls = config.ProxyNode()
+
+    if parse_node_fn is None or ProxyNode_cls is None:
+        logging.debug("parse_node or ProxyNode not available")
+        return {}, False
 
     local_nodes = {}
     content = await async_fetch_url(client, url)
@@ -393,7 +348,7 @@ async def async_fetch_and_parse(client: httpx.AsyncClient, url: str) -> Tuple[Di
     if is_yaml_content(content):
         yaml_nodes = parse_yaml_proxies(content)
         for p in yaml_nodes:
-            h = ProxyNode.from_dict(p).dedup_key()
+            h = ProxyNode_cls.from_dict(p).dedup_key()
             if h not in local_nodes:
                 p["_src_weight"] = src_weight
                 local_nodes[h] = p
@@ -405,9 +360,9 @@ async def async_fetch_and_parse(client: httpx.AsyncClient, url: str) -> Tuple[Di
         line = line.strip()
         if not line or line.startswith("#"):
             continue
-        p = parse_node(line)
+        p = parse_node_fn(line)
         if p:
-            h = ProxyNode.from_dict(p).dedup_key()
+            h = ProxyNode_cls.from_dict(p).dedup_key()
             if h not in local_nodes:
                 p["_src_weight"] = src_weight
                 local_nodes[h] = p
@@ -422,7 +377,7 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
         url_results: {url: (success, node_count, asia_count)}
     """
     sem = asyncio.Semaphore(80)
-    client = _get_async_http_client()
+    client = config.get_async_http_client()
 
     async def fetch_with_limit(url: str):
         async with sem:
@@ -437,17 +392,13 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
         task = asyncio.create_task(fetch_with_limit(url))
         tasks.append(task)
         task_to_url[task] = url
+
     nodes = {}
     yaml_count = 0
     txt_count = 0
     completed = 0
     url_results = {}  # url -> (success, node_count, asia_count)
 
-    # Access crawler module for dynamic weight and is_asia (available since main() runs from crawler.py)
-    import sys
-    crawler = sys.modules.get('crawler')
-
-    # v28.46-fix1: 先收集所有结果再关闭 client，避免 task 访问已关闭 client
     pending = set(tasks)
     try:
         while pending:
@@ -470,14 +421,16 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
                 # Track per-URL results and override _src_weight with dynamic weight
                 node_count = len(local_nodes)
                 asia_count = 0
-                if url and crawler:
-                    dw = getattr(crawler, '_dynamic_source_weight', None)
-                    is_asia_fn = getattr(crawler, 'is_asia', None)
-                    if is_asia_fn:
-                        asia_count = sum(1 for pp in local_nodes.values() if is_asia_fn(pp))
-                    if dw:
+
+                # 使用 config 获取动态权重和 is_asia 函数
+                if url:
+                    dw_fn = config.dynamic_source_weight
+                    is_asia_func = config.is_asia
+                    if is_asia_func:
+                        asia_count = sum(1 for pp in local_nodes.values() if is_asia_func(pp))
+                    if dw_fn:
                         for p in local_nodes.values():
-                            p["_src_weight"] = dw(url)
+                            p["_src_weight"] = dw_fn(url)
                 url_results[url] = (node_count > 0, node_count, asia_count)
 
                 for h, p in local_nodes.items():
@@ -505,14 +458,12 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
             # 等待取消完成（忽略 CancelledError）
             await asyncio.gather(*pending, return_exceptions=True)
         # 安全关闭 client
-        if crawler:
-            async_client = getattr(crawler, '_async_http_client', None)
-            if async_client:
-                try:
-                    await async_client.aclose()
-                except (OSError, RuntimeError) as e:
-                    logging.debug("关闭异步客户端时出错: %s", e)
-                crawler._async_http_client = None
+        async_client = config.async_http_client()
+        if async_client:
+            try:
+                await async_client.aclose()
+            except (OSError, RuntimeError) as e:
+                logging.debug("关闭异步客户端时出错: %s", e)
 
     return nodes, yaml_count, txt_count, url_results
 
@@ -524,9 +475,9 @@ async def async_fetch_urls(urls: List[str], mirror_pool: List[str] = None) -> Di
         {url: content}
     """
     if mirror_pool is None:
-        mirror_pool = _get_config()['SUB_MIRRORS']
+        mirror_pool = config.SUB_MIRRORS()
 
-    client = _get_async_http_client()
+    client = config.get_async_http_client()
     # v28.50: 创建 task 对象而非传递 coroutine
     tasks = [asyncio.create_task(async_fetch_url(client, url, mirror_pool)) for url in urls]
 

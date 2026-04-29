@@ -2013,7 +2013,11 @@ def format_proxy_to_link(p):
 def main():
     st = time.time()
 
-        # v28.53: 加载节点历史记录
+    # v28.53: 初始化 sources 配置访问层（必须在其他 sources 函数调用前）
+    import sources.config
+    sources.config.init_config()
+
+    # v28.53: 加载节点历史记录
     _load_node_history()
     # v28.54: 加载源历史记录
     _load_source_history()

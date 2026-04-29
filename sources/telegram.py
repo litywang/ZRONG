@@ -1,5 +1,5 @@
 # sources/telegram.py - Telegram 频道爬虫模块
-# v28.39: 从 crawler.py 解耦
+# v28.53: 重构，使用 sources.config 替代 sys.modules hack
 
 import re
 import time
@@ -9,52 +9,18 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed, CancelledError
 from typing import Dict, List, Optional
 
+from . import config
+
 logger = logging.getLogger(__name__)
-
-
-def _get_session():
-    """延迟导入 session，避免循环依赖"""
-    import sys
-    crawler = sys.modules.get('crawler')
-    if crawler is None:
-        import importlib
-        crawler = importlib.import_module('crawler')
-    return crawler.session
-
-
-def _get_config():
-    """获取 crawler.py 中的配置常量"""
-    import sys
-    crawler = sys.modules.get('crawler')
-    if crawler is None:
-        import importlib
-        crawler = importlib.import_module('crawler')
-    return {
-        'TIMEOUT': getattr(crawler, 'TIMEOUT', 12),
-        'MAX_WORKERS': getattr(crawler, 'MAX_WORKERS', 80),
-        'USER_AGENT_POOL': getattr(crawler, 'USER_AGENT_POOL', [
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        ]),
-    }
-
-
-def _get_limiter():
-    """获取限流器"""
-    import sys
-    crawler = sys.modules.get('crawler')
-    if crawler is None:
-        import importlib
-        crawler = importlib.import_module('crawler')
-    return crawler.limiter
 
 
 def get_telegram_pages(channel: str) -> int:
     """获取 Telegram 频道的总页数（兼容新旧两种 HTML 结构）"""
     try:
-        session = _get_session()
-        config = _get_config()
+        session = config.session()
+        timeout = config.TIMEOUT()
         url = f"https://t.me/s/{channel}"
-        content = session.get(url, timeout=config['TIMEOUT']).text
+        content = session.get(url, timeout=timeout).text
 
         # 多种格式兼容
         patterns = [
@@ -155,18 +121,18 @@ def crawl_telegram_page(url: str, limits: int = 25) -> Dict[str, dict]:
         {url: {"origin": "TELEGRAM"}}
     """
     try:
-        limiter = _get_limiter()
-        session = _get_session()
-        config = _get_config()
+        limiter = config.limiter()
+        session = config.session()
+        cfg = config.config()
 
         limiter.wait(url)
         headers = {
-            "User-Agent": random.choice(config['USER_AGENT_POOL']),
+            "User-Agent": random.choice(cfg['USER_AGENT_POOL']),
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
         }
 
-        content = session.get(url, timeout=config['TIMEOUT'], headers=headers).text
+        content = session.get(url, timeout=cfg['TIMEOUT'], headers=headers).text
 
         if not content or len(content) < 100:
             return {}
@@ -249,8 +215,6 @@ def crawl_single_channel(channel: str, pages: int = 2, limits: int = 20) -> tupl
         return channel_subs, channel, "ok"
     except (requests.RequestException, ValueError) as e:
         # v28.39: 确保 channel_subs 已定义
-        if 'channel_subs' not in locals():
-            channel_subs = {}
         return channel_subs, channel, str(e)[:50]
 
 
@@ -266,14 +230,13 @@ def crawl_telegram_channels(channels: List[str], pages: int = 2, limits: int = 2
         {url: {"origin": "TELEGRAM"}}
     """
     all_subscribes = {}
-    config = _get_config()
+    max_workers = config.MAX_WORKERS()
 
-    with ThreadPoolExecutor(max_workers=config['MAX_WORKERS']) as ex:
+    with ThreadPoolExecutor(max_workers=max_workers) as ex:
         futures = {ex.submit(crawl_single_channel, ch, pages, limits): ch for ch in channels}
         completed = 0
         for future in as_completed(futures):
             completed += 1
-            # v28.39: 安全解构，避免未定义变量
             try:
                 channel_subs, channel, status = future.result()
             except (CancelledError, RuntimeError) as e:

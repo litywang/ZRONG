@@ -33,7 +33,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install Dependencies
-        run: pip install --upgrade -q httpx[http2] pyyaml python-dotenv urllib3 requests cachetools tqdm geoip2
+        run: pip install --upgrade -q httpx[http2] pyyaml python-dotenv urllib3 requests cachetools tqdm geoip2 pydantic
 
       - name: Download GeoLite2 Database
         run: |

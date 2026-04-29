@@ -124,6 +124,15 @@ import urllib.parse
 import threading
 import random
 import logging
+
+# v28.55: 配置日志级别（默认INFO，可通过环境变量LOG_LEVEL调整）
+_LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(
+    level=getattr(logging, _LOG_LEVEL, logging.INFO),
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%H:%M:%S"
+)
+
 from datetime import datetime
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field

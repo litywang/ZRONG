@@ -141,7 +141,7 @@ logging.getLogger("urllib3").setLevel(logging.CRITICAL)
 
 from datetime import datetime
 from typing import Dict, List, Tuple, Optional, Any
-from dataclasses import dataclass, field
+from pydantic import BaseModel, field_validator, Field, PrivateAttr
 from cachetools import TTLCache
 
 # v28.15: 安全地禁用urllib3警告
@@ -150,16 +150,15 @@ urllib3_logger.setLevel(logging.CRITICAL)
 urllib3_logger.propagate = False
 
 # ========== ProxyNode 数据模型 ==========
-@dataclass
-class ProxyNode:
-    """结构化代理节点数据模型，替代 dict 作为内部统一格式。
-
-    兼容 dict 回退：所有属性提供默认值，parse_* 函数返回的 dict 仍可透明使用。
+class ProxyNode(BaseModel):
+    """Pydantic V2 强类型节点模型，替代原dataclass。
+    
+    保留所有原有字段，新增字段校验和自动填充逻辑。
     """
     # 核心字段（必须有）
-    protocol: str = "unknown"
-    server: str = ""
-    port: int = 0
+    protocol: str = Field(default="unknown", min_length=1, description="节点协议类型")
+    server: str = Field(default="", min_length=1, description="节点服务器地址")
+    port: int = Field(default=0, le=65535, description="节点端口")
     # 协议相关字段
     name: str = ""
     cipher: str = ""
@@ -176,18 +175,55 @@ class ProxyNode:
     udp: bool = True
     skip_cert_verify: bool = True
     # Clash 特有字段
-    ws_opts: Optional[Dict] = None  # ws-opts
-    grpc_opts: Optional[Dict] = None  # grpc-opts
-    h2_opts: Optional[Dict] = None  # h2-opts
-    hysteria_opts: Optional[Dict] = None  # hysteria2 特有
-    tuic_opts: Optional[Dict] = None  # tuic 特有
-    vless_opts: Optional[Dict] = None  # vlessreality 等
-    # 内部评分/元数据
-    _score: float = 0.0
-    _src_weight: float = 0.0
-    _mainland_reachable: bool = False
+    ws_opts: Optional[Dict] = Field(default=None, description="ws-opts配置")
+    grpc_opts: Optional[Dict] = Field(default=None, description="grpc-opts配置")
+    h2_opts: Optional[Dict] = Field(default=None, description="h2-opts配置")
+    hysteria_opts: Optional[Dict] = Field(default=None, description="hysteria2特有配置")
+    tuic_opts: Optional[Dict] = Field(default=None, description="tuic特有配置")
+    vless_opts: Optional[Dict] = Field(default=None, description="vless相关配置")
+    # 内部评分/元数据（Pydantic私有属性，不参与序列化）
+    _score: float = PrivateAttr(default=0.0)
+    _src_weight: float = PrivateAttr(default=0.0)
+    _mainland_reachable: bool = PrivateAttr(default=False)
+    _region: str = PrivateAttr(default="")
+    _rtt: float = PrivateAttr(default=0.0)
     # 原始解析数据（供 to_dict 使用）
-    _extra: Dict[str, Any] = field(default_factory=dict)
+    _extra: Dict[str, Any] = PrivateAttr(default_factory=dict)
+
+    @field_validator('sni', mode='before')
+    @classmethod
+    def auto_fill_sni(cls, v, info):
+        """SNI缺失时自动用server填充"""
+        if not v:
+            return info.data.get('server', '')
+        return v
+
+    def dedup_key(self) -> str:
+        """生成去重键（六元组：协议/服务器/端口/认证/路径/主机）。
+        
+        v28.51: 扩展为六元组去重，区分同一服务器不同配置变体。
+        """
+        uid = self.uuid or self.password or ""
+        # host 来源优先级：ws-opts.host > servername > sni > host
+        host = ""
+        if self.ws_opts and isinstance(self.ws_opts, dict):
+            host = self.ws_opts.get("host", "")
+        if not host:
+            host = self.vless_opts.get("host", "") if self.vless_opts else ""
+        if not host:
+            host = self.h2_opts.get("host", [""])[0] if self.h2_opts else ""
+        if not host:
+            host = self.sni or self.host or ""
+        # path 来源优先级：ws-opts.path > h2-opts.path > path
+        path = self.path or ""
+        if not path and self.ws_opts and isinstance(self.ws_opts, dict):
+            path = self.ws_opts.get("path", "")
+        if not path and self.h2_opts and isinstance(self.h2_opts, dict):
+            path = self.h2_opts.get("path", "")
+        return hashlib.md5(
+            f"{self.protocol}|{self.server}|{self.port}|{uid}|{path}|{host}".encode(),
+            usedforsecurity=False,
+        ).hexdigest()
 
     def dedup_key(self) -> str:
         """生成去重键（六元组：协议/服务器/端口/认证/路径/主机）。
@@ -217,9 +253,31 @@ class ProxyNode:
         ).hexdigest()
 
     def to_dict(self) -> Dict:
-        """转换为 Clash 配置 dict 格式（供 create_config 使用）。"""
-        name = self.name or f"{self.protocol.upper()}-{self.server}:{self.port}"
+        """转换为 Clash 配置 dict 格式（供 create_config 使用），注入Meta信息。"""
+        # 生成带Meta的节点名（区域emoji + 延迟 + 评分）
+        emoji = ""
+        if self._region:
+            try:
+                from utils import _cc_to_flag
+                emoji = _cc_to_flag(self._region) + " "
+            except ImportError:
+                pass
+        delay_str = f"{self._rtt*1000:.0f}ms" if self._rtt else "N/A"
+        score_str = f"{self._score:.2f}" if self._score else "0.00"
+        base_name = self.name or f"{self.protocol.upper()}-{self.server}:{self.port}"
+        name = f"{emoji}{base_name} | {delay_str} | 评分{score_str}"
+        
         p = {"name": name, "type": self.protocol, "server": self.server, "port": self.port, "udp": True, "skip-cert-verify": self.skip_cert_verify}
+        
+        # 添加Clash Meta字段（供客户端智能排序）
+        p["meta"] = {
+            "test_time": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "protocol": self.protocol,
+            "rtt_ms": round(self._rtt * 1000, 0) if self._rtt else None,
+            "alive_score": round(self._score, 3) if self._score else 0.0,
+            "region": self._region,
+            "mainland_reachable": self._mainland_reachable
+        }
 
         if self.protocol in ("ss", "ss2022"):
             p.update({"cipher": self.cipher or "aes-128-gcm", "password": self.password})
@@ -1749,15 +1807,12 @@ class ClashManager:
         cn_direct = os.getenv("CN_DIRECT", "0") == "1"
         rules = []
         if cn_direct:
-            # 大陆域名后缀直连
+            # 动态规则集（大陆域名直连 + GFW 列表代理）
             rules += [
-                "DOMAIN-SUFFIX,cn,DIRECT",
-                "DOMAIN-SUFFIX,com.cn,DIRECT",
-                "DOMAIN-SUFFIX,edu.cn,DIRECT",
-                "DOMAIN-SUFFIX,net.cn,DIRECT",
-                "DOMAIN-SUFFIX,org.cn,DIRECT",
-                # 中国大陆 GEOIP 直连
-                "GEOIP,CN,DIRECT",
+                "DOMAIN-SUFFIX,icloud.com,DIRECT",  # 保留常用直连域名
+                "RULE-SET,cn_domains,DIRECT",       # 大陆域名动态规则
+                "RULE-SET,gfw_list,PROXY",          # GFW 列表走代理
+                "GEOIP,CN,DIRECT,no-resolve",       # 大陆 IP 直连
                 # 局域网/本地地址直连
                 "IP-CIDR,192.168.0.0/16,DIRECT",
                 "IP-CIDR,10.0.0.0/8,DIRECT",
@@ -1772,6 +1827,40 @@ class ClashManager:
             "log-level": "error", "external-controller": f"127.0.0.1:{CLASH_API_PORT}",
             "secret": "",  # nosec B105: Clash API local only
             "ipv6": False, "unified-delay": True, "tcp-concurrent": True,
+            # 动态规则提供者（大陆域名直连 + GFW 列表代理）
+            "rule-providers": {
+                "cn_domains": {
+                    "type": "http",
+                    "url": "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/cn.txt",
+                    "behavior": "domain",
+                    "interval": 86400,  # 每天更新一次
+                },
+                "gfw_list": {
+                    "type": "http",
+                    "url": "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/gfw.txt",
+                    "behavior": "domain",
+                    "interval": 86400,
+                }
+            },
+            # 防 DNS 泄露配置
+            "dns": {
+                "enable": True,
+                "listen": "0.0.0.0:53",
+                "enhanced-mode": "fake-ip",
+                "fake-ip-range": "198.18.0.1/16",
+                "nameserver": [
+                    "https://dns.alidns.com/dns-query",  # 阿里云 DoH（大陆优先）
+                    "https://doh.pub/dns-query",          # 腾讯云 DoH
+                ],
+                "fallback": [
+                    "https://cloudflare-dns.com/dns-query",
+                    "https://dns.google/dns-query",
+                ],
+                "fallback-filter": {
+                    "geoip": True,
+                    "ipcidr": ["198.18.0.1/16"],  # 排除 fake-ip 范围
+                }
+            },
             "proxies": valid_proxies,
             "proxy-groups": [{"name": "TEST", "type": "select", "proxies": names}],
             "rules": rules

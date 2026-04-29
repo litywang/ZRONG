@@ -133,6 +133,12 @@ logging.basicConfig(
     datefmt="%H:%M:%S"
 )
 
+# 抑制第三方库冗余日志
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("requests").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.CRITICAL)
+
 from datetime import datetime
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
@@ -1482,7 +1488,6 @@ def _ip_geo_batch(ips):
             if geo:
                 limiter.set_geo(ip, geo)
                 local_hits += 1
-        logging.debug(f"[GEO] GeoIP2 本地查询：{local_hits}/{len(to_query)} 个命中")
         # 全部命中则直接返回，无需网络查询
         if local_hits == len(to_query):
             return

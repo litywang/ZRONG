@@ -168,6 +168,15 @@ class ProxyNode(BaseModel):
     host: str = ""
     path: str = ""
     alpn: str = ""
+
+    @field_validator('alpn', mode='before')
+    @classmethod
+    def validate_alpn(cls, v):
+        """兼容alpn为列表或字符串，统一转为逗号分隔字符串"""
+        if isinstance(v, list):
+            return ','.join(str(item) for item in v)
+        return str(v) if v is not None else ""
+
     # 协议辅助字段
     alterId: int = 0
     network: str = "tcp"
@@ -351,6 +360,11 @@ class ProxyNode(BaseModel):
     @staticmethod
     def from_dict(d: Dict) -> "ProxyNode":
         """从 dict（现有 parse_* 函数返回值）构造 ProxyNode。"""
+        alpn_val = d.get("alpn", "")
+        # v28.42: 规范化 alpn（TUIC 解析器输出 list，其他输出 string）
+        if isinstance(alpn_val, list):
+            alpn_val = ",".join(str(a) for a in alpn_val)
+
         return ProxyNode(
             protocol=d.get("type", "unknown"),
             server=d.get("server", ""),
@@ -362,7 +376,7 @@ class ProxyNode(BaseModel):
             sni=d.get("sni", ""),
             host=d.get("host", ""),
             path=d.get("path", ""),
-            alpn=d.get("alpn", ""),
+            alpn=alpn_val,
             alterId=d.get("alterId", 0),
             network=d.get("network", "tcp"),
             tls=bool(d.get("tls", False)),

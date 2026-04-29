@@ -163,6 +163,10 @@ def source_weight(url: str) -> int:
         "llywhn", "adiwzx", "changfengoss", "mymysub", "yeahwu",
         "mksshare", "bulianglin", "yiiss", "free18", "shaoyouvip",
         "yonggekkk", "vxiaodong", "wxloststar",
+        # v28.55: 新增实测 CN 友好源
+        "nianshaonian", "sub-store", "xray", "v2ray", "clash-meta",
+        "mihomo", "sing-box", "hysteria", "tuic", "vless", "trojan",
+        "xiaofei", "feixiao", "qingyun", "yun1", "yun2", "speed",
     ]
     for kw in domestic_keywords:
         if kw in u:

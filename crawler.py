@@ -426,7 +426,7 @@ TIMEOUT = int(os.getenv("TIMEOUT", "12"))  # v28.21: 8→12秒，GitHub Actions 
 MAX_FETCH_NODES = int(os.getenv("MAX_FETCH_NODES", "5000"))     # v25: 扩大候选池（原3000）
 MAX_TCP_TEST_NODES = int(os.getenv("MAX_TCP_TEST_NODES", "1200"))  # v25: TCP翻倍（原600，匹配README 10s阈值）
 MAX_PROXY_TEST_NODES = int(os.getenv("MAX_PROXY_TEST_NODES", "1000"))  # v28.21: 800→1000，更多节点进入测速
-MAX_FINAL_NODES = int(os.getenv("MAX_FINAL_NODES", "150"))       # v28.4: 150够用（TCP补充几乎无效，不凑数）
+MAX_FINAL_NODES = int(os.getenv("MAX_FINAL_NODES", "200"))       # v28.55: 200，给亚洲节点更多空间
 MAX_LATENCY = int(os.getenv("MAX_LATENCY", "5000"))              # v28.8: 放宽到5s（大陆网络环境需要更宽松阈值）
 MIN_PROXY_SPEED = float(os.getenv("MIN_PROXY_SPEED", "30"))  # v28.21: 30KB/s保活（原0过松）
 MAX_PROXY_LATENCY = int(os.getenv("MAX_PROXY_LATENCY", "5000"))  # v28.8: 放宽到5s（大陆网络环境需要更宽松阈值）
@@ -497,9 +497,9 @@ COMMON_PORT_PENALTY = {80: 300, 443: 200, 8080: 100, 8443: 100}
 
 # v28.14: 提高亚洲优先级权重
 ASIA_PRIORITY_BONUS = int(os.getenv("ASIA_PRIORITY_BONUS", "40"))  # v28.49: 提高亚洲优先级（35→40）
-TARGET_ASIA_RATIO = float(os.getenv("TARGET_ASIA_RATIO", "0.55"))  # v28.49: 提高亚洲目标比例（45%→55%）
-ASIA_TCP_RELAX = 1500    # v28.16: 亚洲TCP补充延迟放宽到1500ms
-ASIA_MIN_COUNT = int(os.getenv("ASIA_MIN_COUNT", "50"))  # v28.49: 提高亚洲保底数量（40→50）
+TARGET_ASIA_RATIO = float(os.getenv("TARGET_ASIA_RATIO", "0.60"))  # v28.55: 提高亚洲目标比例（55%→60%）
+ASIA_TCP_RELAX = 1800    # v28.55: 亚洲TCP补充延迟放宽到1800ms，让更多亚洲节点通过
+ASIA_MIN_COUNT = int(os.getenv("ASIA_MIN_COUNT", "60"))  # v28.55: 提高亚洲保底数量（50→60）
 
 # ===== 并发配置 ======
 MAX_CONCURRENT_FETCH = 3

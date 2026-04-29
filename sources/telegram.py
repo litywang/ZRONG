@@ -4,9 +4,12 @@
 import re
 import time
 import random
+import requests
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, CancelledError
 from typing import Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 def _get_session():
@@ -273,7 +276,7 @@ def crawl_telegram_channels(channels: List[str], pages: int = 2, limits: int = 2
             # v28.39: 安全解构，避免未定义变量
             try:
                 channel_subs, channel, status = future.result()
-            except (concurrent.futures.CancelledError, RuntimeError) as e:
+            except (CancelledError, RuntimeError) as e:
                 logger.debug("Channel crawl failed: %s", e)
                 channel_subs = {}
                 channel = futures[future]

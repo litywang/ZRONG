@@ -414,11 +414,12 @@ async def async_fetch_and_parse(client: httpx.AsyncClient, url: str) -> Tuple[Di
     return local_nodes, False
 
 
-async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple[Dict, int, int]:
+async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple[Dict, int, int, Dict]:
     """异步批量抓取并解析所有节点的入口
 
     Returns:
-        (nodes_dict, yaml_count, txt_count)
+        (nodes_dict, yaml_count, txt_count, url_results)
+        url_results: {url: (success, node_count, asia_count)}
     """
     sem = asyncio.Semaphore(80)
     client = _get_async_http_client()
@@ -429,12 +430,22 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
 
     logging.debug(f"[WEB] 异步抓取 {len(all_urls)} 个订阅源...")
 
-    # v28.47-fix1: 创建 task 对象而非传递 coroutine
-    tasks = [asyncio.create_task(fetch_with_limit(url)) for url in all_urls]
+    # v28.47-fix1: 创建 task 对象，并建立 task→url 映射用于追踪
+    task_to_url = {}
+    tasks = []
+    for url in all_urls:
+        task = asyncio.create_task(fetch_with_limit(url))
+        tasks.append(task)
+        task_to_url[task] = url
     nodes = {}
     yaml_count = 0
     txt_count = 0
     completed = 0
+    url_results = {}  # url -> (success, node_count, asia_count)
+
+    # Access crawler module for dynamic weight and is_asia (available since main() runs from crawler.py)
+    import sys
+    crawler = sys.modules.get('crawler')
 
     # v28.46-fix1: 先收集所有结果再关闭 client，避免 task 访问已关闭 client
     pending = set(tasks)
@@ -454,6 +465,20 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
                     local_nodes = {}
                     is_yaml = False
                 completed += 1
+                url = task_to_url.get(task, "")
+
+                # Track per-URL results and override _src_weight with dynamic weight
+                node_count = len(local_nodes)
+                asia_count = 0
+                if url and crawler:
+                    dw = getattr(crawler, '_dynamic_source_weight', None)
+                    is_asia_fn = getattr(crawler, 'is_asia', None)
+                    if is_asia_fn:
+                        asia_count = sum(1 for pp in local_nodes.values() if is_asia_fn(pp))
+                    if dw:
+                        for p in local_nodes.values():
+                            p["_src_weight"] = dw(url)
+                url_results[url] = (node_count > 0, node_count, asia_count)
 
                 for h, p in local_nodes.items():
                     if h not in nodes:
@@ -480,8 +505,6 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
             # 等待取消完成（忽略 CancelledError）
             await asyncio.gather(*pending, return_exceptions=True)
         # 安全关闭 client
-        import sys
-        crawler = sys.modules.get('crawler')
         if crawler:
             async_client = getattr(crawler, '_async_http_client', None)
             if async_client:
@@ -491,7 +514,7 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
                     logging.debug("关闭异步客户端时出错: %s", e)
                 crawler._async_http_client = None
 
-    return nodes, yaml_count, txt_count
+    return nodes, yaml_count, txt_count, url_results
 
 
 async def async_fetch_urls(urls: List[str], mirror_pool: List[str] = None) -> Dict[str, str]:

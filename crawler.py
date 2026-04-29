@@ -2246,12 +2246,9 @@ def main():
         if USE_ASYNC_FETCH:
             # v29 异步抓取路径
             logging.info("[WEB] 使用异步抓取模式...")
-            nodes, yaml_count, txt_count = asyncio.run(
+            nodes, yaml_count, txt_count, url_results = asyncio.run(
                 async_fetch_nodes(all_urls, MAX_FETCH_NODES)
             )
-            # v28.54: 异步路径暂无法精确追踪每个URL的结果，使用近似统计
-            for url in all_urls:
-                url_results[url] = (True, 0, 0)  # 占位，后续按批次统计
         else:
             # v28.x 同步抓取路径（保留）
             with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as ex:

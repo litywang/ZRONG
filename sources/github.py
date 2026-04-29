@@ -4,6 +4,7 @@
 import os
 import time
 import random
+import requests
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List

@@ -3,7 +3,7 @@
 
 import logging
 from urllib.parse import urlparse, unquote, parse_qs
-from .common import ProxyNode
+from .common import ProxyNode, generate_unique_id
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +53,3 @@ def _safe_port(val, default=443):
         return p
     except (ValueError, TypeError):
         return default
-
-
-from .common import generate_unique_id

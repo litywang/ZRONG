@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed, CancelledError
 from typing import Dict, List, Optional
 
 from . import config
+from .utils import clean_url, is_valid_url, check_subscription_quality
 
 logger = logging.getLogger(__name__)
 
@@ -45,69 +46,7 @@ def get_telegram_pages(channel: str) -> int:
         return 0
 
 
-def clean_url(url: str) -> str:
-    """URL 规范化（比 wzdnzd 更全面）"""
-    if not url:
-        return ""
-
-    # 移除所有不可见字符和换行符
-    cleaned = re.sub(r'\s+', '', url)
-
-    # 统一协议为 https（仅对 github 域名，其他保持原样）
-    if 'github' in cleaned.lower():
-        cleaned = cleaned.replace("http://", "https://", 1)
-
-    # 去除尾部标点
-    cleaned = cleaned.rstrip('.,;:!?"\\')
-
-    # 长度检查
-    if len(cleaned) < 15:
-        return ""
-
-    # 域名长度检查
-    from urllib.parse import urlparse
-    domain = urlparse(cleaned).netloc
-    if not domain or len(domain) < 4:
-        return ""
-
-    return cleaned
-
-
-def is_valid_url(url: str) -> bool:
-    """URL 有效性检查（核心优化）"""
-    if not url or len(url) < 10:
-        return False
-
-    url = url.strip().rstrip('.,;:')
-
-    # 协议检查
-    if not (url.startswith("http://") or url.startswith("https://")):
-        return False
-
-    # 排除无效域名
-    invalid_domains = ["t.me", "telegram.org"]
-    if any(domain in url for domain in invalid_domains):
-        return False
-
-    return True
-
-
-def check_subscription_quality(url: str) -> bool:
-    """订阅质量快速筛查（借鉴 wzdnzd）"""
-    quality_indicators = [
-        "token=",
-        "/subscribe/",
-        "/api/v1/client/",
-        ".txt",
-        ".yaml",
-        ".yml",
-        ".json",
-        "/link/"
-    ]
-
-    url_lower = url.lower()
-    match_count = sum(1 for indicator in quality_indicators if indicator in url_lower)
-    return match_count >= 1
+# clean_url, is_valid_url, check_subscription_quality 已移至 utils.py，此处直接导入使用
 
 
 def crawl_telegram_page(url: str, limits: int = 25) -> Dict[str, dict]:

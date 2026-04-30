@@ -454,11 +454,12 @@ NODE_NAME_PREFIX = "Anftlity"
 # v28.23: 大陆端点测试（通过代理访问大陆CDN，验证实际可用性）
 ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "1") == "1"
 MAINLAND_TEST_URLS = [
-    "https://myip.ipip.net/json",
-    "https://www.bilibili.com",
-    "https://speedtest.chinatelecom.com.cn",
-    "https://www.taobao.com",
-    "https://dns.alidns.com",
+    "http://myip.ipip.net/json",
+    "http://cp.cloudflare.com/generate_204",
+    "http://captive.apple.com/generation_204",
+    "http://connectivitycheck.gstatic.com/generate_204",
+    "http://www.msftconnecttest.com/connecttest.txt",
+    "http://www.qualcomm.com/generate_204",
 ]
 # v28.55: 大陆测试改为强制项，未通过则直接淘汰节点
 ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "1") == "1"  # 默认强制开启
@@ -1731,12 +1732,13 @@ class ClashManager:
                 except requests.RequestException as e:
                     logging.debug("Test URL failed for proxy %s: %s", name, str(e)[:50])
                     continue
-            # 大陆端点测试（v28.23）
+            # 大陆端点测试（v28.56）强制项 + 超时放宽15s
             if ENABLE_MAINLAND_TEST and result["success"]:
                 ml_ok = False
                 for ml_url in MAINLAND_TEST_URLS:
                     try:
-                        r = requests.get(ml_url, proxies=px, timeout=8, allow_redirects=True)
+                        r = requests.get(ml_url, proxies=px, timeout=15,
+                                         allow_redirects=True, headers={"User-Agent": "curl/7.83.1"})
                         if r.status_code in [200, 204, 301, 302]:
                             ml_ok = True
                             break
@@ -1745,7 +1747,7 @@ class ClashManager:
                         continue
                 if not ml_ok:
                     result["success"] = False
-                    result["error"] = "Mainland test failed"
+                    result["error"] = "Mainland unreachable"
                     logging.debug("Mainland test failed for %s", name)
             if not result["success"]:
                 result["error"] = "All test URLs failed"

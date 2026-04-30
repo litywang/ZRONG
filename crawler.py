@@ -433,17 +433,22 @@ MAX_PROXY_LATENCY = int(os.getenv("MAX_PROXY_LATENCY", "5000"))  # v28.8: 放宽
 # v28.55: 调整探针地址为国内服务，核心验证大陆可达性
 TEST_URL = "https://myip.ipip.net/json"  # 国内IP查询服务，验证节点大陆可达性
 # 测速URL优先国内服务，未通过国内测速的节点直接淘汰
+# v28.57: 超时5s→8s，亚洲出口节点响应慢，5s太严苛；添加http/https混合降低TLS握手负担
 TEST_URLS = [
+    "http://myip.ipip.net/json",
     "https://myip.ipip.net/json",
+    "http://ip.3322.org",
     "https://www.baidu.com",
-    "https://www.taobao.com",
     "https://www.qq.com",
-    "https://ip.3322.org",
+    "https://www.taobao.com",
+    "http://cp.cloudflare.com/generate_204",
+    "http://captive.apple.com/generation_204",
 ]
 # 原国际测速地址降级为备用（仅国内地址全部失败时启用）
+# v28.57: 备用池移除了google（含TLS握手延迟），保留gstatic作为最终兜底
 TEST_URLS_BACKUP = [
     "https://www.gstatic.com/generate_204",
-    "https://www.google.com",
+    "http://www.msftconnecttest.com/connecttest.txt",
 ]
 
 CLASH_PORT = int(os.getenv("CLASH_PORT", "17890"))  # v28.23: 可配置
@@ -451,17 +456,25 @@ CLASH_API_PORT = int(os.getenv("CLASH_API_PORT", "19090"))  # v28.23: 可配置
 CLASH_VERSION = os.getenv("CLASH_VERSION", "v1.19.0")  # v28.23: 可配置
 NODE_NAME_PREFIX = "Anftlity"
 
-# v28.23: 大陆端点测试（通过代理访问大陆CDN，验证实际可用性）
+# v28.57: 大陆端点测试改为评分降级（非淘汰），避免误杀真实可用节点；换入更多国内可达URL
 ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "1") == "1"
 MAINLAND_TEST_URLS = [
+    # 国内可达性（http，无TLS，可穿透大多数出口代理）
     "http://myip.ipip.net/json",
+    "http://ip.3322.org",
+    "http://ip-api.com/json",
+    # Cloudflare 国内出口友好节点
     "http://cp.cloudflare.com/generate_204",
+    # Apple/Microsoft/GCP 全球任播（国内可达）
     "http://captive.apple.com/generation_204",
     "http://connectivitycheck.gstatic.com/generate_204",
     "http://www.msftconnecttest.com/connecttest.txt",
+    # v28.57 新增：国内ISP/云厂商可达端点
     "http://www.qualcomm.com/generate_204",
+    "http://www.163.com",
+    "http://www.sina.com.cn",
 ]
-# v28.55: 大陆测试改为强制项，未通过则直接淘汰节点
+# v28.57: 大陆测试改为评分降级而非直接淘汰，减少误杀
 ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "1") == "1"  # 默认强制开启
 MAINLAND_SCORE_THRESHOLD = int(os.getenv("MAINLAND_SCORE_THRESHOLD", "30"))
 
@@ -1714,8 +1727,10 @@ class ClashManager:
             self.process = None
 
     def test_proxy(self, name, retry=True):
-        """v28.7: 多URL测速 + 失败重试"""
-        result = {"success": False, "latency": 9999.0, "speed": 0.0, "error": ""}
+        """v28.7: 多URL测速 + 失败重试
+        v28.57: 第一阶段超时5s→8s（亚洲出口慢），大陆测试从强制淘汰改为评分降级
+        """
+        result = {"success": False, "latency": 9999.0, "speed": 0.0, "error": "", "mainland_pass": False}
         try:
             requests.put(f"http://127.0.0.1:{CLASH_API_PORT}/proxies/TEST", json={"name": name}, timeout=2)
             time.sleep(0.05)
@@ -1724,15 +1739,28 @@ class ClashManager:
             for url in TEST_URLS:
                 try:
                     start = time.time()
-                    resp = requests.get(url, proxies=px, timeout=5, allow_redirects=False)
+                    resp = requests.get(url, proxies=px, timeout=8, allow_redirects=False)
                     lat = (time.time() - start) * 1000
                     if resp.status_code in [200, 204, 301, 302]:
-                        result = {"success": True, "latency": round(lat, 1), "speed": 0.0, "error": ""}
+                        result = {"success": True, "latency": round(lat, 1), "speed": 0.0, "error": "", "mainland_pass": False}
                         break
                 except requests.RequestException as e:
                     logging.debug("Test URL failed for proxy %s: %s", name, str(e)[:50])
                     continue
-            # 大陆端点测试（v28.56）强制项 + 超时放宽15s
+            # 备用池：前8个全部失败时用（减少完全误杀）
+            if not result["success"]:
+                for url in TEST_URLS_BACKUP:
+                    try:
+                        start = time.time()
+                        resp = requests.get(url, proxies=px, timeout=8, allow_redirects=False)
+                        lat = (time.time() - start) * 1000
+                        if resp.status_code in [200, 204, 301, 302]:
+                            result = {"success": True, "latency": round(lat, 1), "speed": 0.0, "error": "", "mainland_pass": False}
+                            break
+                    except requests.RequestException:
+                        continue
+            # v28.57: 大陆端点测试降级为评分项，不再直接淘汰节点
+            # 亚洲节点如果能访问主测速URL，即使大陆专项URL失败也保留
             if ENABLE_MAINLAND_TEST and result["success"]:
                 ml_ok = False
                 for ml_url in MAINLAND_TEST_URLS:
@@ -1745,10 +1773,10 @@ class ClashManager:
                     except requests.RequestException as e:
                         logging.debug("Mainland test URL failed: %s", str(e)[:50])
                         continue
+                result["mainland_pass"] = ml_ok
+                # v28.57: 不再因为大陆测试失败而淘汰节点，仅记录状态供评分函数使用
                 if not ml_ok:
-                    result["success"] = False
-                    result["error"] = "Mainland unreachable"
-                    logging.debug("Mainland test failed for %s", name)
+                    logging.debug("Mainland test failed for %s (survived, downgraded)", name)
             if not result["success"]:
                 result["error"] = "All test URLs failed"
         except requests.RequestException as e:
@@ -2384,6 +2412,8 @@ def main():
                                         fl, int(r["latency"]), r["speed"], tcp=False,
                                         server=srv, sni=sni_val
                                     )
+                                    # v28.57: 附加真实大陆可达性测试结果，供 final_sort_key 使用
+                                    p["_mainland_pass"] = r.get("mainland_pass", False)
                                     final.append(p)
                                     tested.add(k)  # v28.12: restore
                                     # v28.53: 真实测速通过，更新历史记录
@@ -2456,8 +2486,10 @@ def main():
 
         final = final[:MAX_FINAL_NODES]
 
-        # v28.14: 最终排序 — 强制亚洲优先+Reality+协议评分+区域权重综合加权
+        # v28.57: 最终排序整合真实大陆可达性测试结果
         def final_sort_key(p):
+            # v28.57: 真实大陆可达性 → 最高优先级信号（通过测试的节点大幅加分）
+            ml_score = 50 if p.get("_mainland_pass", False) else 0
             # v28.23: 排序整合大陆友好性评分 + 源权重
             asia = 3 if is_asia(p) else 0  # v28.14: 提高亚洲权重（2→3）
             reality = 1 if is_reality_friendly(p) else 0
@@ -2467,6 +2499,8 @@ def main():
             # v28.49: 亚洲节点额外加分（提高亚洲排序优先级）
             if asia > 0:
                 mf_score += 15
+            # v28.57: 合并真实测试分 + 静态评分（防止没有真实测试数据的节点完全被淘汰）
+            mf_score = ml_score + mf_score * 0.4
             # v28.54: 使用动态源权重（1-20分），替代静态权重
             src_weight = p.get("_src_weight", 3)
             # 兼容旧 region_bonus 逻辑（IP geo 额外惩罚不友好地区）

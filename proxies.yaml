@@ -1,6 +1,6 @@
 proxies:
 - client-fingerprint: chrome
-  name: '[WEB]1-2940mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  name: '[WEB]1-2412mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
   network: ws
   port: 23333
   server: 141.147.152.229
@@ -16,7 +16,7 @@ proxies:
     path: /?ed=2560
 - client-fingerprint: chrome
   flow: xtls-rprx-vision-udp443
-  name: 🇯🇵16-1501mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  name: 🇯🇵23-2294mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   port: 39975
   server: 116.80.58.239
   skip-cert-verify: true
@@ -26,7 +26,20 @@ proxies:
   udp: true
   uuid: 15b84012-d261-4b4c-807a-061bb4a901fd
 - client-fingerprint: chrome
-  name: 🇮🇩1-2251mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  name: 🇮🇩1-1977mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 8880
+  server: 92.243.75.253
+  skip-cert-verify: true
+  type: vless
+  udp: true
+  uuid: 6202b230-417c-4d8e-b624-0f71afa9c75d
+  ws-opts:
+    headers:
+      Host: joss.jak.biz.id
+    path: /Free-VPN-CF-Geo-Project/HK?ed=2560
+- client-fingerprint: chrome
+  name: 🇮🇩2-1983mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 8880
   server: 92.243.74.253
@@ -38,18 +51,7 @@ proxies:
     headers:
       Host: joss.jak.biz.id
     path: /Free-VPN-CF-Geo-Project/HK?ed=2560
-- client-fingerprint: chrome
-  name: 🇭🇰1-520mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  port: 443
-  reality-opts:
-    public-key: A1OvYDljz8ZJr7_1xe4j2H1AHsMuYEKifyjdWhdybzk
-  server: 216.57.105.74
-  servername: yahoo.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 73c0a723-c0ab-4ad8-8f25-799b9bd54e36
-- name: 🇭🇰2-848mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇭🇰1-1936mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   port: 443
   reality-opts:
     public-key: TRP10HqKUXEQ3O-cfsq93DycfBmbJe9KM36yvSa8Mmw
@@ -61,20 +63,64 @@ proxies:
   type: vless
   udp: true
   uuid: 3e7f67de-648e-4871-b51a-a225214d41ee
-- name: 🇯🇵1-827mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
+- http-opts:
+    headers:
+      Host:
+      - app.usercentrics.eu
+    path:
+    - /
+  name: 🇭🇰2-2013mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: tcp
   port: 443
-  server: 142.91.108.54
-  servername: subsources.pages.dev
+  reality-opts:
+    public-key: TRP10HqKUXEQ3O-cfsq93DycfBmbJe9KM36yvSa8Mmw
+    short-id: ''
+  server: 8.218.118.237
+  servername: app.usercentrics.eu
   tls: true
   type: vless
   udp: true
-  uuid: 6d1dfcdf-f221-4765-b104-30216a977914
+  uuid: 3e7f67de-648e-4871-b51a-a225214d41ee
+- name: 🇯🇵1-1944mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 149.28.17.67
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
   ws-opts:
     headers:
-      Host: subsources.pages.dev
-    path: /
-- name: 🇸🇬1-2360mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬1-2221mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 43.169.19.179
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇯🇵2-1935mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 64.176.52.230
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬2-2517mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
   server: 219.76.13.169
@@ -86,7 +132,336 @@ proxies:
     headers:
       Host: edt2-lgy.pages.dev
     path: /flow=-udp443
-- name: 🇯🇵2-821mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇰🇷3-1160mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 193.123.233.168
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇰🇷4-1072mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 85.155.176.129
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- client-fingerprint: random
+  name: 🇯🇵5-2075mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 45.32.17.67
+  servername: subsources.pages.dev
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: 6d1dfcdf-f221-4765-b104-30216a977914
+  ws-opts:
+    headers:
+      Host: subsources.pages.dev
+    path: /?ed=2560
+- name: 🇸🇬5-840mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 43.168.16.112
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇯🇵6-1986mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 45.77.21.148
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- client-fingerprint: chrome
+  name: 🇰🇷6-1240mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 193.123.233.168
+  servername: k598psis.auth.sh21.eu.org
+  tls: true
+  type: vless
+  udp: true
+  uuid: 26524cce-d514-4014-a426-365fb266a14d
+  ws-opts:
+    headers:
+      Host: k598psis.auth.sh21.eu.org
+    path: /danfeng?ed=2560
+- name: 🇭🇰7-1223mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 154.83.87.83
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇰🇷7-1728mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 193.123.233.168
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬7-1022mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 43.168.16.112
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇭🇰8-2998mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 217.60.38.113
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇸🇬8-849mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 8443
+  server: 46.250.230.93
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- client-fingerprint: chrome
+  name: 🇯🇵9-1966mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 150.230.212.247
+  servername: k598psis.auth.sh21.eu.org
+  tls: true
+  type: vless
+  udp: true
+  uuid: 26524cce-d514-4014-a426-365fb266a14d
+  ws-opts:
+    headers:
+      Host: k598psis.auth.sh21.eu.org
+    path: /danfeng?ed=2560
+- name: 🇭🇰9-679mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 8443
+  server: 45.38.60.52
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇸🇬9-875mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 152.42.237.62
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇸🇬10-871mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 128.199.127.103
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇯🇵11-2073mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 195.245.241.135
+  servername: k598psis.auth.sh21.eu.org
+  tls: true
+  type: vless
+  udp: true
+  uuid: 26524cce-d514-4014-a426-365fb266a14d
+  ws-opts:
+    headers:
+      Host: k598psis.auth.sh21.eu.org
+    path: /danfeng?ed=2560
+- name: 🇭🇰11-2339mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 8443
+  server: 83.229.121.78
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇸🇬11-829mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 159.223.60.207
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬12-857mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 128.199.127.103
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇭🇰13-980mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 96.9.228.241
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇸🇬13-1059mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 152.42.207.130
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇯🇵14-1877mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 23.151.104.39
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇭🇰14-927mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 149.104.5.224
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬14-533mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 139.59.239.116
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬15-695mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 152.42.207.130
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇯🇵16-2154mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
   server: 212.135.211.171
@@ -100,7 +475,7 @@ proxies:
       Host: babayaga-6i7.pages.dev
     path: /?ed=2560&Telegram🇨🇳@WangCai2
 - client-fingerprint: chrome
-  name: 🇰🇷2-922mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  name: 🇰🇷16-3072mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
   server: 114.110.181.49
@@ -113,36 +488,10 @@ proxies:
     headers:
       Host: czvjaheuiweghruiwegfbldsafsdgaryreygnxvbhsfgretgreyhthsfgj.pages.dev
     path: /
-- name: 🇰🇷3-1162mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇸🇬16-814mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 193.123.233.168
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇸🇬3-924mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 43.168.16.112
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇰🇷4-745mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 193.123.233.168
+  server: 178.128.58.101
   servername: babayaga-6i7.pages.dev
   tls: true
   type: vless
@@ -152,100 +501,7 @@ proxies:
     headers:
       Host: babayaga-6i7.pages.dev
     path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬4-780mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 165.245.184.76
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇰🇷5-1253mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 85.155.176.129
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇭🇰5-881mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 217.60.38.113
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇸🇬5-1026mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 68.183.227.180
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- client-fingerprint: chrome
-  name: 🇯🇵6-1098mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 103.13.19.227
-  servername: 1-aym.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: ce069292-c8bf-40dd-a6b1-87818a1e64e9
-  ws-opts:
-    headers:
-      Host: 1-aym.pages.dev
-    path: /
-- name: 🇸🇬6-1107mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 128.199.127.103
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- client-fingerprint: chrome
-  name: 🇯🇵7-810mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 150.230.212.247
-  servername: k598psis.auth.sh21.eu.org
-  tls: true
-  type: vless
-  udp: true
-  uuid: 26524cce-d514-4014-a426-365fb266a14d
-  ws-opts:
-    headers:
-      Host: k598psis.auth.sh21.eu.org
-    path: /danfeng?ed=2560
-- name: 🇭🇰7-1173mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇭🇰17-741mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
   server: 219.76.13.166
@@ -258,911 +514,7 @@ proxies:
     headers:
       Host: babayaga-6i7.pages.dev
     path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬7-1127mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 143.198.213.81
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇯🇵8-1446mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 207.65.189.9
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇯🇵9-874mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 126.220.82.161
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇭🇰9-2407mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 96.9.228.241
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- client-fingerprint: chrome
-  name: 🇰🇷9-1951mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 193.123.233.168
-  servername: k598psis.auth.sh21.eu.org
-  tls: true
-  type: vless
-  udp: true
-  uuid: 26524cce-d514-4014-a426-365fb266a14d
-  ws-opts:
-    headers:
-      Host: k598psis.auth.sh21.eu.org
-    path: /danfeng?ed=2560
-- name: 🇸🇬9-992mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 159.65.15.18
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇯🇵10-798mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 45.77.21.148
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬10-1036mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 167.88.172.82
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇸🇬11-1141mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 167.71.199.136
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇯🇵12-831mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 64.176.52.230
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇯🇵13-828mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 149.28.17.67
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇸🇬13-2078mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 68.183.225.227
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇸🇬14-921mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 206.189.155.153
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇸🇬15-827mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 157.230.254.79
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇭🇰16-6586mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 149.104.5.224
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬16-1090mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 152.42.237.62
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- client-fingerprint: chrome
-  name: 🇯🇵17-744mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 45.32.17.67
-  skip-cert-verify: true
-  sni: subsources.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 6d1dfcdf-f221-4765-b104-30216a977914
-  ws-opts:
-    headers:
-      Host: subsources.pages.dev
-    path: /?ed=2560fp=random
-- name: 🇸🇬17-1109mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 159.89.207.154
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇭🇰18-2016mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8443
-  server: 83.229.121.78
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇸🇬18-1056mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 164.52.2.98
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇯🇵19-782mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 149.28.17.67
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇭🇰19-1123mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8443
-  server: 45.38.60.52
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇸🇬19-1705mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8443
-  server: 139.180.143.248
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇯🇵20-903mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 126.220.82.161
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇸🇬20-1118mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 141.11.43.124
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇭🇰21-1615mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 217.60.38.113
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬21-1290mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 68.183.230.164
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬22-1142mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 178.128.209.190
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬23-1443mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 206.189.155.153
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇯🇵24-1198mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 158.51.109.180
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- client-fingerprint: chrome
-  name: 🇭🇰24-1445mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 163.5.58.140
-  servername: k598psis.auth.sh21.eu.org
-  tls: true
-  type: vless
-  udp: true
-  uuid: 26524cce-d514-4014-a426-365fb266a14d
-  ws-opts:
-    headers:
-      Host: k598psis.auth.sh21.eu.org
-    path: /danfeng?ed=2560
-- name: 🇭🇰25-5419mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 217.60.248.59
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬25-1316mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 134.209.102.229
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- client-fingerprint: chrome
-  name: 🇯🇵26-2010mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 103.170.233.213
-  servername: k598psis.auth.sh21.eu.org
-  tls: true
-  type: vless
-  udp: true
-  uuid: 26524cce-d514-4014-a426-365fb266a14d
-  ws-opts:
-    headers:
-      Host: k598psis.auth.sh21.eu.org
-    path: /danfeng?ed=2560
-- name: 🇭🇰26-1494mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 46.8.226.15
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬26-1368mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 139.59.239.116
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇭🇰27-671mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 96.9.228.241
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇸🇬27-2419mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 165.22.253.232
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇭🇰28-7188mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 2.56.91.167
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬28-1776mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 152.42.237.17
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇯🇵29-1158mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 158.51.110.12
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬29-1246mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 167.99.69.85
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇯🇵30-1225mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 172.233.78.172
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬30-1344mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 152.42.233.124
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇭🇰31-1265mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8443
-  server: 83.229.121.78
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬31-1558mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 139.59.239.116
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇭🇰32-8505mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8443
-  server: 45.38.60.52
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬32-1418mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 128.199.128.117
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇭🇰33-1404mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8443
-  server: 217.60.38.249
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬33-1393mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 157.245.151.130
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬34-1318mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 128.199.127.103
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇯🇵35-1044mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 207.65.189.9
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇭🇰35-1022mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 217.60.248.59
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇸🇬35-1521mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 167.88.172.82
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇯🇵36-1232mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 158.51.109.180
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇭🇰36-6650mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8443
-  server: 217.60.38.182
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬36-1221mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 159.223.60.207
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬37-1744mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 128.199.128.117
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬38-1290mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 134.209.98.39
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇭🇰39-1155mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 46.8.226.15
-  servername: subsources.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 6d1dfcdf-f221-4765-b104-30216a977914
-  ws-opts:
-    headers:
-      Host: subsources.pages.dev
-    path: /
-- name: 🇸🇬39-1515mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 209.97.160.109
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- client-fingerprint: chrome
-  name: 🇸🇬40-1348mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 129.212.239.183
-  servername: k598psis.auth.sh21.eu.org
-  tls: true
-  type: vless
-  udp: true
-  uuid: 26524cce-d514-4014-a426-365fb266a14d
-  ws-opts:
-    headers:
-      Host: k598psis.auth.sh21.eu.org
-    path: /danfeng?ed=2560
-- name: 🇸🇬41-2245mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 152.42.237.17
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- client-fingerprint: chrome
-  name: 🇯🇵42-1692mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 64.81.113.109
-  servername: k598psis.auth.sh21.eu.org
-  tls: true
-  type: vless
-  udp: true
-  uuid: 26524cce-d514-4014-a426-365fb266a14d
-  ws-opts:
-    headers:
-      Host: k598psis.auth.sh21.eu.org
-    path: /danfeng?ed=2560
-- name: 🇸🇬42-1377mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 152.42.192.218
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬43-1617mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 143.198.213.81
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬44-1245mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 178.128.95.74
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬45-1228mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 152.42.237.62
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇸🇬46-1484mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 68.183.230.164
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇸🇬48-2029mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇸🇬17-840mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
   server: 152.42.215.235
@@ -1175,7 +527,46 @@ proxies:
     headers:
       Host: babayaga-6i7.pages.dev
     path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇯🇵4-1302mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇸🇬18-882mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 167.71.199.136
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇯🇵19-2010mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 172.233.78.172
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬19-789mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 68.183.227.22
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇯🇵20-1923mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
   server: 103.13.19.227
@@ -1188,8 +579,283 @@ proxies:
     headers:
       Host: 1-aym.pages.dev
     path: /fp=chrome
+- name: 🇸🇬20-875mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 68.183.230.164
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇭🇰21-898mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 217.60.248.59
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬21-837mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 165.245.181.78
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇯🇵22-2019mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 149.28.17.67
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇭🇰22-798mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 2.56.91.167
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬22-788mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 143.198.213.81
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇭🇰23-937mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 8443
+  server: 217.60.38.182
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇸🇬23-988mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 134.209.102.229
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
 - client-fingerprint: chrome
-  name: 🇯🇵11-803mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  name: 🇯🇵24-1902mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 103.170.233.213
+  servername: k598psis.auth.sh21.eu.org
+  tls: true
+  type: vless
+  udp: true
+  uuid: 26524cce-d514-4014-a426-365fb266a14d
+  ws-opts:
+    headers:
+      Host: k598psis.auth.sh21.eu.org
+    path: /danfeng?ed=2560
+- name: 🇭🇰24-1039mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 8443
+  server: 45.38.60.52
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬24-1191mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 143.198.211.180
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇭🇰25-956mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 46.8.226.15
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬25-859mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 152.42.192.218
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇯🇵26-2544mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 207.65.189.9
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇭🇰26-1016mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 8443
+  server: 217.60.38.182
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬26-1210mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 165.22.253.232
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇯🇵27-2059mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 142.91.108.54
+  servername: subsources.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 6d1dfcdf-f221-4765-b104-30216a977914
+  ws-opts:
+    headers:
+      Host: subsources.pages.dev
+    path: /
+- client-fingerprint: chrome
+  name: 🇸🇬27-849mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 129.212.239.183
+  servername: k598psis.auth.sh21.eu.org
+  tls: true
+  type: vless
+  udp: true
+  uuid: 26524cce-d514-4014-a426-365fb266a14d
+  ws-opts:
+    headers:
+      Host: k598psis.auth.sh21.eu.org
+    path: /danfeng?ed=2560
+- name: 🇯🇵28-1926mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 141.147.174.243
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇭🇰28-997mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 46.8.226.15
+  servername: subsources.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 6d1dfcdf-f221-4765-b104-30216a977914
+  ws-opts:
+    headers:
+      Host: subsources.pages.dev
+    path: /
+- name: 🇸🇬28-4761mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 178.128.95.74
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- client-fingerprint: chrome
+  name: 🇯🇵29-1939mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
   server: 142.91.108.54
@@ -1202,10 +868,10 @@ proxies:
     headers:
       Host: subsources.pages.dev
     path: /?ed=2560fp=random
-- name: 🇰🇷1-873mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇸🇬29-852mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 60004
-  server: 220.118.83.101
+  port: 443
+  server: 159.89.207.154
   servername: babayaga-6i7.pages.dev
   tls: true
   type: vless
@@ -1215,33 +881,279 @@ proxies:
     headers:
       Host: babayaga-6i7.pages.dev
     path: /?ed=2560&Telegram🇨🇳@WangCai2
-- client-fingerprint: chrome
-  name: 🇹🇼1-1545mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇯🇵30-2628mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 6235
-  server: 125.227.219.98
-  servername: baidu.com
+  port: 443
+  server: 103.13.19.227
+  servername: 1-aym.pages.dev
+  tls: true
+  type: vless
+  uuid: ce069292-c8bf-40dd-a6b1-87818a1e64e9
+  ws-opts:
+    headers:
+      Host: 1-aym.pages.dev
+    path: /
+- name: 🇸🇬30-851mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 139.59.239.116
+  servername: babayaga-6i7.pages.dev
   tls: true
   type: vless
   udp: true
-  uuid: f6ddddaf-dfd6-4134-9dae-03b93b03d146
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
   ws-opts:
     headers:
-      Host: baidu.com
-    path: /xxxxhttp
-- name: 🇸🇬2-1096mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇯🇵31-1904mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 36364
-  server: 158.179.174.225
-  servername: snippet.danfeng.rr.kg
+  port: 443
+  server: 158.51.110.12
+  servername: babayaga-6i7.pages.dev
   tls: true
   type: vless
-  uuid: 26524cce-d514-4014-a426-365fb266a14d
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
   ws-opts:
     headers:
-      Host: snippet.danfeng.rr.kg
-    path: /danfeng
-- name: 🇹🇼2-1232mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇭🇰31-997mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 217.60.38.113
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬31-863mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 165.245.184.76
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇭🇰32-1212mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 8443
+  server: 83.229.121.78
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬32-859mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 178.128.209.190
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇯🇵33-1847mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 141.147.174.243
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬33-690mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 128.199.128.117
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇯🇵34-1943mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 207.65.189.9
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬34-807mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 178.128.209.190
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬36-857mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 143.198.213.81
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬37-801mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 152.42.233.124
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇸🇬38-971mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 178.128.95.74
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇸🇬39-798mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 159.65.15.18
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇯🇵40-1007mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 126.220.82.161
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬40-849mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 128.199.128.117
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬41-791mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 159.65.15.18
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬42-839mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 157.230.254.79
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇯🇵45-3078mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 158.51.109.180
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇰🇷1-1082mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 32312
+  server: 210.103.67.11
+  servername: eiti60o44la.bsld.de5.net
+  tls: true
+  type: vless
+  udp: true
+  uuid: 00000000-0000-4000-8000-000000000000
+  ws-opts:
+    headers:
+      Host: eiti60o44la.bsld.de5.net
+    path: /@Marisa_kristifp=chrome
+- name: 🇹🇼1-1121mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 16443
   server: 114.32.9.249
@@ -1254,10 +1166,35 @@ proxies:
     headers:
       Host: babayaga-6i7.pages.dev
     path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇯🇵3-527mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇯🇵3-1911mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 11307
-  server: 47.79.85.210
+  port: 17081
+  server: 176.119.148.212
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬3-1593mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 29999
+  server: 183.102.55.197
+  servername: ynwta9.api-edge.fgfw.qzz.io
+  tls: true
+  type: vless
+  uuid: 26524cce-d514-4014-a426-365fb266a14d
+  ws-opts:
+    headers:
+      Host: ynwta9.api-edge.fgfw.qzz.io
+    path: /danfeng
+- name: 🇯🇵4-1941mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 8388
+  server: 43.133.23.88
   servername: babayaga-6i7.pages.dev
   tls: true
   type: vless
@@ -1267,10 +1204,35 @@ proxies:
     headers:
       Host: babayaga-6i7.pages.dev
     path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇭🇰3-898mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇭🇰4-1109mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 2053
-  server: 217.60.248.3
+  port: 47255
+  server: 154.64.248.134
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬4-460mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 36364
+  server: 158.179.174.225
+  servername: snippet.danfeng.rr.kg
+  tls: true
+  type: vless
+  uuid: 26524cce-d514-4014-a426-365fb266a14d
+  ws-opts:
+    headers:
+      Host: snippet.danfeng.rr.kg
+    path: /danfeng
+- name: 🇭🇰5-1083mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 18081
+  server: 47.82.98.161
   servername: babayaga-6i7.pages.dev
   tls: true
   type: vless
@@ -1280,7 +1242,20 @@ proxies:
     headers:
       Host: babayaga-6i7.pages.dev
     path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇭🇰4-1269mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇰🇷5-2480mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 60004
+  server: 220.118.83.101
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇭🇰6-983mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 2053
   server: 217.60.248.94
@@ -1293,10 +1268,22 @@ proxies:
     headers:
       Host: babayaga-6i7.pages.dev
     path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇯🇵5-628mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇸🇬6-1256mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 11307
-  server: 47.79.85.210
+  port: 10003
+  server: 183.102.55.197
+  servername: mug.support.gfw.hidns.co
+  tls: true
+  type: vless
+  uuid: 26524cce-d514-4014-a426-365fb266a14d
+  ws-opts:
+    headers:
+      Host: mug.support.gfw.hidns.co
+    path: /danfeng
+- name: 🇯🇵7-1879mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 26048
+  server: 38.47.125.152
   servername: babayaga-6i7.pages.dev
   tls: true
   type: vless
@@ -1306,8 +1293,21 @@ proxies:
     headers:
       Host: babayaga-6i7.pages.dev
     path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇯🇵8-2257mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 10129
+  server: 138.2.59.96
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
 - client-fingerprint: chrome
-  name: 🇰🇷6-1190mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  name: 🇰🇷8-1077mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 19530
   server: 221.152.242.211
@@ -1320,10 +1320,10 @@ proxies:
     headers:
       Host: k598psis.auth.sh21.eu.org
     path: /danfeng?ed=2560
-- name: 🇭🇰6-972mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇯🇵10-2000mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 11377
-  server: 38.207.164.65
+  port: 11307
+  server: 47.79.85.210
   servername: babayaga-6i7.pages.dev
   tls: true
   type: vless
@@ -1332,9 +1332,22 @@ proxies:
   ws-opts:
     headers:
       Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇭🇰10-1111mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 21549
+  server: 154.37.223.224
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
 - client-fingerprint: chrome
-  name: 🇰🇷7-1216mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  name: 🇰🇷10-1118mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 10000
   server: 121.145.10.32
@@ -1347,116 +1360,10 @@ proxies:
     headers:
       Host: k598psis.auth.sh21.eu.org
     path: /danfeng?ed=2560
-- name: 🇭🇰8-996mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇰🇷11-4951mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 2053
-  server: 217.60.248.3
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇰🇷8-655mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 34454
-  server: 146.56.43.189
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬8-1001mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 2053
-  server: 149.28.129.157
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇭🇰10-1209mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 2053
-  server: 217.60.38.249
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- client-fingerprint: chrome
-  name: 🇰🇷10-1065mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 11444
-  server: 222.103.177.64
-  servername: k598psis.auth.sh21.eu.org
-  tls: true
-  type: vless
-  udp: true
-  uuid: 26524cce-d514-4014-a426-365fb266a14d
-  ws-opts:
-    headers:
-      Host: k598psis.auth.sh21.eu.org
-    path: /danfeng?ed=2560
-- name: 🇭🇰11-4006mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 43290
-  server: 149.104.4.243
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- client-fingerprint: chrome
-  name: 🇰🇷11-1013mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 11434
-  server: 59.24.36.86
-  servername: k598psis.auth.sh21.eu.org
-  tls: true
-  type: vless
-  udp: true
-  uuid: 26524cce-d514-4014-a426-365fb266a14d
-  ws-opts:
-    headers:
-      Host: k598psis.auth.sh21.eu.org
-    path: /danfeng?ed=2560
-- name: 🇭🇰12-4411mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 47255
-  server: 154.64.248.134
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇰🇷12-1251mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 30019
-  server: 210.99.119.3
+  port: 60004
+  server: 220.118.83.101
   servername: babayaga-6i7.pages.dev
   tls: true
   type: vless
@@ -1466,334 +1373,7 @@ proxies:
     headers:
       Host: babayaga-6i7.pages.dev
     path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇸🇬12-1769mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 27015
-  server: 43.153.206.239
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇭🇰13-1004mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 21549
-  server: 154.37.223.224
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇰🇷13-1005mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 23791
-  server: 221.164.149.170
-  servername: k598psis.auth.sh21.eu.org
-  tls: true
-  type: vless
-  udp: true
-  uuid: 26524cce-d514-4014-a426-365fb266a14d
-  ws-opts:
-    headers:
-      Host: k598psis.auth.sh21.eu.org
-    path: /danfeng?ed=2560
-- name: 🇯🇵14-773mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 10129
-  server: 138.2.59.96
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇭🇰14-928mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 23333
-  server: 149.104.8.95
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇰🇷14-1318mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 30019
-  server: 210.99.119.3
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇯🇵15-958mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8082
-  server: 103.117.102.220
-  servername: kt58ndxywnrrgg.majusti.dpdns.org
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  uuid: 00000000-0000-4000-8000-000000000000
-  ws-opts:
-    headers:
-      Host: kt58ndxywnrrgg.majusti.dpdns.org
-    path: /@Marisa_kristifp=chrome
-- name: 🇭🇰15-1600mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 23333
-  server: 149.104.8.95
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- client-fingerprint: chrome
-  name: 🇰🇷15-1396mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 33918
-  server: 115.40.28.210
-  servername: k598psis.auth.sh21.eu.org
-  tls: true
-  type: vless
-  udp: true
-  uuid: 26524cce-d514-4014-a426-365fb266a14d
-  ws-opts:
-    headers:
-      Host: k598psis.auth.sh21.eu.org
-    path: /danfeng?ed=2560
-- client-fingerprint: chrome
-  name: 🇰🇷16-1051mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 25448
-  server: 121.167.94.122
-  servername: k598psis.auth.sh21.eu.org
-  tls: true
-  type: vless
-  udp: true
-  uuid: 26524cce-d514-4014-a426-365fb266a14d
-  ws-opts:
-    headers:
-      Host: k598psis.auth.sh21.eu.org
-    path: /danfeng?ed=2560
-- name: 🇭🇰17-1436mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 40867
-  server: 149.104.4.243
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- client-fingerprint: chrome
-  name: 🇰🇷17-1044mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 29999
-  server: 14.53.107.138
-  servername: k598psis.auth.sh21.eu.org
-  tls: true
-  type: vless
-  udp: true
-  uuid: 26524cce-d514-4014-a426-365fb266a14d
-  ws-opts:
-    headers:
-      Host: k598psis.auth.sh21.eu.org
-    path: /danfeng?ed=2560
-- name: 🇯🇵18-1025mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8388
-  server: 43.133.23.88
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇭🇰20-1723mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 21505
-  server: 70.39.206.127
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇯🇵21-953mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 60674
-  server: 191.96.29.191
-  servername: s5ezgc5n1x5qcfl7ugi7w9afeb.ovtc.qzz.io
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  uuid: 00000000-0000-4000-8000-000000000000
-  ws-opts:
-    headers:
-      Host: s5ezgc5n1x5qcfl7ugi7w9afeb.ovtc.qzz.io
-    path: /@Marisa_kristi
-- name: 🇯🇵22-650mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8388
-  server: 43.133.23.88
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇭🇰22-1290mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 37934
-  server: 149.104.4.243
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇯🇵23-705mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 42841
-  server: 43.165.190.11
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇭🇰23-2592mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 21549
-  server: 154.37.223.224
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬24-1090mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 15430
-  server: 47.237.71.245
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇯🇵25-976mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 10129
-  server: 138.2.59.96
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇯🇵27-970mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 6143
-  server: 152.69.225.118
-  servername: kt58ndxywnrrgg.majusti.dpdns.org
-  tls: true
-  type: vless
-  uuid: 00000000-0000-4000-8000-000000000000
-  ws-opts:
-    headers:
-      Host: kt58ndxywnrrgg.majusti.dpdns.org
-    path: /@Marisa_kristifp=chrome
-- name: 🇯🇵28-1409mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 20770
-  server: 219.103.68.164
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇭🇰29-1734mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 18081
-  server: 47.82.98.161
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇭🇰30-8256mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 47255
-  server: 154.64.248.134
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇯🇵31-701mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇯🇵12-1979mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 26956
   server: 147.78.247.46
@@ -1806,10 +1386,64 @@ proxies:
     headers:
       Host: babayaga-6i7.pages.dev
     path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇯🇵32-1248mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- client-fingerprint: chrome
+  name: 🇰🇷12-1134mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 51120
-  server: 154.36.179.170
+  port: 29999
+  server: 14.53.107.138
+  servername: k598psis.auth.sh21.eu.org
+  tls: true
+  type: vless
+  udp: true
+  uuid: 26524cce-d514-4014-a426-365fb266a14d
+  ws-opts:
+    headers:
+      Host: k598psis.auth.sh21.eu.org
+    path: /danfeng?ed=2560
+- name: 🇭🇰12-2748mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 2053
+  server: 217.60.248.3
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇯🇵13-2034mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 17081
+  server: 176.119.148.212
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- client-fingerprint: chrome
+  name: 🇰🇷13-580mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 33918
+  server: 115.40.28.210
+  servername: k598psis.auth.sh21.eu.org
+  tls: true
+  type: vless
+  udp: true
+  uuid: 26524cce-d514-4014-a426-365fb266a14d
+  ws-opts:
+    headers:
+      Host: k598psis.auth.sh21.eu.org
+    path: /danfeng?ed=2560
+- name: 🇰🇷14-5177mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 34454
+  server: 146.56.43.189
   servername: babayaga-6i7.pages.dev
   tls: true
   type: vless
@@ -1819,7 +1453,364 @@ proxies:
     headers:
       Host: babayaga-6i7.pages.dev
     path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇯🇵33-2623mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇯🇵15-2342mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 42841
+  server: 43.165.190.11
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- client-fingerprint: chrome
+  name: 🇰🇷15-1029mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 11434
+  server: 59.24.36.86
+  servername: k598psis.auth.sh21.eu.org
+  tls: true
+  type: vless
+  udp: true
+  uuid: 26524cce-d514-4014-a426-365fb266a14d
+  ws-opts:
+    headers:
+      Host: k598psis.auth.sh21.eu.org
+    path: /danfeng?ed=2560
+- name: 🇭🇰15-1132mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 21505
+  server: 70.39.206.127
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇭🇰16-708mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 21549
+  server: 154.37.223.224
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇯🇵17-2003mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 26956
+  server: 147.78.247.46
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇯🇵18-2054mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 11307
+  server: 47.79.85.210
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇭🇰18-860mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 11377
+  server: 38.207.164.65
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇭🇰19-997mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 2053
+  server: 217.60.248.3
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇰🇷19-1483mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 30019
+  server: 210.99.119.3
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇭🇰20-1195mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 36345
+  server: 103.214.172.203
+  servername: k598psis.auth.sh21.eu.org
+  tls: true
+  type: vless
+  udp: true
+  uuid: 26524cce-d514-4014-a426-365fb266a14d
+  ws-opts:
+    headers:
+      Host: k598psis.auth.sh21.eu.org
+    path: /danfeng?ed=2560
+- client-fingerprint: chrome
+  name: 🇰🇷20-869mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 25448
+  server: 121.167.94.122
+  servername: k598psis.auth.sh21.eu.org
+  tls: true
+  type: vless
+  udp: true
+  uuid: 26524cce-d514-4014-a426-365fb266a14d
+  ws-opts:
+    headers:
+      Host: k598psis.auth.sh21.eu.org
+    path: /danfeng?ed=2560
+- name: 🇯🇵21-2180mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 8388
+  server: 43.133.23.88
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇰🇷21-1309mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 23791
+  server: 221.164.149.170
+  servername: k598psis.auth.sh21.eu.org
+  tls: true
+  type: vless
+  udp: true
+  uuid: 26524cce-d514-4014-a426-365fb266a14d
+  ws-opts:
+    headers:
+      Host: k598psis.auth.sh21.eu.org
+    path: /danfeng?ed=2560
+- name: 🇰🇷22-556mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 30019
+  server: 210.99.119.3
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- client-fingerprint: chrome
+  name: 🇰🇷23-1323mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 11444
+  server: 222.103.177.64
+  servername: k598psis.auth.sh21.eu.org
+  tls: true
+  type: vless
+  udp: true
+  uuid: 26524cce-d514-4014-a426-365fb266a14d
+  ws-opts:
+    headers:
+      Host: k598psis.auth.sh21.eu.org
+    path: /danfeng?ed=2560
+- name: 🇯🇵25-2261mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 26048
+  server: 38.47.125.152
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇭🇰27-542mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 18081
+  server: 47.82.98.161
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇭🇰29-1379mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 23333
+  server: 149.104.8.95
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇭🇰30-987mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 23333
+  server: 149.104.8.95
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇯🇵32-2024mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 10129
+  server: 138.2.59.96
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇭🇰33-1417mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 31763
+  server: 43.248.9.164
+  servername: k598psis.auth.sh21.eu.org
+  tls: true
+  type: vless
+  udp: true
+  uuid: 26524cce-d514-4014-a426-365fb266a14d
+  ws-opts:
+    headers:
+      Host: k598psis.auth.sh21.eu.org
+    path: /danfeng?ed=2560
+- name: 🇭🇰34-981mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 28812
+  server: 185.106.176.150
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇯🇵35-730mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 20770
+  server: 219.103.68.164
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳@WangCai2
+- name: 🇸🇬35-977mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 50940
+  server: 152.69.220.136
+  servername: snippet.danfeng.rr.kg
+  tls: true
+  type: vless
+  uuid: 26524cce-d514-4014-a426-365fb266a14d
+  ws-opts:
+    headers:
+      Host: snippet.danfeng.rr.kg
+    path: /danfeng
+- name: 🇯🇵41-1117mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 49058
+  server: 45.93.29.223
+  servername: 1n9fo0l9hl.gike.dpdns.org
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: 00000000-0000-4000-8000-000000000000
+  ws-opts:
+    headers:
+      Host: 1n9fo0l9hl.gike.dpdns.org
+    path: /@Marisa_kristi
+- alterId: 0
+  cipher: auto
+  flow: ''
+  name: 🇯🇵42-2674mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 28318
+  server: 218.152.147.61
+  servername: pw2ty822oipl53mogkzvzbv5ee97.saghv.filegear-sg.me
+  skip-cert-verify: false
+  tls: true
+  type: vless
+  udp: true
+  uuid: 00000000-0000-4000-8000-000000000000
+  ws-opts:
+    headers:
+      Host: pw2ty822oipl53mogkzvzbv5ee97.saghv.filegear-sg.me
+    path: /@Marisa_kristi
+- name: 🇯🇵43-3043mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 6143
+  server: 152.69.225.118
+  servername: kt58ndxywnrrgg.majusti.dpdns.org
+  tls: true
+  type: vless
+  uuid: 00000000-0000-4000-8000-000000000000
+  ws-opts:
+    headers:
+      Host: kt58ndxywnrrgg.majusti.dpdns.org
+    path: /@Marisa_kristifp=chrome
+- name: 🇯🇵44-1127mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 37173
   server: 14.35.236.28
@@ -1832,23 +1823,10 @@ proxies:
     headers:
       Host: 8a005khup3.mesa.ip-ddns.com
     path: /@Marisa_kristi
-- name: 🇯🇵34-883mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇯🇵46-791mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 21120
+  port: 51120
   server: 154.36.179.170
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇭🇰34-1043mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 21505
-  server: 70.39.206.127
   servername: babayaga-6i7.pages.dev
   tls: true
   type: vless
@@ -1861,7 +1839,7 @@ proxies:
 - alterId: 0
   cipher: auto
   flow: ''
-  name: 🇯🇵37-3209mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  name: 🇯🇵47-537mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 12153
   server: 210.96.92.11
@@ -1875,10 +1853,74 @@ proxies:
     headers:
       Host: pw2ty822oipl53mogkzvzbv5ee97.saghv.filegear-sg.me
     path: /@Marisa_kristi
-- name: 🇭🇰37-1164mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- client-fingerprint: chrome
+  name: 🇰🇷2-1075mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 18081
-  server: 47.82.98.161
+  port: 22410
+  server: 211.48.77.114
+  servername: ylnhh.cc.cd
+  skip-cert-verify: false
+  tls: true
+  type: vless
+  udp: true
+  uuid: 14b02e2a-8930-4afb-8412-ea4a4954ca5b
+  ws-opts:
+    headers:
+      Host: ylnhh.cc.cd
+    path: /
+- alpn:
+  - http/1.1
+  client-fingerprint: random
+  name: 🇰🇷9-1247mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 50006
+  server: 175.199.169.221
+  servername: snippet.fgfw.de5.net
+  skip-cert-verify: false
+  tls: true
+  type: vless
+  udp: true
+  uuid: 948fac3c-42bf-41a6-a5f9-704d36ff0d8d
+  ws-opts:
+    headers:
+      Host: snippet.fgfw.de5.net
+    path: /danfeng
+- alpn:
+  - http/1.1
+  client-fingerprint: random
+  name: 🇰🇷17-974mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 37810
+  server: 211.193.169.223
+  servername: snippet.fgfw.de5.net
+  skip-cert-verify: false
+  tls: true
+  type: vless
+  udp: true
+  uuid: 948fac3c-42bf-41a6-a5f9-704d36ff0d8d
+  ws-opts:
+    headers:
+      Host: snippet.fgfw.de5.net
+    path: /danfeng
+- client-fingerprint: chrome
+  name: 🇰🇷18-1263mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 16993
+  server: 222.113.18.207
+  servername: snippet.fgfw.de5.net
+  skip-cert-verify: false
+  tls: true
+  type: vless
+  udp: true
+  uuid: 948fac3c-42bf-41a6-a5f9-704d36ff0d8d
+  ws-opts:
+    headers:
+      Host: snippet.fgfw.de5.net
+    path: /danfeng
+- name: 🇯🇵36-624mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 126.220.82.161
   servername: babayaga-6i7.pages.dev
   tls: true
   type: vless
@@ -1888,57 +1930,45 @@ proxies:
     headers:
       Host: babayaga-6i7.pages.dev
     path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇯🇵38-1124mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇯🇵37-1035mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 37284
-  server: 166.108.226.33
+  port: 443
+  server: 158.51.109.180
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇭🇰3-747mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 47255
+  server: 154.64.248.134
+  servername: babayaga-6i7.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
+  ws-opts:
+    headers:
+      Host: babayaga-6i7.pages.dev
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
+- name: 🇯🇵38-577mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 8998
+  server: 45.93.31.193
+  servername: mbstxp9l73tpeylv.ymj.xx.kg
   tls: true
   type: vless
   uuid: 00000000-0000-4000-8000-000000000000
   ws-opts:
     headers:
-      Host: mhgzqzcnxpjginc5hkdk.bpd67081tsq.ddns-ip.net
-    path: /@Marisa_kristi
-- name: 🇭🇰38-5357mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 11377
-  server: 38.207.164.65
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳+@WangCai2
-- name: 🇯🇵39-819mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 17081
-  server: 176.119.148.212
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇯🇵40-1376mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 26956
-  server: 147.78.247.46
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇯🇵41-1397mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+      Host: mbstxp9l73tpeylv.ymj.xx.kg
+    path: /@Marisa_kristifp=chrome
+- name: 🇯🇵39-722mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 21120
   server: 154.36.179.170
@@ -1950,330 +1980,317 @@ proxies:
   ws-opts:
     headers:
       Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
-- name: 🇸🇬47-1251mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 27015
-  server: 43.153.206.239
-  servername: babayaga-6i7.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 981fca81-5be1-41f8-ac9b-d138e8109943
-  ws-opts:
-    headers:
-      Host: babayaga-6i7.pages.dev
-    path: /?ed=2560&Telegram🇨🇳@WangCai2
+    path: /?ed=2560&Telegram🇨🇳+@WangCai2
 proxy-groups:
 - interval: 300
   name: '[START] Auto'
   proxies:
-  - '[WEB]1-2940mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  - 🇯🇵16-1501mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇮🇩1-2251mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰1-520mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰2-848mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵1-827mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬1-2360mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵2-821mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷2-922mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷3-1162mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬3-924mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷4-745mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬4-780mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷5-1253mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰5-881mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬5-1026mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵6-1098mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬6-1107mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵7-810mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰7-1173mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬7-1127mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵8-1446mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵9-874mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰9-2407mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷9-1951mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬9-992mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵10-798mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬10-1036mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬11-1141mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵12-831mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵13-828mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬13-2078mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬14-921mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬15-827mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰16-6586mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬16-1090mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵17-744mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬17-1109mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰18-2016mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬18-1056mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵19-782mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰19-1123mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬19-1705mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵20-903mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬20-1118mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰21-1615mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬21-1290mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬22-1142mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬23-1443mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵24-1198mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰24-1445mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰25-5419mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬25-1316mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵26-2010mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰26-1494mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬26-1368mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰27-671mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬27-2419mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰28-7188mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬28-1776mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵29-1158mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬29-1246mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵30-1225mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬30-1344mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰31-1265mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬31-1558mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰32-8505mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬32-1418mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰33-1404mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬33-1393mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬34-1318mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵35-1044mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰35-1022mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬35-1521mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵36-1232mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰36-6650mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬36-1221mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬37-1744mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬38-1290mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰39-1155mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬39-1515mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬40-1348mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬41-2245mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵42-1692mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬42-1377mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬43-1617mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬44-1245mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬45-1228mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬46-1484mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬48-2029mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵4-1302mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵11-803mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷1-873mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇹🇼1-1545mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬2-1096mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇹🇼2-1232mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵3-527mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰3-898mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰4-1269mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵5-628mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷6-1190mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰6-972mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷7-1216mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰8-996mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷8-655mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬8-1001mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰10-1209mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷10-1065mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰11-4006mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷11-1013mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰12-4411mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷12-1251mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬12-1769mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰13-1004mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷13-1005mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵14-773mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰14-928mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷14-1318mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵15-958mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰15-1600mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷15-1396mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷16-1051mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰17-1436mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷17-1044mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵18-1025mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰20-1723mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵21-953mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵22-650mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰22-1290mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵23-705mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰23-2592mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬24-1090mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵25-976mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵27-970mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵28-1409mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰29-1734mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰30-8256mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵31-701mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵32-1248mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵33-2623mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵34-883mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰34-1043mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵37-3209mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰37-1164mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵38-1124mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰38-5357mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵39-819mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵40-1376mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵41-1397mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬47-1251mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - '[WEB]1-2412mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  - 🇯🇵23-2294mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇮🇩1-1977mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇮🇩2-1983mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰1-1936mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰2-2013mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵1-1944mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬1-2221mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵2-1935mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬2-2517mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷3-1160mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷4-1072mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵5-2075mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬5-840mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵6-1986mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷6-1240mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰7-1223mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷7-1728mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬7-1022mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰8-2998mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬8-849mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵9-1966mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰9-679mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬9-875mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬10-871mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵11-2073mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰11-2339mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬11-829mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬12-857mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰13-980mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬13-1059mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵14-1877mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰14-927mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬14-533mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬15-695mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵16-2154mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷16-3072mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬16-814mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰17-741mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬17-840mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬18-882mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵19-2010mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬19-789mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵20-1923mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬20-875mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰21-898mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬21-837mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵22-2019mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰22-798mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬22-788mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰23-937mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬23-988mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵24-1902mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰24-1039mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬24-1191mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰25-956mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬25-859mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵26-2544mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰26-1016mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬26-1210mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵27-2059mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬27-849mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵28-1926mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰28-997mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬28-4761mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵29-1939mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬29-852mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵30-2628mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬30-851mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵31-1904mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰31-997mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬31-863mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰32-1212mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬32-859mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵33-1847mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬33-690mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵34-1943mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬34-807mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬36-857mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬37-801mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬38-971mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬39-798mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵40-1007mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬40-849mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬41-791mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬42-839mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵45-3078mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷1-1082mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇹🇼1-1121mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵3-1911mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬3-1593mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵4-1941mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰4-1109mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬4-460mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰5-1083mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷5-2480mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰6-983mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬6-1256mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵7-1879mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵8-2257mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷8-1077mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵10-2000mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰10-1111mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷10-1118mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷11-4951mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵12-1979mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷12-1134mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰12-2748mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵13-2034mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷13-580mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷14-5177mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵15-2342mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷15-1029mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰15-1132mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰16-708mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵17-2003mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵18-2054mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰18-860mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰19-997mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷19-1483mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰20-1195mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷20-869mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵21-2180mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷21-1309mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷22-556mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷23-1323mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵25-2261mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰27-542mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰29-1379mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰30-987mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵32-2024mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰33-1417mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰34-981mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵35-730mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬35-977mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵41-1117mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵42-2674mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵43-3043mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵44-1127mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵46-791mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵47-537mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷2-1075mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷9-1247mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷17-974mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷18-1263mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵36-624mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵37-1035mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰3-747mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵38-577mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵39-722mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   tolerance: 50
   type: url-test
   url: https://myip.ipip.net/json
 - name: '[GEO] Select'
   proxies:
   - '[START] Auto'
-  - '[WEB]1-2940mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  - 🇯🇵16-1501mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇮🇩1-2251mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰1-520mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰2-848mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵1-827mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬1-2360mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵2-821mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷2-922mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷3-1162mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬3-924mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷4-745mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬4-780mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷5-1253mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰5-881mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬5-1026mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵6-1098mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬6-1107mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵7-810mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰7-1173mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬7-1127mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵8-1446mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵9-874mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰9-2407mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷9-1951mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬9-992mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵10-798mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬10-1036mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬11-1141mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵12-831mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵13-828mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬13-2078mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬14-921mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬15-827mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰16-6586mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬16-1090mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵17-744mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬17-1109mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰18-2016mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬18-1056mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵19-782mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰19-1123mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬19-1705mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵20-903mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬20-1118mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰21-1615mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬21-1290mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬22-1142mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬23-1443mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵24-1198mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰24-1445mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰25-5419mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬25-1316mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵26-2010mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰26-1494mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬26-1368mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰27-671mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬27-2419mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰28-7188mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬28-1776mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵29-1158mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬29-1246mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵30-1225mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬30-1344mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰31-1265mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬31-1558mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰32-8505mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬32-1418mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰33-1404mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬33-1393mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬34-1318mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵35-1044mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰35-1022mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬35-1521mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵36-1232mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰36-6650mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬36-1221mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬37-1744mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬38-1290mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰39-1155mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬39-1515mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬40-1348mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬41-2245mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵42-1692mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬42-1377mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬43-1617mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬44-1245mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬45-1228mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬46-1484mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬48-2029mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵4-1302mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵11-803mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷1-873mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇹🇼1-1545mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬2-1096mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇹🇼2-1232mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵3-527mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰3-898mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰4-1269mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵5-628mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷6-1190mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰6-972mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷7-1216mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰8-996mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷8-655mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬8-1001mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰10-1209mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷10-1065mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰11-4006mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷11-1013mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰12-4411mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷12-1251mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬12-1769mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰13-1004mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷13-1005mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵14-773mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰14-928mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷14-1318mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵15-958mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰15-1600mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷15-1396mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷16-1051mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰17-1436mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷17-1044mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵18-1025mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰20-1723mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵21-953mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵22-650mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰22-1290mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵23-705mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰23-2592mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬24-1090mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵25-976mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵27-970mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵28-1409mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰29-1734mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰30-8256mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵31-701mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵32-1248mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵33-2623mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵34-883mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰34-1043mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵37-3209mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰37-1164mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵38-1124mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰38-5357mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵39-819mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵40-1376mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵41-1397mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬47-1251mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - '[WEB]1-2412mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  - 🇯🇵23-2294mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇮🇩1-1977mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇮🇩2-1983mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰1-1936mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰2-2013mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵1-1944mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬1-2221mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵2-1935mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬2-2517mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷3-1160mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷4-1072mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵5-2075mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬5-840mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵6-1986mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷6-1240mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰7-1223mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷7-1728mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬7-1022mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰8-2998mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬8-849mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵9-1966mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰9-679mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬9-875mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬10-871mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵11-2073mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰11-2339mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬11-829mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬12-857mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰13-980mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬13-1059mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵14-1877mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰14-927mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬14-533mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬15-695mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵16-2154mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷16-3072mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬16-814mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰17-741mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬17-840mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬18-882mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵19-2010mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬19-789mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵20-1923mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬20-875mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰21-898mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬21-837mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵22-2019mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰22-798mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬22-788mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰23-937mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬23-988mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵24-1902mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰24-1039mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬24-1191mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰25-956mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬25-859mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵26-2544mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰26-1016mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬26-1210mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵27-2059mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬27-849mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵28-1926mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰28-997mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬28-4761mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵29-1939mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬29-852mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵30-2628mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬30-851mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵31-1904mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰31-997mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬31-863mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰32-1212mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬32-859mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵33-1847mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬33-690mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵34-1943mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬34-807mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬36-857mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬37-801mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬38-971mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬39-798mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵40-1007mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬40-849mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬41-791mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬42-839mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵45-3078mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷1-1082mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇹🇼1-1121mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵3-1911mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬3-1593mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵4-1941mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰4-1109mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬4-460mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰5-1083mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷5-2480mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰6-983mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬6-1256mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵7-1879mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵8-2257mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷8-1077mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵10-2000mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰10-1111mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷10-1118mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷11-4951mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵12-1979mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷12-1134mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰12-2748mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵13-2034mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷13-580mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷14-5177mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵15-2342mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷15-1029mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰15-1132mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰16-708mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵17-2003mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵18-2054mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰18-860mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰19-997mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷19-1483mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰20-1195mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷20-869mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵21-2180mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷21-1309mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷22-556mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷23-1323mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵25-2261mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰27-542mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰29-1379mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰30-987mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵32-2024mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰33-1417mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰34-981mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵35-730mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬35-977mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵41-1117mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵42-2674mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵43-3043mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵44-1127mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵46-791mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵47-537mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷2-1075mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷9-1247mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷17-974mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷18-1263mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵36-624mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵37-1035mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰3-747mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵38-577mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵39-722mss0.0-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   type: select
 rules:
 - DOMAIN-SUFFIX,cn,DIRECT

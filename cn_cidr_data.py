@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # CN CIDR blocks from APNIC (auto-generated)
 # Source: https://github.com/gaoyifan/china-operator-ip
-# Total: 4181 CIDR blocks | Generated: 2026-05-08 02:12:31.783591
+# Total: 4193 CIDR blocks | Generated: 2026-05-08 09:06:57.567034
 
 import ipaddress
 
@@ -996,7 +996,6 @@ CN_IP_RANGES = [
     ipaddress.ip_network("103.49.12.0/22"),
     ipaddress.ip_network("103.49.108.0/22"),
     ipaddress.ip_network("103.52.100.0/22"),
-    ipaddress.ip_network("103.52.104.0/23"),
     ipaddress.ip_network("103.52.172.0/22"),
     ipaddress.ip_network("103.52.176.0/22"),
     ipaddress.ip_network("103.52.196.0/22"),
@@ -1228,7 +1227,7 @@ CN_IP_RANGES = [
     ipaddress.ip_network("103.162.10.0/23"),
     ipaddress.ip_network("103.163.46.0/23"),
     ipaddress.ip_network("103.163.180.0/24"),
-    ipaddress.ip_network("103.164.32.0/23"),
+    ipaddress.ip_network("103.164.32.0/24"),
     ipaddress.ip_network("103.165.110.0/23"),
     ipaddress.ip_network("103.169.50.0/23"),
     ipaddress.ip_network("103.169.62.0/23"),
@@ -1563,7 +1562,14 @@ CN_IP_RANGES = [
     ipaddress.ip_network("110.40.14.0/23"),
     ipaddress.ip_network("110.40.16.0/24"),
     ipaddress.ip_network("110.40.128.0/17"),
-    ipaddress.ip_network("110.41.0.0/16"),
+    ipaddress.ip_network("110.41.0.0/17"),
+    ipaddress.ip_network("110.41.128.0/18"),
+    ipaddress.ip_network("110.41.192.0/20"),
+    ipaddress.ip_network("110.41.208.0/23"),
+    ipaddress.ip_network("110.41.211.0/24"),
+    ipaddress.ip_network("110.41.212.0/22"),
+    ipaddress.ip_network("110.41.216.0/21"),
+    ipaddress.ip_network("110.41.224.0/19"),
     ipaddress.ip_network("110.42.0.0/23"),
     ipaddress.ip_network("110.42.3.0/24"),
     ipaddress.ip_network("110.42.4.0/23"),
@@ -2696,7 +2702,13 @@ CN_IP_RANGES = [
     ipaddress.ip_network("134.175.0.0/16"),
     ipaddress.ip_network("138.252.72.0/23"),
     ipaddress.ip_network("139.5.60.0/22"),
-    ipaddress.ip_network("139.9.0.0/17"),
+    ipaddress.ip_network("139.9.0.0/18"),
+    ipaddress.ip_network("139.9.64.0/19"),
+    ipaddress.ip_network("139.9.96.0/23"),
+    ipaddress.ip_network("139.9.98.0/24"),
+    ipaddress.ip_network("139.9.100.0/22"),
+    ipaddress.ip_network("139.9.104.0/21"),
+    ipaddress.ip_network("139.9.112.0/20"),
     ipaddress.ip_network("139.9.128.0/18"),
     ipaddress.ip_network("139.9.192.0/19"),
     ipaddress.ip_network("139.9.224.0/20"),

@@ -1666,38 +1666,21 @@ class ClashManager:
             self.process = subprocess.Popen(cmd, **popen_kwargs)
             # v28.39: 初始化 out 避免未定义
             out = ""
-            # v28.50: 确保进程管道正确关闭
-            try:
-                for i in range(30):
-                    time.sleep(1)
-                    if self.process.poll() is not None:
-                        try:
-                            out, _ = self.process.communicate(timeout=5)
-                            # 打印首尾各 500 字符，YAML 错误通常在末尾
-                            out_short = out[:500] + "\n...\n" + out[-500:] if len(out) > 1000 else out
-                            logging.debug(f"   [FAIL] Clash 崩溃:\n{out_short}")
-                        except (subprocess.TimeoutExpired, OSError):
-                            logging.debug("   [FAIL] Clash 崩溃")
-                        return False
+            for i in range(30):
+                time.sleep(1)
+                if self.process.poll() is not None:
+                    # Clash 已退出——崩溃，安全关闭管道
                     try:
-                        if requests.get(f"http://127.0.0.1:{CLASH_API_PORT}/version", timeout=2).status_code == 200:
-                            logging.debug("   [OK] Clash API 就绪")
-                            return True
-                    except requests.RequestException:
-                        logging.debug("Clash API version check failed")
-                logging.debug("   [TIMEOUT] Clash 启动超时")
-                return False
-            finally:
-                # 确保 stdout/stderr 管道关闭
-                if self.process and self.process.stdout:
-                    try:
-                        self.process.stdout.close()
-                    except OSError as e:
-                        logging.debug(f"关闭 stdout 管道失败: {e}", exc_info=True)
+                        out, _ = self.process.communicate(timeout=5)
+                        out_short = out[:500] + "\n...\n" + out[-500:] if len(out) > 1000 else out
+                        logging.debug(f"   [FAIL] Clash 崩溃:\n{out_short}")
+                    except (subprocess.TimeoutExpired, OSError):
+                        logging.debug("   [FAIL] Clash 崩溃")
+                    return False
                 try:
                     if requests.get(f"http://127.0.0.1:{CLASH_API_PORT}/version", timeout=2).status_code == 200:
                         logging.debug("   [OK] Clash API 就绪")
-                        return True
+                        return True  # 进程仍在运行，不关 stdout
                 except requests.RequestException:
                     logging.debug("Clash API version check failed")
             logging.debug("   [TIMEOUT] Clash 启动超时")
@@ -1705,22 +1688,17 @@ class ClashManager:
         except (OSError, subprocess.SubprocessError) as e:
             logging.debug(f"   [ERROR] Clash 启动异常：{e}")
             return False
-        # v28.50: 启动成功时关闭管道避免泄漏
-        if self.process and self.process.stdout:
-            try:
-                self.process.stdout.close()
-            except OSError as e:
-                logging.debug(f"关闭 stdout 管道失败: {e}", exc_info=True)
 
     def stop(self):
         if self.process:
             try:
-                # BUGFIX v28.15: os.killpg/signal.SIGTERM 仅 Linux 可用
                 if os.name != "nt":
                     # pylint: disable=no-member
                     os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)  # type: ignore[attr-defined]
                 else:
-                    self.process.terminate()
+                    # v28.58: Windows 用 taskkill /F /T 杀整个进程树，避免子进程变孤儿
+                    subprocess.run(["taskkill", "/F", "/T", "/PID", str(self.process.pid)],
+                                   capture_output=True, timeout=10)
                 self.process.wait(timeout=5)
             except (OSError, subprocess.SubprocessError):
                 logging.debug("Clash stop failed")
@@ -2424,12 +2402,16 @@ def main():
                                     _update_node_history(p, success=False)
                                 if len(final) >= MAX_FINAL_NODES:
                                     batch_enough = True  # BUGFIX: 通知外层 while 退出
+                                    # v28.58: 取消剩余 futures，避免线程池空转
+                                    for f in test_futures:
+                                        f.cancel()
                                     break
                                 if done_count % 20 == 0:
                                     logging.info(f"   进度：{done_count}/{len(batch_items)} | 合格：{len(final)}")
                             except (OSError, ValueError, TypeError):
                                 logging.debug("Batch proxy test error")
                     logging.debug(f"\n   第{batch_id}批完成：累计合格 {len(final)} 个\n")
+                    clash.stop()  # v28.58: 每批结束停掉旧 Clash，避免孤儿进程+端口冲突
                 except (OSError, subprocess.SubprocessError, ValueError) as e:
                     logging.debug(f"   [FAIL] Clash 崩溃: {e}")
                     clash.stop()
@@ -2522,9 +2504,9 @@ def main():
                     region_bonus = -NON_FRIENDLY_PENALTY
             # v28.14: extract latency from name for secondary sort
             lat_from_name = 0
-            m = re.search(r"\d+", p.get("name", ""))
+            m = re.search(r"(\d+)ms", p.get("name", ""))
             if m:
-                lat_from_name = int(m.group(0))
+                lat_from_name = int(m.group(1))
             # v28.53: 融合历史可用性评分（0-20分）
             hist_score = _get_node_history_score(p)
             # sort: asia > mainland_friendly > src_weight > reality > proto > region_penalty > hist > latency
@@ -2683,7 +2665,7 @@ def main():
         # v28.39: 从节点名称提取延迟用于统计
         min_lat = 9999
         for p in unique_final[:20]:
-            m = re.search(r"(\d+)", p.get("name", ""))
+            m = re.search(r"(\d+)ms", p.get("name", ""))
             if m:
                 lat = int(m.group(1))
                 if 0 < lat < min_lat:

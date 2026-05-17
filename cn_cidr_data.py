@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # CN CIDR blocks from APNIC (auto-generated)
 # Source: https://github.com/gaoyifan/china-operator-ip
-# Total: 4179 CIDR blocks | Generated: 2026-05-17 02:13:22.193820
+# Total: 4179 CIDR blocks | Generated: 2026-05-17 09:28:19.230644
 
 import ipaddress
 
@@ -1764,7 +1764,7 @@ CN_IP_RANGES = [
     ipaddress.ip_network("114.66.0.0/18"),
     ipaddress.ip_network("114.66.64.0/24"),
     ipaddress.ip_network("114.66.72.0/21"),
-    ipaddress.ip_network("114.66.80.0/23"),
+    ipaddress.ip_network("114.66.81.0/24"),
     ipaddress.ip_network("114.66.236.0/22"),
     ipaddress.ip_network("114.66.240.0/20"),
     ipaddress.ip_network("114.67.16.0/21"),

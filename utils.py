@@ -666,7 +666,10 @@ def _mainland_friendly_score_legacy(p):
         score += 3  # gRPC 多路复用
 
     # 5. 端口加成（常见端口不易被封）
-    port = p.get("port", 0)
+    try:
+        port = int(p.get("port", 0))
+    except (ValueError, TypeError):
+        port = 0
     if port in (443, 8443):
         score += 5  # HTTPS 端口
     elif port in (80, 8080):
@@ -786,7 +789,10 @@ def _mainland_friendly_score_new(p):
         score += 3   # QUIC理论好但实际受限较多
 
     # 5. 端口加成（更精细化的端口友好性评估）
-    port = p.get("port", 0)
+    try:
+        port = int(p.get("port", 0))
+    except (ValueError, TypeError):
+        port = 0
     if port == 443:
         score += 8   # HTTPS标准端口，最不易被封
     elif port in (8443, 2053, 2083, 2087, 2096):

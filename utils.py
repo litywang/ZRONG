@@ -4,10 +4,16 @@
 
 import hashlib
 import logging
+import os
 import re
 import ipaddress
 
 logger = logging.getLogger(__name__)
+
+# ===== 评分策略开关 =====
+# 环境变量 ZRONG_USE_NEW_SCORING=1 启用新版大陆友好评分
+# 默认关闭，行为与原版完全一致
+USE_NEW_SCORING = os.getenv("ZRONG_USE_NEW_SCORING", "0") == "1"
 
 
 # ===== CN 域名黑名单正则 =====
@@ -592,10 +598,11 @@ def is_china_mainland(p):
 
 
 
-def mainland_friendly_score(p):
+def _mainland_friendly_score_legacy(p):
     """v28.23: 评估节点对大陆用户的友好程度，返回0-100分数。
     综合考虑：地理位置、协议特性、传输层类型、端口特征。
     高分 = 更可能对大陆用户稳定可用。
+    ⚠️ 此函数为原始评分逻辑，保留用于对比和回退。
     """
     if not p or not isinstance(p, dict):
         return 0
@@ -606,10 +613,14 @@ def mainland_friendly_score(p):
         score += 50  # v28.47: 亚洲基础分 40→50
         # 港日韩新额外加分（最稳定的大陆友好地区）
         t = f"{p.get('name', '')} {p.get('server', '')}".lower()
-        premium_regions = ["hk", "hongkong", "港", "tw", "taiwan", "台",
-                           "jp", "japan", "日", "tokyo", "osaka",
-                           "sg", "singapore", "新加坡", "狮城",
-                           "kr", "korea", "韩", "seoul"]
+        # 同时检查 emoji flag（如 🇭🇰🇯🇵🇸🇬🇹🇼🇰🇷）
+        premium_regions = [
+            "hk", "hongkong", "港", "🇭🇰",
+            "tw", "taiwan", "台", "🇹🇼",
+            "jp", "japan", "日", "tokyo", "osaka", "🇯🇵",
+            "sg", "singapore", "新加坡", "狮城", "🇸🇬",
+            "kr", "korea", "韩", "seoul", "🇰🇷",
+        ]
         if any(k in t for k in premium_regions):
             score += 20  # v28.47: 优质地区额外分 15→20
     else:
@@ -662,4 +673,138 @@ def mainland_friendly_score(p):
         score += 2  # HTTP 端口
 
     return min(score, 100)
+
+
+def _mainland_friendly_score_new(p):
+    """v28.50: 优化版大陆友好评分（ZRONG_USE_NEW_SCORING=1 时生效）。
+    在 legacy 基础上：
+    - 亚洲节点分层更细（一级港日韩新60分 / 二级东南亚45分 / 三级其他亚洲35分）
+    - IP地理位置确认的优质线路额外+15分
+    - 协议权重调整（vless+25, trojan+20, hysteria2+18, anytls+12）
+    - Reality+VLESS 组合额外+10分
+    - 传输层权重调整（ws+8, grpc+6, h2+4）
+    - 端口评分更精细化
+    - 非亚洲节点仅保留美西等极少数友好地区
+    """
+    if not p or not isinstance(p, dict):
+        return 0
+    score = 0
+
+    # 1. 地理位置加成（分层更精细）
+    if is_asia(p):
+        t = f"{p.get('name', '')} {p.get('server', '')}".lower()
+        # 同时检查 emoji flag（如 🇭🇰🇯🇵🇸🇬🇹🇼 等由两个 Regional Indicator 字符组成）
+        has_hk = "hk" in t or "hongkong" in t or "港" in t or "🇭🇰" in t
+        has_tw = "tw" in t or "taiwan" in t or "台" in t or "🇹🇼" in t
+        has_jp = "jp" in t or "japan" in t or "日" in t or "🇯🇵" in t
+        has_sg = "sg" in t or "singapore" in t or "新加坡" in t or "狮城" in t or "🇸🇬" in t
+        has_kr = "kr" in t or "korea" in t or "韩" in t or "🇰🇷" in t
+        has_th = "th" in t or "thailand" in t or "泰" in t or "🇹🇭" in t
+        has_vn = "vn" in t or "vietnam" in t or "越" in t or "🇻🇳" in t
+        has_ph = "ph" in t or "philippines" in t or "菲" in t or "🇵🇭" in t
+        has_my = "my" in t or "malaysia" in t or "马" in t or "🇲🇾" in t
+        has_id = "id" in t or "indonesia" in t or "印尼" in t or "🇮🇩" in t
+
+        # 一级优选：港日韩新（对大陆最友好）
+        if has_hk or has_tw or has_jp or has_sg:
+            score += 60
+        # 二级优选：东南亚（次优选择）
+        elif has_kr or has_th or has_vn or has_ph or has_my or has_id:
+            score += 45
+        # 三级选择：其他亚洲
+        else:
+            score += 35
+
+        # IP地理位置确认的优质线路额外加分
+        server = p.get("server", "")
+        if is_pure_ip(server):
+            try:
+                limiter = _get_limiter()
+                geo = limiter.get_geo(server)
+                if geo:
+                    cc = geo.get("countryCode", "").upper()
+                    if cc in ("HK", "TW", "JP", "SG"):
+                        score += 15
+            except (ImportError, AttributeError):
+                logging.debug("Limiter not ready, skipping geo lookup")
+    else:
+        # 非亚洲节点：严格限制，只保留美西等极少数友好地区
+        server = p.get("server", "")
+        try:
+            limiter = _get_limiter()
+            geo = limiter.get_geo(server) if server else None
+            if geo:
+                cc = geo.get("countryCode", "").upper()
+                if cc == "US":
+                    t = f"{p.get('name', '')} {server}".lower()
+                    if any(k in t for k in [
+                        "la", "san francisco", "seattle", "portland",
+                        "los angeles", "san jose", "西海岸",
+                    ]):
+                        score += 20
+                    else:
+                        score += 5
+                elif cc in ("JP", "KR"):
+                    score += 10
+        except (ImportError, AttributeError):
+            logging.debug("Limiter not ready, skipping geo lookup")
+
+    # 2. 协议加成（抗检测能力，权重调整）
+    ptype = p.get("type", "")
+    proto_bonus = {
+        "vless": 25,       # VLESS+Vision/Reality 是目前大陆最优选择
+        "trojan": 20,      # TLS伪装好
+        "hysteria2": 18,   # QUIC抗丢包
+        "vmess": 10,       # 较老协议
+        "anytls": 12,      # 通用TLS伪装
+        "hysteria": 8,
+        "tuic": 8,
+        "ss": 3,           # 易被识别
+        "ssr": 1,          # 基本淘汰
+        "http": 2,
+        "socks5": 2,
+    }
+    score += proto_bonus.get(ptype, 0)
+
+    # 3. Reality 加成（大幅提升权重）
+    if p.get("reality-opts"):
+        score += 20  # Reality 是目前最佳抗封锁方案
+        if p.get("type") == "vless":
+            score += 10  # VLESS+Reality 组合额外奖励
+    elif p.get("tls"):
+        score += 8
+
+    # 4. 传输层加成（权重调整）
+    network = p.get("network", "tcp")
+    if network == "ws":
+        score += 8   # WS+TLS是大陆最常用且相对稳定的组合
+    elif network == "grpc":
+        score += 6   # gRPC多路复用对抗丢包有好处
+    elif network == "h2":
+        score += 4   # HTTP/2 在某些情况下表现良好
+    elif network == "quic":
+        score += 3   # QUIC理论好但实际受限较多
+
+    # 5. 端口加成（更精细化的端口友好性评估）
+    port = p.get("port", 0)
+    if port == 443:
+        score += 8   # HTTPS标准端口，最不易被封
+    elif port in (8443, 2053, 2083, 2087, 2096):
+        score += 6   # 常见的替代HTTPS端口
+    elif port in (80, 8080, 8880, 2052, 2082, 2086, 2095):
+        score += 4   # HTTP端口
+    elif port < 1024 and port not in (22, 25, 53, 110, 143, 993, 995):
+        score += 2   # 其他知名端口
+
+    return min(score, 100)
+
+
+def mainland_friendly_score(p):
+    """评估节点对大陆用户的友好程度，返回0-100分数。
+    通过环境变量 ZRONG_USE_NEW_SCORING 控制使用新版还是旧版评分逻辑。
+    默认使用旧版（与原版行为完全一致）。
+    """
+    if USE_NEW_SCORING:
+        return _mainland_friendly_score_new(p)
+    return _mainland_friendly_score_legacy(p)
 

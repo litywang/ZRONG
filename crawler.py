@@ -459,7 +459,7 @@ NODE_NAME_PREFIX = "Anftlity"
 # v28.57: 大陆端点测试改为评分降级（非淘汰），避免误杀真实可用节点；换入更多国内可达URL
 ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "1") == "1"
 MAINLAND_TEST_URLS = [
-    # 国内可达性（http，无TLS，可穿透大多数出口代理）
+    # 大陆可达性检测（HTTP，无TLS，代理穿透友好）
     "http://myip.ipip.net/json",
     "http://ip.3322.org",
     "http://ip-api.com/json",
@@ -469,14 +469,17 @@ MAINLAND_TEST_URLS = [
     "http://captive.apple.com/generation_204",
     "http://connectivitycheck.gstatic.com/generate_204",
     "http://www.msftconnecttest.com/connecttest.txt",
-    # v28.57 新增：国内ISP/云厂商可达端点
+    # 国内云厂商可达端点
     "http://www.qualcomm.com/generate_204",
-    "http://www.163.com",
-    "http://www.sina.com.cn",
+    # 国内 DNS 解析检测（通过代理能解析国内域名说明大陆可达）
+    "http://dns.alidns.com/resolve?name=www.taobao.com&type=A",
+    "http://doh.pub/dns-query?name=www.baidu.com&type=A",
 ]
 # v28.57: 大陆测试改为评分降级而非直接淘汰，减少误杀
 ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "1") == "1"  # 默认强制开启
 MAINLAND_SCORE_THRESHOLD = int(os.getenv("MAINLAND_SCORE_THRESHOLD", "30"))
+# v28.58: 大陆可达性测试通过后的额外加分（可配置，默认20分）
+MAINLAND_PASS_BONUS = int(os.getenv("MAINLAND_PASS_BONUS", "20"))
 
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "80"))  # v28.21: 50→80，Actions 可承受
 REQUESTS_PER_SECOND = 6.0     # v25: 提速（原3.0，Actions美国机房可承受）
@@ -2488,8 +2491,9 @@ def main():
 
         # v28.57: 最终排序整合真实大陆可达性测试结果
         def final_sort_key(p):
-            # v28.57: 真实大陆可达性 → 最高优先级信号（通过测试的节点大幅加分）
-            ml_score = 50 if p.get("_mainland_pass", False) else 0
+            # v28.58: 大陆可达性测试通过 → 额外加分（可配置，默认20分）
+            # 不再将未通过测试的节点静态评分压缩到40%，而是让静态评分占主导
+            ml_bonus = MAINLAND_PASS_BONUS if p.get("_mainland_pass", False) else 0
             # v28.23: 排序整合大陆友好性评分 + 源权重
             asia = 3 if is_asia(p) else 0  # v28.14: 提高亚洲权重（2→3）
             reality = 1 if is_reality_friendly(p) else 0
@@ -2499,8 +2503,8 @@ def main():
             # v28.49: 亚洲节点额外加分（提高亚洲排序优先级）
             if asia > 0:
                 mf_score += 15
-            # v28.57: 合并真实测试分 + 静态评分（防止没有真实测试数据的节点完全被淘汰）
-            mf_score = ml_score + mf_score * 0.4
+            # v28.58: 合并大陆测试加分 + 静态评分（静态评分占100%权重，测试通过额外加分）
+            mf_score = mf_score + ml_bonus
             # v28.54: 使用动态源权重（1-20分），替代静态权重
             src_weight = p.get("_src_weight", 3)
             # 兼容旧 region_bonus 逻辑（IP geo 额外惩罚不友好地区）

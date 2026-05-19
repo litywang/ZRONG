@@ -706,10 +706,10 @@ def _mainland_friendly_score_new(p):
         has_id = "id" in t or "indonesia" in t or "印尼" in t or "🇮🇩" in t
 
         # 一级优选：港日韩新（对大陆最友好）
-        if has_hk or has_tw or has_jp or has_sg:
+        if has_hk or has_tw or has_jp or has_sg or has_kr:
             score += 60
         # 二级优选：东南亚（次优选择）
-        elif has_kr or has_th or has_vn or has_ph or has_my or has_id:
+        elif has_th or has_vn or has_ph or has_my or has_id:
             score += 45
         # 三级选择：其他亚洲
         else:

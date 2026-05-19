@@ -1388,19 +1388,37 @@ session = create_session()
 
 
 def filter_quality(p):
-    """【v28.39】节点质量过滤，含 CN IP/域名黑名单 + 非代理端口过滤 + 大陆友好性评分"""
+    """【v28.58】节点质量过滤，含 CN IP/域名黑名单 + 非代理端口过滤 + 大陆友好性评分"""
     if not p or not isinstance(p, dict):
         return False
     name = p.get("name", "").lower()
 
     # 仅排除明显无效的
-    exclude_keywords = ["过期", "到期", "失效", "expire", "expired", "广告", "推广", "官网", "购买"]
+    exclude_keywords = [
+        "过期", "到期", "失效", "expire", "expired",
+        "广告", "推广", "官网", "购买", "test", "测试",
+        "体验", "试用", "trial", "临时", "temp",
+        "公益", "免费", "free",  # 公益/免费节点通常不稳定
+        "倍率", "倍", "x5", "x10", "x20",  # 高倍率节点
+        "邀请", "邀请码", "invite",
+        "订阅", "sub", "节点", "node",  # 纯描述性节点
+    ]
     for kw in exclude_keywords:
         if kw in name:
             return False
 
     # 排除内地直连
     if is_china_mainland(p):
+        return False
+
+    # 排除已知不可用的协议组合
+    ptype = p.get("type", "").lower()
+    network = p.get("network", "tcp").lower()
+    # SSR 协议特征明显，大陆环境下基本不可用
+    if ptype == "ssr":
+        return False
+    # HTTP/SOCKS5 无加密，大陆环境下容易被识别
+    if ptype in ("http", "socks5") and network == "tcp":
         return False
 
     # 非代理端口过滤（v24）
@@ -1828,8 +1846,8 @@ class NodeNamer:
 
         return ''.join(self.FANCY.get(c.upper(), c) for c in t)
 
-    def generate(self, flag, lat=None, score=None, speed=None, tcp=False, server=None, sni=None):
-        """【v28.55】命名包含区域emoji + 编号 + 延迟 + 评分 + 哥特体后缀"""
+    def generate(self, flag, lat=None, score=None, speed=None, tcp=False, server=None, sni=None, mainland_pass=None):
+        """【v28.58】命名包含区域emoji + 编号 + 延迟 + 评分 + 大陆可达标记 + 哥特体后缀"""
         code, region = get_region(flag, server=server, sni=sni)
         self.counters[region] = self.counters.get(region, 0) + 1
         num = self.counters[region]
@@ -1837,9 +1855,11 @@ class NodeNamer:
         lat_str = f"{int(lat)}ms" if lat is not None and lat < 9999 else "N/A"
         # 大陆友好评分（保留1位小数）
         score_str = f"s{score:.1f}" if score is not None else ""
+        # v28.58: 大陆可达性标记
+        ml_str = "✓" if mainland_pass else ""
         # 哥特体后缀
         gothic = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
-        return f"{code}{num}-{lat_str}{score_str}-{gothic}"
+        return f"{code}{num}-{lat_str}{score_str}{ml_str}-{gothic}"
 
 
 # [STAR] 协议链接转换（扩展版）
@@ -2187,6 +2207,31 @@ def main():
             logging.warning("[FAIL] 过滤后无有效节点!")
             return
 
+        # v28.58: 同服务器跨协议优选去重
+        # 同一服务器同一端口有多个协议节点时，只保留大陆友好度评分最高的那个
+        # 避免同一 IP:Port 的多个协议节点占用宝贵的测试额度
+        before_dedup_server = len(nodes)
+        srvport_best = {}
+        for h, p in nodes.items():
+            srv = p.get("server", "").lower()
+            port = str(p.get("port", 0))
+            # 提取纯服务器地址（去掉端口）
+            if srv.startswith("[") and "]" in srv:
+                host = srv.split("]")[0][1:]
+            elif ":" in srv and is_pure_ip(srv.split(":")[0]):
+                host = srv.rsplit(":", 1)[0]
+            else:
+                host = srv.split(":")[0] if ":" in srv else srv
+            key = f"{host}:{port}"
+            mf = mainland_friendly_score(p)
+            if key not in srvport_best or mf > srvport_best[key][1]:
+                srvport_best[key] = (h, mf)
+        # 只保留每个 server:port 评分最高的节点
+        nodes = {h: nodes[h] for h, _ in srvport_best.values()}
+        after_dedup_server = len(nodes)
+        if before_dedup_server > after_dedup_server:
+            logging.info(f"[OK] 同服务器跨协议去重：{before_dedup_server} → {after_dedup_server} 个（保留每IP:Port最优协议）")
+
         # 5.6 预查询 IP 地理位置（批量，用于节点区域识别）
         logging.info("[GEO] 预查询 IP 地理位置...")
         all_servers = set()
@@ -2220,6 +2265,14 @@ def main():
         if asia_quota < asia_min_test:
             asia_quota = asia_min_test
             non_asia_quota = min(len(non_asia_nodes_list), MAX_TCP_TEST_NODES - asia_quota)
+
+        # v28.58: 亚洲节点按大陆友好度评分排序，高分节点优先进入TCP测试队列
+        # 这样确保有限的TCP测试额度优先分配给更可能大陆友好的节点
+        try:
+            asia_nodes_list.sort(key=lambda n: mainland_friendly_score(n), reverse=True)
+        except (ValueError, KeyError, TypeError):
+            logging.debug("Asia nodes sort by mf_score failed, using original order")
+
         nlist = asia_nodes_list[:asia_quota] + non_asia_nodes_list[:non_asia_quota]
         logging.info(f"   [STAT] TCP测试队列：{len(asia_nodes_list[:asia_quota])} 亚洲"
               f" + {len(non_asia_nodes_list[:non_asia_quota])} 非亚洲 = {len(nlist)} 总计")
@@ -2413,7 +2466,8 @@ def main():
                                     fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
                                     p["name"] = namer.generate(
                                         fl, int(r["latency"]), r["speed"], tcp=False,
-                                        server=srv, sni=sni_val
+                                        server=srv, sni=sni_val,
+                                        mainland_pass=r.get("mainland_pass", False)
                                     )
                                     # v28.57: 附加真实大陆可达性测试结果，供 final_sort_key 使用
                                     p["_mainland_pass"] = r.get("mainland_pass", False)
@@ -2462,7 +2516,8 @@ def main():
                             sni_val = ws_host
                         fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
                         p["name"] = namer.generate(
-                            fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val
+                            fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val,
+                            mainland_pass=False
                         ) + "[TCP]"
                         final.append(p)
                         logging.info(f"   [TCP] {p['name']}")
@@ -2480,7 +2535,8 @@ def main():
                             sni_val = ws_host
                         fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
                         p["name"] = namer.generate(
-                            fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val
+                            fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val,
+                            mainland_pass=False
                         ) + "[TCP]"
                         final.append(p)
                         logging.info(f"   [TCP] {p['name']}")

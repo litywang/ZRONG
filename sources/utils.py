@@ -158,25 +158,51 @@ def source_weight(url: str) -> int:
     这是静态权重版本，用于无法访问动态权重函数时的降级。
     """
     u = url.lower()
-    domestic_keywords = [
+
+    # ===== 一级：国内优质源（最高权重） =====
+    tier1_domestic = [
+        # 核心国内源
         "ermaozi", "peasoft", "aiboboxx", "mfuu", "freefq", "kxswa",
         "llywhn", "adiwzx", "changfengoss", "mymysub", "yeahwu",
         "mksshare", "bulianglin", "yiiss", "free18", "shaoyouvip",
-        "yonggekkk", "vxiaodong", "wxloststar",
-        # v28.55: 新增实测 CN 友好源
-        "nianshaonian", "sub-store", "xray", "v2ray", "clash-meta",
-        "mihomo", "sing-box", "hysteria", "tuic", "vless", "trojan",
-        "xiaofei", "feixiao", "qingyun", "yun1", "yun2", "speed",
+        "yonggekkk", "vxiaodong", "wxloststar", "ONGKB",
+        # 国内 Clash/Mihomo 源
+        "aiboboxx/clashfree", "ermaozi.*clash", "peasoft.*meta",
+        # 国内聚合源
+        "anaer/Sub", "Pawdroid/Free-servers",
     ]
-    for kw in domestic_keywords:
+    for kw in tier1_domestic:
+        if kw in u:
+            return 10
+
+    # ===== 二级：亚洲地区专用源 =====
+    tier2_asia = [
+        # mahdibland 亚洲分区
+        "mahdibland.*hk", "mahdibland.*jp", "mahdibland.*sg",
+        "mahdibland.*tw", "mahdibland.*kr", "mahdibland.*th",
+        "mahdibland.*vn", "mahdibland.*my", "mahdibland.*id",
+        "mahdibland.*ph", "mahdibland.*asia",
+        # Epodonios 亚洲分区
+        "Epodonios.*hk", "Epodonios.*jp", "Epodonios.*sg",
+        "Epodonios.*tw", "Epodonios.*kr",
+        # 其他亚洲源
+        "xingsin", "chengaikun", "NastyaFan",
+    ]
+    for kw in tier2_asia:
         if kw in u:
             return 8
-    aggregator_keywords = ["mahdibland", "epodonios", "barry-far"]
-    for kw in aggregator_keywords:
-        if kw in u:
-            return 5
+
+    # ===== 三节：协议类型权重 =====
     if "vless" in u or "hysteria2" in u:
         return 7
     if "trojan" in u:
         return 6
+
+    # ===== 四级：国际聚合源 =====
+    tier4_aggregator = ["mahdibland", "Epodonios", "barry-far", "roosterkid"]
+    for kw in tier4_aggregator:
+        if kw in u:
+            return 5
+
+    # 默认权重
     return 3

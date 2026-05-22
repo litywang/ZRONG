@@ -28,6 +28,12 @@ class ProxyNode(BaseModel):
     path: str = ""
     alpn: str = ""
 
+    @field_validator('password', mode='before')
+    @classmethod
+    def coerce_password(cls, v):
+        """password可能为int，强制转str"""
+        return str(v) if v is not None else ""
+
     @field_validator('alpn', mode='before')
     @classmethod
     def validate_alpn(cls, v):

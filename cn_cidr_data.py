@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # CN CIDR blocks from APNIC (auto-generated)
 # Source: https://github.com/gaoyifan/china-operator-ip
-# Total: 4182 CIDR blocks | Generated: 2026-05-29 02:30:05.688325
+# Total: 4172 CIDR blocks | Generated: 2026-05-29 11:21:03.915749
 
 import ipaddress
 
@@ -94,6 +94,7 @@ CN_IP_RANGES = [
     ipaddress.ip_network("27.184.0.0/13"),
     ipaddress.ip_network("27.192.0.0/11"),
     ipaddress.ip_network("27.224.0.0/14"),
+    ipaddress.ip_network("31.77.184.0/22"),
     ipaddress.ip_network("36.1.0.0/16"),
     ipaddress.ip_network("36.4.0.0/14"),
     ipaddress.ip_network("36.16.0.0/12"),
@@ -219,6 +220,8 @@ CN_IP_RANGES = [
     ipaddress.ip_network("43.194.0.0/20"),
     ipaddress.ip_network("43.194.16.0/24"),
     ipaddress.ip_network("43.195.0.0/20"),
+    ipaddress.ip_network("43.195.16.0/22"),
+    ipaddress.ip_network("43.195.20.0/23"),
     ipaddress.ip_network("43.196.0.0/16"),
     ipaddress.ip_network("43.224.12.0/22"),
     ipaddress.ip_network("43.224.24.0/22"),
@@ -1574,21 +1577,7 @@ CN_IP_RANGES = [
     ipaddress.ip_network("110.40.16.0/24"),
     ipaddress.ip_network("110.40.128.0/17"),
     ipaddress.ip_network("110.41.0.0/16"),
-    ipaddress.ip_network("110.42.0.0/23"),
-    ipaddress.ip_network("110.42.3.0/24"),
-    ipaddress.ip_network("110.42.4.0/23"),
-    ipaddress.ip_network("110.42.6.0/24"),
-    ipaddress.ip_network("110.42.8.0/22"),
-    ipaddress.ip_network("110.42.12.0/24"),
-    ipaddress.ip_network("110.42.14.0/23"),
-    ipaddress.ip_network("110.42.17.0/24"),
-    ipaddress.ip_network("110.42.18.0/23"),
-    ipaddress.ip_network("110.42.20.0/22"),
-    ipaddress.ip_network("110.42.24.0/21"),
-    ipaddress.ip_network("110.42.32.0/19"),
-    ipaddress.ip_network("110.42.64.0/18"),
-    ipaddress.ip_network("110.42.128.0/17"),
-    ipaddress.ip_network("110.43.0.0/16"),
+    ipaddress.ip_network("110.42.0.0/15"),
     ipaddress.ip_network("110.51.0.0/16"),
     ipaddress.ip_network("110.52.0.0/15"),
     ipaddress.ip_network("110.56.0.0/13"),
@@ -2766,6 +2755,7 @@ CN_IP_RANGES = [
     ipaddress.ip_network("140.249.0.0/16"),
     ipaddress.ip_network("140.250.0.0/16"),
     ipaddress.ip_network("140.255.0.0/16"),
+    ipaddress.ip_network("141.11.219.0/24"),
     ipaddress.ip_network("143.20.246.0/24"),
     ipaddress.ip_network("143.64.0.0/16"),
     ipaddress.ip_network("144.0.0.0/16"),

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # CN CIDR blocks from APNIC (auto-generated)
 # Source: https://github.com/gaoyifan/china-operator-ip
-# Total: 4174 CIDR blocks | Generated: 2026-06-02 02:46:43.468113
+# Total: 4176 CIDR blocks | Generated: 2026-06-02 11:08:07.678095
 
 import ipaddress
 
@@ -1734,7 +1734,6 @@ CN_IP_RANGES = [
     ipaddress.ip_network("113.194.0.0/15"),
     ipaddress.ip_network("113.197.101.0/24"),
     ipaddress.ip_network("113.197.103.0/24"),
-    ipaddress.ip_network("113.197.104.0/23"),
     ipaddress.ip_network("113.200.0.0/15"),
     ipaddress.ip_network("113.204.0.0/14"),
     ipaddress.ip_network("113.208.112.0/21"),
@@ -2329,6 +2328,8 @@ CN_IP_RANGES = [
     ipaddress.ip_network("120.92.192.0/19"),
     ipaddress.ip_network("120.92.224.0/20"),
     ipaddress.ip_network("120.94.0.0/15"),
+    ipaddress.ip_network("120.130.0.0/18"),
+    ipaddress.ip_network("120.130.64.0/19"),
     ipaddress.ip_network("120.131.0.0/19"),
     ipaddress.ip_network("120.131.88.0/21"),
     ipaddress.ip_network("120.131.124.0/22"),
@@ -3119,7 +3120,6 @@ CN_IP_RANGES = [
     ipaddress.ip_network("202.38.132.0/23"),
     ipaddress.ip_network("202.38.134.0/24"),
     ipaddress.ip_network("202.38.140.0/23"),
-    ipaddress.ip_network("202.38.146.0/24"),
     ipaddress.ip_network("202.38.152.0/23"),
     ipaddress.ip_network("202.38.164.0/22"),
     ipaddress.ip_network("202.38.184.0/21"),
@@ -3823,6 +3823,8 @@ CN_IP_RANGES = [
     ipaddress.ip_network("211.167.224.0/19"),
     ipaddress.ip_network("212.64.0.0/17"),
     ipaddress.ip_network("212.129.128.0/17"),
+    ipaddress.ip_network("216.236.48.0/23"),
+    ipaddress.ip_network("216.236.50.0/24"),
     ipaddress.ip_network("218.0.0.0/12"),
     ipaddress.ip_network("218.16.0.0/13"),
     ipaddress.ip_network("218.24.0.0/14"),

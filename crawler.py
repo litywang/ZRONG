@@ -2524,6 +2524,7 @@ def main():
                             fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val,
                             mainland_pass=False
                         ) + "[TCP]"
+                        p['_mainland_pass'] = False  # v28.59: TCP节点标记大陆不可达
                         final.append(p)
                         logging.info(f"   [TCP] {p['name']}")
                     elif item["latency"] < 800:
@@ -2543,6 +2544,7 @@ def main():
                             fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val,
                             mainland_pass=False
                         ) + "[TCP]"
+                        p['_mainland_pass'] = False  # v28.59: TCP节点标记大陆不可达
                         final.append(p)
                         logging.info(f"   [TCP] {p['name']}")
                     else:

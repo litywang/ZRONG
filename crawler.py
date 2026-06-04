@@ -1794,7 +1794,23 @@ class ClashManager:
                     except requests.RequestException as e:
                         logging.debug("Mainland test URL failed: %s", str(e)[:50])
                         continue
-                result["mainland_pass"] = ml_ok
+                # v28.61: 出口IP归属检测 —— 真正判断节点是否走大陆出口
+                # 无论 ml_ok 结果如何，都以出口IP归属为准
+                try:
+                    geo_r = requests.get("http://ip-api.com/json", proxies=px, timeout=8,
+                                     allow_redirects=True)
+                    geo_j = geo_r.json()
+                    exit_country = geo_j.get("countryCode", "").upper()
+                    if exit_country == "CN":
+                        result["mainland_pass"] = True
+                        logging.debug("Mainland exit confirmed for %s (ip-api CN)", name)
+                    else:
+                        result["mainland_pass"] = False
+                        logging.debug("Non-mainland exit for %s: %s", name, exit_country)
+                except Exception as geo_e:
+                    logging.debug("Exit IP check failed for %s: %s", name, str(geo_e)[:50])
+                    # 检测失败时，保守处理：保持原有 ml_ok 结果
+                    result["mainland_pass"] = ml_ok
                 # v28.57: 不再因为大陆测试失败而淘汰节点，仅记录状态供评分函数使用
                 if not ml_ok:
                     logging.debug("Mainland test failed for %s (survived, downgraded)", name)

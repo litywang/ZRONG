@@ -1447,6 +1447,7 @@ def filter_quality(p):
 class ClashManager:
     def __init__(self):
         self.process = None
+        self._geo_cache = {}  # v28.61: 缓存出口IP归属，避免重复调用ip-api.com
         ensure_clash_dir()
 
     def download_clash(self):
@@ -1796,21 +1797,27 @@ class ClashManager:
                         continue
                 # v28.61: 出口IP归属检测 —— 真正判断节点是否走大陆出口
                 # 无论 ml_ok 结果如何，都以出口IP归属为准
+                # 使用缓存避免重复调用 ip-api.com（45次/分钟限频）
                 try:
-                    geo_r = requests.get("http://ip-api.com/json", proxies=px, timeout=8,
-                                     allow_redirects=True)
-                    geo_j = geo_r.json()
-                    exit_country = geo_j.get("countryCode", "").upper()
+                    # 以代理服务器地址为缓存key（相同出口IP的节点共享结果）
+                    cache_key = p.get("server", "") + ":" + str(p.get("port", ""))
+                    if cache_key in self._geo_cache:
+                        exit_country = self._geo_cache[cache_key]
+                        logging.debug("Geo cache hit: %s -> %s", name, exit_country)
+                    else:
+                        geo_r = requests.get("http://ip-api.com/json", proxies=px, timeout=8,
+                                         allow_redirects=True)
+                        geo_j = geo_r.json()
+                        exit_country = geo_j.get("countryCode", "").upper()
+                        self._geo_cache[cache_key] = exit_country
+                        logging.debug("Geo check: %s -> CC=%s", name, exit_country)
                     if exit_country == "CN":
                         result["mainland_pass"] = True
-                        logging.debug("Mainland exit confirmed for %s (ip-api CN)", name)
                     else:
                         result["mainland_pass"] = False
-                        logging.debug("Non-mainland exit for %s: %s", name, exit_country)
                 except Exception as geo_e:
                     logging.debug("Exit IP check failed for %s: %s", name, str(geo_e)[:50])
-                    # 检测失败时，保守处理：保持原有 ml_ok 结果
-                    result["mainland_pass"] = ml_ok
+                    result["mainland_pass"] = ml_ok  # 保守处理：保持原有ml_ok结果
                 # v28.57: 不再因为大陆测试失败而淘汰节点，仅记录状态供评分函数使用
                 if not ml_ok:
                     logging.debug("Mainland test failed for %s (survived, downgraded)", name)

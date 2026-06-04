@@ -1431,10 +1431,10 @@ def filter_quality(p):
     if port in NON_PROXY_PORTS:
         return False
 
-    # v28.62: 硬筛 mainland_pass=False 的节点（大陆不可达）
+    # v28.63: 大陆可达性评分（大陆不可达仅扣分，不硬筛）
     if p.get("_mainland_pass") is False:
-        logging.debug("Filter: skip mainland-unreachable node %s", p.get('name', '?'))
-        return False
+        logging.debug("Score: mainland-unreachable node %s, -30 score", p.get('name', '?'))
+        # 不直接过滤，交给评分函数处理
 
     # v28.39: 大陆友好性评分过滤 - 过滤掉极低友好度的节点
     try:
@@ -2565,9 +2565,8 @@ def main():
 
         # v28.57: 最终排序整合真实大陆可达性测试结果
         def final_sort_key(p):
-            # v28.58: 大陆可达性测试通过 → 额外加分（可配置，默认20分）
-            # 不再将未通过测试的节点静态评分压缩到40%，而是让静态评分占主导
-            ml_bonus = MAINLAND_PASS_BONUS if p.get("_mainland_pass", False) else 0
+            # v28.63: 大陆可达性评分（通过加分，不通过扣分）
+            ml_bonus = MAINLAND_PASS_BONUS if p.get("_mainland_pass", False) else (-30 if p.get("_mainland_pass") is False else 0)
             # v28.23: 排序整合大陆友好性评分 + 源权重
             asia = 3 if is_asia(p) else 0  # v28.14: 提高亚洲权重（2→3）
             reality = 1 if is_reality_friendly(p) else 0

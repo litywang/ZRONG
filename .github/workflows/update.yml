@@ -80,13 +80,13 @@ jobs:
           CLASH_TEST_RETRY: '2'
 
           # 📦 候选池与并发
-          MAX_TCP_TEST_NODES: 1200
-          MAX_PROXY_TEST_NODES: 1000
-          MAX_FETCH_NODES: 5000
-          MAX_FORK_REPOS: 60
-          MAX_WORKERS: '80'
-          FETCH_WORKERS: '150'
-          TIMEOUT: '12'
+          MAX_TCP_TEST_NODES: 300
+          MAX_PROXY_TEST_NODES: 300
+          MAX_FETCH_NODES: 3000
+          MAX_FORK_REPOS: 40
+          MAX_WORKERS: '40'
+          FETCH_WORKERS: '80'
+          TIMEOUT: '8'
         run: python crawler.py
 
       - name: Check Output

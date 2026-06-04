@@ -1431,6 +1431,11 @@ def filter_quality(p):
     if port in NON_PROXY_PORTS:
         return False
 
+    # v28.62: 硬筛 mainland_pass=False 的节点（大陆不可达）
+    if p.get("_mainland_pass") is False:
+        logging.debug("Filter: skip mainland-unreachable node %s", p.get('name', '?'))
+        return False
+
     # v28.39: 大陆友好性评分过滤 - 过滤掉极低友好度的节点
     try:
         mf_score = mainland_friendly_score(p)

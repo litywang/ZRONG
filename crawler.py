@@ -459,21 +459,21 @@ NODE_NAME_PREFIX = "Anftlity"
 # v28.57: 大陆端点测试改为评分降级（非淘汰），避免误杀真实可用节点；换入更多国内可达URL
 ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "1") == "1"
 MAINLAND_TEST_URLS = [
-    # 大陆可达性检测（HTTP，无TLS，代理穿透友好）
-    "http://myip.ipip.net/json",
-    "http://ip.3322.org",
-    "http://ip-api.com/json",
-    # Cloudflare 国内出口友好节点
-    "http://cp.cloudflare.com/generate_204",
-    # Apple/Microsoft/GCP 全球任播（国内可达）
-    "http://captive.apple.com/generation_204",
-    "http://connectivitycheck.gstatic.com/generate_204",
-    "http://www.msftconnecttest.com/connecttest.txt",
-    # 国内云厂商可达端点
-    "http://www.qualcomm.com/generate_204",
-    # 国内 DNS 解析检测（通过代理能解析国内域名说明大陆可达）
-    "http://dns.alidns.com/resolve?name=www.taobao.com&type=A",
-    "http://doh.pub/dns-query?name=www.baidu.com&type=A",
+    # v28.60: 大陆专属检测：只有从大陆IP访问才返回预期内容
+    # 境外访问会被阻断或返回非预期内容，用于真正区分节点是否走大陆出口
+    "http://beian.miit.gov.cn",
+    # 2. 中国政府采购网（仅大陆可达）
+    "http://www.ccgp.gov.cn",
+    # 3. 央行征信中心（仅大陆可达）
+    "http://www.pbccrc.org.cn",
+    # 4. 百度搜索首页（境外访问会被限速或阻断）
+    "http://www.baidu.com",
+    # 5. 腾讯大陆服务器（境外访问延迟极高，基本不可用）
+    "http://www.qq.com",
+    # 6. 淘宝大陆服务器（境外访问会被限速）
+    "http://www.taobao.com",
+    # 7. 国内DNS：114.114.114.114 专属解析（仅大陆可达）
+    "http://114.114.114.114/resolve?name=www.baidu.com&type=A",
 ]
 # v28.57: 大陆测试改为评分降级而非直接淘汰，减少误杀
 ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "1") == "1"  # 默认强制开启

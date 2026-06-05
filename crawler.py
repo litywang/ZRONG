@@ -2578,8 +2578,12 @@ def main():
 
         # v28.57: 最终排序整合真实大陆可达性测试结果
         def final_sort_key(p):
-            # v28.63: 大陆可达性评分（通过加分，不通过扣分）
-            ml_bonus = MAINLAND_PASS_BONUS if p.get("_mainland_pass", False) else (-30 if p.get("_mainland_pass") is False else 0)
+            # v28.68: 仅在大陆出口IP检测开启时才使用 mainland_pass 评分
+            #         默认关闭，mainland_pass=False 不扣分（避免将未测节点全部压在底部）
+            if ENABLE_MAINLAND_TEST:
+                ml_bonus = MAINLAND_PASS_BONUS if p.get("_mainland_pass", False) else (-30 if p.get("_mainland_pass") is False else 0)
+            else:
+                ml_bonus = 0
             # v28.23: 排序整合大陆友好性评分 + 源权重
             asia = 3 if is_asia(p) else 0  # v28.14: 提高亚洲权重（2→3）
             reality = 1 if is_reality_friendly(p) else 0

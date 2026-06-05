@@ -460,7 +460,8 @@ CLASH_VERSION = os.getenv("CLASH_VERSION", "v1.19.0")  # v28.23: 可配置
 NODE_NAME_PREFIX = "Anftlity"
 
 # v28.57: 大陆端点测试改为评分降级（非淘汰），避免误杀真实可用节点；换入更多国内可达URL
-ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "1") == "1"
+# v28.68: 默认关闭大陆出口IP检测（api.ip.sb从GitHub Actions访问慢+堆积，导致超时）
+ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "0") == "1"
 MAINLAND_TEST_URLS = [
     # v28.60: 大陆专属检测：只有从大陆IP访问才返回预期内容
     # 境外访问会被阻断或返回非预期内容，用于真正区分节点是否走大陆出口
@@ -479,7 +480,8 @@ MAINLAND_TEST_URLS = [
     "http://114.114.114.114/resolve?name=www.baidu.com&type=A",
 ]
 # v28.57: 大陆测试改为评分降级而非直接淘汰，减少误杀
-ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "1") == "1"  # 默认强制开启
+# v28.68: 默认关闭大陆出口IP检测（api.ip.sb从GitHub Actions访问慢+堆积，导致超时）
+ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "0") == "1"
 MAINLAND_SCORE_THRESHOLD = int(os.getenv("MAINLAND_SCORE_THRESHOLD", "30"))
 # v28.58: 大陆可达性测试通过后的额外加分（可配置，默认20分）
 MAINLAND_PASS_BONUS = int(os.getenv("MAINLAND_PASS_BONUS", "20"))

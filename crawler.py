@@ -1756,7 +1756,7 @@ class ClashManager:
                 logging.debug("Clash stop failed")
             self.process = None
 
-    def test_proxy(self, name, retry=True):
+    def test_proxy(self, name, server=None, port=None, retry=True):
         """v28.7: 多URL测速 + 失败重试
         v28.57: 第一阶段超时5s→8s（亚洲出口慢），大陆测试从强制淘汰改为评分降级
         """
@@ -1794,7 +1794,8 @@ class ClashManager:
                 ml_ok = False
                 exit_ip = None
                 # v28.66a: 先查缓存（按代理配置去重）
-                cache_key = f"{server}:{port}"
+                # v28.67: server/port 需从外部传入
+                cache_key = f"{server}:{port}" if server and port else name
                 if cache_key in _exit_ip_cache:
                     ml_ok = _exit_ip_cache[cache_key]
                     logging.debug("Exit IP cache hit: %s -> %s", cache_key, ml_ok)
@@ -1828,7 +1829,7 @@ class ClashManager:
         # 失败重试一次（减少网络抖动误杀）
         if retry and not result["success"]:
             time.sleep(0.5)
-            return self.test_proxy(name, retry=False)
+            return self.test_proxy(name, server=server, port=port, retry=False)
         return result
 
 
@@ -2460,7 +2461,7 @@ def main():
 
                 def test_one(item):
                     p = item["proxy"]
-                    r = clash.test_proxy(p["name"])
+                    r = clash.test_proxy(p["name"], server=p.get("server"), port=p.get("port"))
                     return item, p, r
 
                 try:

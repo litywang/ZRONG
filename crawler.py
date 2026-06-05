@@ -2497,11 +2497,9 @@ def main():
                                     )
                                     # v28.57: 附加真实大陆可达性测试结果，供 final_sort_key 使用
                                     p["_mainland_pass"] = r.get("mainland_pass", False)
-                                    # v28.59: 硬筛大陆不可达节点（测速通过但大陆不可达的仍丢弃）
-                                    if p["_mainland_pass"] is False:
-                                        logging.debug("Drop mainland_fail after speedtest: %s", p.get('name', '?'))
-                                        _update_node_history(p, success=False)
-                                        continue
+                                    # v28.68: 移除硬筛大陆不可达节点的逻辑
+                                    #         ENABLE_MAINLAND_TEST 默认关闭，TCP Ping+协议握手+Clash测速
+                                    #         已能有效判断节点可用性，无需额外大陆出口IP检测
                                     final.append(p)
                                     tested.add(k)  # v28.12: restore
                                     # v28.53: 真实测速通过，更新历史记录

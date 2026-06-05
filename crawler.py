@@ -120,6 +120,9 @@ import shutil
 import ssl
 import urllib.request
 import urllib.error
+
+# v28.66a: 出口IP缓存（同IP只查一次）
+_exit_ip_cache = {}
 import urllib.parse
 import threading
 import random
@@ -1789,21 +1792,30 @@ class ClashManager:
             # v28.66: 出口IP归属检测（替代URL测试，用本地GeoLite2判断是否中国大陆出口）
             if ENABLE_MAINLAND_TEST and result["success"]:
                 ml_ok = False
-                try:
-                    r = requests.get("https://api.ip.sb/ip", proxies=px, timeout=8,
-                                     headers={"User-Agent": "curl/7.83.1"})
-                    if r.status_code == 200:
-                        exit_ip = r.text.strip()
-                        if exit_ip:
-                            geo = _geoip2_lookup(exit_ip) if _GEOIP2_AVAILABLE else None
-                            if geo and geo.get("country_code") == "CN":
-                                ml_ok = True
-                                logging.debug("Mainland exit IP: %s (%s)", exit_ip, geo.get("country_name", ""))
-                            else:
-                                country = geo.get("country_code", "??") if geo else "no-geo"
-                                logging.debug("Non-mainland exit IP: %s (%s)", exit_ip, country)
-                except requests.RequestException as e:
-                    logging.debug("Exit IP check failed: %s", str(e)[:50])
+                exit_ip = None
+                # v28.66a: 先查缓存（按代理配置去重）
+                cache_key = f"{server}:{port}"
+                if cache_key in _exit_ip_cache:
+                    ml_ok = _exit_ip_cache[cache_key]
+                    logging.debug("Exit IP cache hit: %s -> %s", cache_key, ml_ok)
+                else:
+                    try:
+                        r = requests.get("https://api.ip.sb/ip", proxies=px, timeout=6,
+                                         headers={"User-Agent": "curl/7.83.1"})
+                        if r.status_code == 200:
+                            exit_ip = r.text.strip()
+                            if exit_ip:
+                                geo = _geoip2_lookup(exit_ip) if _GEOIP2_AVAILABLE else None
+                                if geo and geo.get("country_code") == "CN":
+                                    ml_ok = True
+                                    logging.debug("Mainland exit IP: %s (%s)", exit_ip, geo.get("country_name", ""))
+                                else:
+                                    country = geo.get("country_code", "??") if geo else "no-geo"
+                                    logging.debug("Non-mainland exit IP: %s (%s)", exit_ip, country)
+                    except requests.RequestException as e:
+                        logging.debug("Exit IP check failed: %s", str(e)[:50])
+                    # 写入缓存（按代理 config 去重，同IP端口只查一次）
+                    _exit_ip_cache[cache_key] = ml_ok
                 result["mainland_pass"] = ml_ok
                 if ml_ok:
                     logging.debug("Mainland reachable: %s", name)

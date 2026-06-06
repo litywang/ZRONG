@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # CN CIDR blocks from APNIC (auto-generated)
 # Source: https://github.com/gaoyifan/china-operator-ip
-# Total: 4214 CIDR blocks | Generated: 2026-06-06 02:26:12.379967
+# Total: 4232 CIDR blocks | Generated: 2026-06-06 17:01:35.516615
 
 import ipaddress
 
@@ -722,7 +722,6 @@ CN_IP_RANGES = [
     ipaddress.ip_network("82.156.0.0/15"),
     ipaddress.ip_network("87.76.221.0/24"),
     ipaddress.ip_network("87.76.222.0/24"),
-    ipaddress.ip_network("93.95.117.0/24"),
     ipaddress.ip_network("94.191.0.0/17"),
     ipaddress.ip_network("101.1.0.0/22"),
     ipaddress.ip_network("101.2.172.0/22"),
@@ -1830,6 +1829,7 @@ CN_IP_RANGES = [
     ipaddress.ip_network("114.119.32.0/24"),
     ipaddress.ip_network("114.119.117.0/24"),
     ipaddress.ip_network("114.119.119.0/24"),
+    ipaddress.ip_network("114.119.204.0/22"),
     ipaddress.ip_network("114.132.0.0/16"),
     ipaddress.ip_network("114.135.0.0/16"),
     ipaddress.ip_network("114.138.0.0/15"),
@@ -2630,7 +2630,27 @@ CN_IP_RANGES = [
     ipaddress.ip_network("124.151.0.0/16"),
     ipaddress.ip_network("124.152.0.0/16"),
     ipaddress.ip_network("124.160.0.0/13"),
-    ipaddress.ip_network("124.172.0.0/14"),
+    ipaddress.ip_network("124.172.4.0/23"),
+    ipaddress.ip_network("124.172.7.0/24"),
+    ipaddress.ip_network("124.172.8.0/23"),
+    ipaddress.ip_network("124.172.11.0/24"),
+    ipaddress.ip_network("124.172.12.0/24"),
+    ipaddress.ip_network("124.172.15.0/24"),
+    ipaddress.ip_network("124.172.16.0/23"),
+    ipaddress.ip_network("124.172.18.0/24"),
+    ipaddress.ip_network("124.172.21.0/24"),
+    ipaddress.ip_network("124.172.26.0/23"),
+    ipaddress.ip_network("124.172.28.0/23"),
+    ipaddress.ip_network("124.172.34.0/24"),
+    ipaddress.ip_network("124.172.39.0/24"),
+    ipaddress.ip_network("124.172.41.0/24"),
+    ipaddress.ip_network("124.172.42.0/23"),
+    ipaddress.ip_network("124.172.44.0/22"),
+    ipaddress.ip_network("124.172.48.0/20"),
+    ipaddress.ip_network("124.172.64.0/18"),
+    ipaddress.ip_network("124.172.128.0/17"),
+    ipaddress.ip_network("124.173.0.0/16"),
+    ipaddress.ip_network("124.174.0.0/15"),
     ipaddress.ip_network("124.192.0.0/15"),
     ipaddress.ip_network("124.196.12.0/23"),
     ipaddress.ip_network("124.196.25.0/24"),
@@ -2889,7 +2909,6 @@ CN_IP_RANGES = [
     ipaddress.ip_network("160.202.224.0/19"),
     ipaddress.ip_network("160.250.14.0/23"),
     ipaddress.ip_network("160.250.84.0/23"),
-    ipaddress.ip_network("160.250.102.0/23"),
     ipaddress.ip_network("161.163.0.0/21"),
     ipaddress.ip_network("161.163.28.0/23"),
     ipaddress.ip_network("161.189.0.0/16"),
@@ -3577,7 +3596,6 @@ CN_IP_RANGES = [
     ipaddress.ip_network("203.215.236.0/24"),
     ipaddress.ip_network("203.223.21.0/24"),
     ipaddress.ip_network("206.109.75.0/24"),
-    ipaddress.ip_network("207.180.22.0/24"),
     ipaddress.ip_network("210.2.0.0/23"),
     ipaddress.ip_network("210.2.4.0/24"),
     ipaddress.ip_network("210.5.0.0/19"),

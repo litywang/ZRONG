@@ -127,6 +127,198 @@ def print_source_stats():
                 success_rate = rec["success_count"] / max(rec["success_count"] + rec["fail_count"], 1)
                 logging.debug(f"   • 权重{w:.1f} | 成功率{success_rate:.0%} | {url[:60]}...")
 
+def clash_test(final, clash, namer, nres, tested):
+        # 7. 真实测速 + TCP 保底（保留）
+        logging.info("[START] 真实代理测速（分批）...")
+        final = []
+        tested = set()
+        proxy_ok = False
+        nres_untested = nres[:MAX_TCP_TEST_NODES]
+        batch_size = MAX_PROXY_TEST_NODES
+        batch_id = 0
+
+        if len(nres) > 0:
+            batch_enough = False  # BUGFIX: 标志位，用于内层 break 跳出后通知外层 while
+            while len(final) < MAX_FINAL_NODES and nres_untested and not batch_enough:
+                batch_id += 1
+                batch_items = []
+                for item in nres_untested:
+                    if len(batch_items) >= batch_size:
+                        break
+                    k = f"{item['proxy']['server']}:{item['proxy']['port']}"
+                    if k not in tested:
+                        batch_items.append(item)
+                if not batch_items:
+                    break
+
+                tprox = [item["proxy"] for item in batch_items]
+                logging.info(f"[PACKAGE] 第{batch_id}批：{len(tprox)} 个节点...")
+
+                if not clash.create_config(tprox) or not clash.start():
+                    logging.warning("   [FAIL] Clash 启动失败，跳过本批")
+                    clash.stop()
+                    break
+
+                proxy_ok = True
+
+
+
+                try:
+                    with ThreadPoolExecutor(max_workers=40) as tex:  # v28.7: 20→40 并发（Clash API 异步，不需要保守）
+                        test_futures = {tex.submit(test_one, item, clash, namer): item for item in batch_items}
+                        done_count = 0
+                        for future in as_completed(test_futures):
+                            try:
+                                item, p, r = future.result(timeout=8)
+                                done_count += 1
+                                k = f"{p['server']}:{p['port']}"
+                                # v28.49: 亚洲节点真实测速延迟放宽（2.0→2.5倍）
+                                if r["success"] and (
+                                    r["latency"] < MAX_PROXY_LATENCY
+                                    or (is_asia(p) and r["latency"] < MAX_PROXY_LATENCY * 2.5)
+                                ):
+                                    srv = p.get("server", "")
+                                    sni_val = p.get("sni", "") or p.get("servername", "")
+                                    ws_opts = p.get("ws-opts", {})
+                                    ws_host = (
+                                        ws_opts.get("headers", {}).get("Host", "")
+                                        if isinstance(ws_opts, dict) else ""
+                                    )
+                                    if ws_host:
+                                        sni_val = ws_host
+                                    fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
+                                    p["name"] = namer.generate(
+                                        fl, int(r["latency"]), r["speed"], tcp=False,
+                                        server=srv, sni=sni_val,
+                                        mainland_pass=r.get("mainland_pass", False)
+                                    )
+                                    # v28.57: 附加真实大陆可达性测试结果，供 final_sort_key 使用
+                                    p["_mainland_pass"] = r.get("mainland_pass", False)
+                                    # v28.68: 移除硬筛大陆不可达节点的逻辑
+                                    #         ENABLE_MAINLAND_TEST 默认关闭，TCP Ping+协议握手+Clash测速
+                                    #         已能有效判断节点可用性，无需额外大陆出口IP检测
+                                    final.append(p)
+                                    tested.add(k)  # v28.12: restore
+                                    # v28.53: 真实测速通过，更新历史记录
+                                    _update_node_history(p, success=True)
+                                    logging.info(f"   [OK] {p['name']}")
+                                else:
+                                    # v28.53: 真实测速失败，更新历史记录
+                                    _update_node_history(p, success=False)
+                                if len(final) >= MAX_FINAL_NODES:
+                                    batch_enough = True  # BUGFIX: 通知外层 while 退出
+                                    break
+                                if done_count % 20 == 0:
+                                    logging.info(f"   进度：{done_count}/{len(batch_items)} | 合格：{len(final)}")
+                            except (OSError, ValueError, TypeError):
+                                logging.debug("Batch proxy test error")
+                    logging.debug(f"\n   第{batch_id}批完成：累计合格 {len(final)} 个\n")
+                except (OSError, subprocess.SubprocessError, ValueError) as e:
+                    logging.debug(f"   [FAIL] Clash 崩溃: {e}")
+                    clash.stop()
+                    break
+
+            # TCP 补充
+            if len(final) < MAX_FINAL_NODES:
+                logging.warning(f"\n[WARN] 测速合格 {len(final)} 个/{MAX_FINAL_NODES} 目标，使用 TCP 补充...")
+                for item in nres:
+                    if len(final) >= MAX_FINAL_NODES:
+                        break
+                    p = item["proxy"]
+                    k = f"{p['server']}:{p['port']}"
+                    if k in tested:
+                        continue
+                    # v28.47: 亚洲TCP补充延迟进一步放宽
+                    if item["is_asia"] and item["latency"] < ASIA_TCP_RELAX * 1.5:
+                        tested.add(k)  # BUGFIX: 标记避免重复检测
+                        srv = p.get("server", "")
+                        sni_val = p.get("sni", "") or p.get("servername", "")
+                        ws_opts = p.get("ws-opts", {})
+                        ws_host = (
+                            ws_opts.get("headers", {}).get("Host", "")
+                            if isinstance(ws_opts, dict) else ""
+                        )
+                        if ws_host:
+                            sni_val = ws_host
+                        fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
+                        p["name"] = namer.generate(
+                            fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val,
+                            mainland_pass=False
+                        ) + "[TCP]"
+                        p['_mainland_pass'] = False  # v28.59: TCP节点标记大陆不可达
+                        final.append(p)
+                        logging.info(f"   [TCP] {p['name']}")
+                    elif item["latency"] < 800:
+                        # v28.16: 非亚洲TCP补充延迟提高（500→800）
+                        tested.add(k)  # BUGFIX: 标记避免重复检测
+                        srv = p.get("server", "")
+                        sni_val = p.get("sni", "") or p.get("servername", "")
+                        ws_opts = p.get("ws-opts", {})
+                        ws_host = (
+                            ws_opts.get("headers", {}).get("Host", "")
+                            if isinstance(ws_opts, dict) else ""
+                        )
+                        if ws_host:
+                            sni_val = ws_host
+                        fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
+                        p["name"] = namer.generate(
+                            fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val,
+                            mainland_pass=False
+                        ) + "[TCP]"
+                        p['_mainland_pass'] = False  # v28.59: TCP节点标记大陆不可达
+                        final.append(p)
+                        logging.info(f"   [TCP] {p['name']}")
+                    else:
+                        tested.add(k)
+
+        final = final[:MAX_FINAL_NODES]
+
+        # v28.57: 最终排序整合真实大陆可达性测试结果
+
+
+        # v28.49: 配额制节点选择——提高亚洲比例
+        # 分组排序后再按配额合并，柔性配额：保底+上限
+        asia_final = sorted(
+            [p for p in final if is_asia(p)],
+            key=final_sort_key
+        )
+        non_asia_final = sorted(
+            [p for p in final if not is_asia(p)],
+            key=final_sort_key
+        )
+
+        target_asia = int(MAX_FINAL_NODES * TARGET_ASIA_RATIO)  # 柔性目标
+        max_asia = int(MAX_FINAL_NODES * 0.75)  # v28.49: 上限75%
+        min_asia = min(ASIA_MIN_COUNT, MAX_FINAL_NODES)  # 保底数量
+        target_non_asia = MAX_FINAL_NODES - target_asia
+
+        # 柔性配额：保底 ≤ 实际 ≤ 上限
+        if len(asia_final) < min_asia:
+            # 亚洲极少，全部保留，非亚洲补足
+            actual_asia = len(asia_final)
+            actual_non_asia = min(len(non_asia_final), MAX_FINAL_NODES - actual_asia)
+            final = asia_final + non_asia_final[:actual_non_asia]
+            logging.debug(f"   [WARN] 亚洲节点不足保底{min_asia}个，全部保留{actual_asia}个"
+                  f" + 非亚洲{actual_non_asia}个")
+        elif len(asia_final) <= target_asia:
+            # 亚洲在保底~目标之间，全部保留高质量亚洲
+            actual_non_asia = min(len(non_asia_final), MAX_FINAL_NODES - len(asia_final))
+            final = asia_final + non_asia_final[:actual_non_asia]
+            logging.debug(f"   [OK] 亚洲{len(asia_final)}个(柔性区间) + 非亚洲{actual_non_asia}个")
+        elif len(asia_final) <= max_asia:
+            # 亚洲在目标~上限之间，按目标配额
+            final = asia_final[:target_asia] + non_asia_final[:target_non_asia]
+            logging.debug(f"   [OK] 亚洲配额{target_asia}个 + 非亚洲配额{target_non_asia}个")
+        else:
+            # 亚洲过多，截到上限，非亚洲用剩余
+            actual_non_asia = min(len(non_asia_final), MAX_FINAL_NODES - max_asia)
+            final = asia_final[:max_asia] + non_asia_final[:actual_non_asia]
+            logging.debug(f"   [OK] 亚洲截断{max_asia}个(上限) + 非亚洲{actual_non_asia}个")
+
+        logging.debug(f"\n[OK] 最终：{len(final)} 个")
+        logging.debug(f"[STAT] 真实测速：{'[OK]' if proxy_ok else '[FAIL]'}\n")
+
+
 def main():
     st = time.time()
 
@@ -384,196 +576,7 @@ def main():
         asia_count = sum(1 for n in nres if n["is_asia"])
         tcp_asia_pct = round(asia_count * 100 / max(len(nres), 1), 1)
         logging.debug(f"[OK] 第一层合格：{len(nres)} 个（亚洲：{asia_count}，占比：{tcp_asia_pct}%）\n")
-
-        # 7. 真实测速 + TCP 保底（保留）
-        logging.info("[START] 真实代理测速（分批）...")
-        final = []
-        tested = set()
-        proxy_ok = False
-        nres_untested = nres[:MAX_TCP_TEST_NODES]
-        batch_size = MAX_PROXY_TEST_NODES
-        batch_id = 0
-
-        if len(nres) > 0:
-            batch_enough = False  # BUGFIX: 标志位，用于内层 break 跳出后通知外层 while
-            while len(final) < MAX_FINAL_NODES and nres_untested and not batch_enough:
-                batch_id += 1
-                batch_items = []
-                for item in nres_untested:
-                    if len(batch_items) >= batch_size:
-                        break
-                    k = f"{item['proxy']['server']}:{item['proxy']['port']}"
-                    if k not in tested:
-                        batch_items.append(item)
-                if not batch_items:
-                    break
-
-                tprox = [item["proxy"] for item in batch_items]
-                logging.info(f"[PACKAGE] 第{batch_id}批：{len(tprox)} 个节点...")
-
-                if not clash.create_config(tprox) or not clash.start():
-                    logging.warning("   [FAIL] Clash 启动失败，跳过本批")
-                    clash.stop()
-                    break
-
-                proxy_ok = True
-
-
-
-                try:
-                    with ThreadPoolExecutor(max_workers=40) as tex:  # v28.7: 20→40 并发（Clash API 异步，不需要保守）
-                        test_futures = {tex.submit(test_one, item, clash, namer): item for item in batch_items}
-                        done_count = 0
-                        for future in as_completed(test_futures):
-                            try:
-                                item, p, r = future.result(timeout=8)
-                                done_count += 1
-                                k = f"{p['server']}:{p['port']}"
-                                # v28.49: 亚洲节点真实测速延迟放宽（2.0→2.5倍）
-                                if r["success"] and (
-                                    r["latency"] < MAX_PROXY_LATENCY
-                                    or (is_asia(p) and r["latency"] < MAX_PROXY_LATENCY * 2.5)
-                                ):
-                                    srv = p.get("server", "")
-                                    sni_val = p.get("sni", "") or p.get("servername", "")
-                                    ws_opts = p.get("ws-opts", {})
-                                    ws_host = (
-                                        ws_opts.get("headers", {}).get("Host", "")
-                                        if isinstance(ws_opts, dict) else ""
-                                    )
-                                    if ws_host:
-                                        sni_val = ws_host
-                                    fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
-                                    p["name"] = namer.generate(
-                                        fl, int(r["latency"]), r["speed"], tcp=False,
-                                        server=srv, sni=sni_val,
-                                        mainland_pass=r.get("mainland_pass", False)
-                                    )
-                                    # v28.57: 附加真实大陆可达性测试结果，供 final_sort_key 使用
-                                    p["_mainland_pass"] = r.get("mainland_pass", False)
-                                    # v28.68: 移除硬筛大陆不可达节点的逻辑
-                                    #         ENABLE_MAINLAND_TEST 默认关闭，TCP Ping+协议握手+Clash测速
-                                    #         已能有效判断节点可用性，无需额外大陆出口IP检测
-                                    final.append(p)
-                                    tested.add(k)  # v28.12: restore
-                                    # v28.53: 真实测速通过，更新历史记录
-                                    _update_node_history(p, success=True)
-                                    logging.info(f"   [OK] {p['name']}")
-                                else:
-                                    # v28.53: 真实测速失败，更新历史记录
-                                    _update_node_history(p, success=False)
-                                if len(final) >= MAX_FINAL_NODES:
-                                    batch_enough = True  # BUGFIX: 通知外层 while 退出
-                                    break
-                                if done_count % 20 == 0:
-                                    logging.info(f"   进度：{done_count}/{len(batch_items)} | 合格：{len(final)}")
-                            except (OSError, ValueError, TypeError):
-                                logging.debug("Batch proxy test error")
-                    logging.debug(f"\n   第{batch_id}批完成：累计合格 {len(final)} 个\n")
-                except (OSError, subprocess.SubprocessError, ValueError) as e:
-                    logging.debug(f"   [FAIL] Clash 崩溃: {e}")
-                    clash.stop()
-                    break
-
-            # TCP 补充
-            if len(final) < MAX_FINAL_NODES:
-                logging.warning(f"\n[WARN] 测速合格 {len(final)} 个/{MAX_FINAL_NODES} 目标，使用 TCP 补充...")
-                for item in nres:
-                    if len(final) >= MAX_FINAL_NODES:
-                        break
-                    p = item["proxy"]
-                    k = f"{p['server']}:{p['port']}"
-                    if k in tested:
-                        continue
-                    # v28.47: 亚洲TCP补充延迟进一步放宽
-                    if item["is_asia"] and item["latency"] < ASIA_TCP_RELAX * 1.5:
-                        tested.add(k)  # BUGFIX: 标记避免重复检测
-                        srv = p.get("server", "")
-                        sni_val = p.get("sni", "") or p.get("servername", "")
-                        ws_opts = p.get("ws-opts", {})
-                        ws_host = (
-                            ws_opts.get("headers", {}).get("Host", "")
-                            if isinstance(ws_opts, dict) else ""
-                        )
-                        if ws_host:
-                            sni_val = ws_host
-                        fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
-                        p["name"] = namer.generate(
-                            fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val,
-                            mainland_pass=False
-                        ) + "[TCP]"
-                        p['_mainland_pass'] = False  # v28.59: TCP节点标记大陆不可达
-                        final.append(p)
-                        logging.info(f"   [TCP] {p['name']}")
-                    elif item["latency"] < 800:
-                        # v28.16: 非亚洲TCP补充延迟提高（500→800）
-                        tested.add(k)  # BUGFIX: 标记避免重复检测
-                        srv = p.get("server", "")
-                        sni_val = p.get("sni", "") or p.get("servername", "")
-                        ws_opts = p.get("ws-opts", {})
-                        ws_host = (
-                            ws_opts.get("headers", {}).get("Host", "")
-                            if isinstance(ws_opts, dict) else ""
-                        )
-                        if ws_host:
-                            sni_val = ws_host
-                        fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
-                        p["name"] = namer.generate(
-                            fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val,
-                            mainland_pass=False
-                        ) + "[TCP]"
-                        p['_mainland_pass'] = False  # v28.59: TCP节点标记大陆不可达
-                        final.append(p)
-                        logging.info(f"   [TCP] {p['name']}")
-                    else:
-                        tested.add(k)
-
-        final = final[:MAX_FINAL_NODES]
-
-        # v28.57: 最终排序整合真实大陆可达性测试结果
-
-
-        # v28.49: 配额制节点选择——提高亚洲比例
-        # 分组排序后再按配额合并，柔性配额：保底+上限
-        asia_final = sorted(
-            [p for p in final if is_asia(p)],
-            key=final_sort_key
-        )
-        non_asia_final = sorted(
-            [p for p in final if not is_asia(p)],
-            key=final_sort_key
-        )
-
-        target_asia = int(MAX_FINAL_NODES * TARGET_ASIA_RATIO)  # 柔性目标
-        max_asia = int(MAX_FINAL_NODES * 0.75)  # v28.49: 上限75%
-        min_asia = min(ASIA_MIN_COUNT, MAX_FINAL_NODES)  # 保底数量
-        target_non_asia = MAX_FINAL_NODES - target_asia
-
-        # 柔性配额：保底 ≤ 实际 ≤ 上限
-        if len(asia_final) < min_asia:
-            # 亚洲极少，全部保留，非亚洲补足
-            actual_asia = len(asia_final)
-            actual_non_asia = min(len(non_asia_final), MAX_FINAL_NODES - actual_asia)
-            final = asia_final + non_asia_final[:actual_non_asia]
-            logging.debug(f"   [WARN] 亚洲节点不足保底{min_asia}个，全部保留{actual_asia}个"
-                  f" + 非亚洲{actual_non_asia}个")
-        elif len(asia_final) <= target_asia:
-            # 亚洲在保底~目标之间，全部保留高质量亚洲
-            actual_non_asia = min(len(non_asia_final), MAX_FINAL_NODES - len(asia_final))
-            final = asia_final + non_asia_final[:actual_non_asia]
-            logging.debug(f"   [OK] 亚洲{len(asia_final)}个(柔性区间) + 非亚洲{actual_non_asia}个")
-        elif len(asia_final) <= max_asia:
-            # 亚洲在目标~上限之间，按目标配额
-            final = asia_final[:target_asia] + non_asia_final[:target_non_asia]
-            logging.debug(f"   [OK] 亚洲配额{target_asia}个 + 非亚洲配额{target_non_asia}个")
-        else:
-            # 亚洲过多，截到上限，非亚洲用剩余
-            actual_non_asia = min(len(non_asia_final), MAX_FINAL_NODES - max_asia)
-            final = asia_final[:max_asia] + non_asia_final[:actual_non_asia]
-            logging.debug(f"   [OK] 亚洲截断{max_asia}个(上限) + 非亚洲{actual_non_asia}个")
-
-        logging.debug(f"\n[OK] 最终：{len(final)} 个")
-        logging.debug(f"[STAT] 真实测速：{'[OK]' if proxy_ok else '[FAIL]'}\n")
+        final = clash_test(final, clash, namer, nres, tested)
 
         # 8. 输出配置（保留）
         logging.debug("[NOTE] 生成配置...\n")

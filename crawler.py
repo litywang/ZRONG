@@ -13,14 +13,22 @@ from parsers import (
     parse_tuic, parse_snell, parse_http_proxy, parse_socks,
     parse_anytls, parse_node,
 )
+# 从 utils 保留的函数/常量
 from utils import (
-    generate_unique_id, _safe_port, is_pure_ip,
-    is_cn_proxy_domain, CN_DOMAIN_BLACKLIST_RE,
-    REALITY_SAFE_DOMAINS, NON_PROXY_PORTS,
-    is_asia, is_china_mainland, mainland_friendly_score,
-    get_region, _cc_to_flag, ASIA_REGIONS, NON_FRIENDLY_REGIONS,
-    NON_FRIENDLY_PENALTY, PROTOCOL_SCORE,
+    _safe_port, is_pure_ip,
+    get_region, ASIA_REGIONS, NON_FRIENDLY_REGIONS,
+    NON_FRIENDLY_PENALTY,
     WORK_DIR, MAX_RETRIES, HEADERS_POOL,
+)
+# 从 core.validator 导入（原 utils 迁移）
+from core.validator import (
+    generate_unique_id, is_cn_proxy_domain,
+    CN_DOMAIN_BLACKLIST_RE, REALITY_SAFE_DOMAINS, NON_PROXY_PORTS,
+    is_asia, is_china_mainland,
+)
+# 从 core.scorer 导入（原 utils 迁移）
+from core.scorer import (
+    mainland_friendly_score, _cc_to_flag, PROTOCOL_SCORE,
 )
 from core.main_flow import main
 # tcp_ping 已迁移到 core/config.py，从 network.tcp 导入

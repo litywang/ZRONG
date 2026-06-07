@@ -7,46 +7,63 @@ import logging
 import os
 import re
 import ipaddress
+import hashlib
+import logging
+import os
+import re
+import ipaddress
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# ===== 评分策略开关 =====
-# 环境变量 ZRONG_USE_NEW_SCORING=1 启用新版大陆友好评分
-# 默认关闭，行为与原版完全一致
-USE_NEW_SCORING = os.getenv("ZRONG_USE_NEW_SCORING", "0") == "1"
+NON_FRIENDLY_REGIONS = [
+    "IR", "IN", "RU", "NG", "ZA", "BR", "AR", "CL", "PE", "VE", "EC", "CO", "MX",
+    "US", "CA", "AU", "EU", "GB", "DE", "FR", "NL", "IT", "ES", "SE", "NO", "FI",
+    "DK", "PL", "CZ", "HU", "RO", "BG", "GR", "PT", "AT", "CH", "BE", "IE"
+]
 
+NON_FRIENDLY_PENALTY = 40
 
-# ===== CN 域名黑名单正则 =====
-CN_DOMAIN_BLACKLIST_RE = re.compile(
-    r'\.(cn|cyou|top|xyz|cc|mojcn|cnmjin|qpon|'
-    r'hk[\-_]?db|entry\.v\d+|internal\.(?:hk|tw|jp|sg)|bk[\-_]?hk\.node|'
-    r'mobgslb\.tbcache|mobgslb\.tengine|tbcache\.com|tengine\.alicdn)\d*'
-    r'|(?:^|[\.\-])(?:v\d+|node)\d*\.hk[\-_]?(?:db|internal)|'
-    r'fastcoke|mojcn\.com|cnmjin\.net', re.I)
+ASIA_REGIONS = ["HK", "TW", "JP", "SG", "KR", "TH", "VN", "MY", "ID", "PH", "MO",
+                "MN", "KH", "LA", "MM", "BN", "TL", "NP", "LK", "BD", "BT", "MV"]
 
-# ===== Reality 安全域名 =====
-REALITY_SAFE_DOMAINS = {'reality.dev', 'v2fly.org', 'matsuri.biz', 'poi.moe',
-                        '233boys.dev', 'ssrsub.com', 'justmysocks.net', 'flow.kjjiang.com'}
+REQUESTS_PER_SECOND = 6.0
 
-# ===== 非代理端口黑名单 =====
-NON_PROXY_PORTS = {2377, 2376, 2375, 9200, 9300, 27017, 27018, 27019, 6379, 11211, 5432, 3306, 8086}
+ASIA_PRIORITY_BONUS = int(os.getenv("ASIA_PRIORITY_BONUS", "40"))
 
+MAX_RETRIES = int(os.getenv("CLASH_TEST_RETRY", "2"))  # v28.21: 1→2，重试容错
 
-def generate_unique_id(proxy):
-    """生成节点唯一ID（与 crawler.py 原逻辑一致）
-    [OK] v28.39: 包含协议类型和路径，避免不同协议/路径的节点被误去重
-    """
-    protocol = proxy.get('type', proxy.get('protocol', 'unknown'))
-    server = proxy.get('server', '')
-    port = proxy.get('port', 0)
-    auth = proxy.get('uuid') or proxy.get('password') or ''
-    path = proxy.get('path', '')
-    network = proxy.get('network', 'tcp')
-    
-    key = f"{protocol}|{server}|{port}|{auth}|{path}|{network}"
-    return hashlib.md5(key.encode(), usedforsecurity=False).hexdigest()[:12].upper()
+WORK_DIR = Path(os.getcwd()) / "clash_temp"
 
+HEADERS_POOL = [{
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    " (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,"
+    "image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Connection": "keep-alive",
+}, {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15"
+    " (KHTML, like Gecko) Version/18.2 Safari/605.1.15",
+    "Accept": "*/*",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Accept-Language": "zh-CN,zh;q=0.9",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-origin",
+}, {
+    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_3 like Mac OS X)"
+    " AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Mobile/15E148 Safari/604.1",
+    "Accept": "*/*",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+}]
 
 def _safe_port(val, default=443):
     """BUGFIX: port 安全转换，防止 None/非法值（与 crawler.py 原逻辑一致）"""
@@ -58,7 +75,6 @@ def _safe_port(val, default=443):
     except (ValueError, TypeError):
         return default
 
-
 def is_pure_ip(host: str) -> bool:
     """判断是否为纯IP（不含域名）"""
     try:
@@ -66,48 +82,6 @@ def is_pure_ip(host: str) -> bool:
         return True
     except (ValueError, TypeError):
         return False
-
-
-def is_cn_proxy_domain(server):
-    """判断是否为大陆代理域名（与 crawler.py 原逻辑一致）"""
-    if not server or is_pure_ip(server):
-        return False
-    sl = server.lower()
-    for safe in REALITY_SAFE_DOMAINS:
-        if sl.endswith(safe) or sl == safe:
-            return False
-    if CN_DOMAIN_BLACKLIST_RE.search(server):
-        return True
-    return False
-
-
-# ===== 亚洲区域 =====
-ASIA_REGIONS = ["HK", "TW", "JP", "SG", "KR", "TH", "VN", "MY", "ID", "PH", "MO",
-                "MN", "KH", "LA", "MM", "BN", "TL", "NP", "LK", "BD", "BT", "MV"]
-
-# ===== 非友好区域 =====
-NON_FRIENDLY_REGIONS = [
-    "IR", "IN", "RU", "NG", "ZA", "BR", "AR", "CL", "PE", "VE", "EC", "CO", "MX",
-    "US", "CA", "AU", "EU", "GB", "DE", "FR", "NL", "IT", "ES", "SE", "NO", "FI",
-    "DK", "PL", "CZ", "HU", "RO", "BG", "GR", "PT", "AT", "CH", "BE", "IE"
-]
-NON_FRIENDLY_PENALTY = 40
-
-# ===== 协议优先级评分 =====
-PROTOCOL_SCORE = {
-    "vless": 15, "trojan": 12, "vmess": 8, "hysteria2": 12, "anytls": 5,
-    "hysteria": 6, "tuic": 8, "snell": 2, "ss": 4, "ssr": 1, "http": 2, "socks5": 2,
-}
-
-def _cc_to_flag(cc):
-    """国家代码转 emoji flag，如 'US' → '🇺🇸'"""
-    try:
-        return ''.join(chr(0x1F1E6 + ord(c) - ord('A')) for c in cc.upper()[:2])
-    except (ValueError, TypeError):
-        logging.debug("Exception occurred", exc_info=True)
-        return "[WEB]"
-
-
 
 def get_region(name, server=None, sni=None):
     """根据节点名称检测区域 - v27: 修复emoji flag识别 + 域名fallback + sni支持
@@ -486,376 +460,3 @@ def get_region(name, server=None, sni=None):
         pass  # SNI 域名已在上面 TLD 匹配中处理过
 
     return "[WEB]", "NET"
-
-
-
-# ===== 延迟导入 limiter 的辅助函数 =====
-def _get_limiter():
-    """延迟导入 limiter，避免循环依赖"""
-    import sys
-    crawler = sys.modules.get('crawler')
-    if crawler is None:
-        import importlib
-        crawler = importlib.import_module('crawler')
-    return crawler.limiter
-
-
-def is_asia(p):
-    """v28.16: 增强亚洲节点检测（关键词+IP地理位置+SNI+域名TLD）"""
-    if not p or not isinstance(p, dict):
-        return False
-    t = f"{p.get('name', '')} {p.get('server', '')}".lower()
-    # 二字母代码精确匹配
-    tokens = set(re.split(r'[\s\-_|,.:;/()（）【】\[\]{}]+', t))
-    # v28.22: 移除 "la"(老挝→误匹配Los Angeles) 和 "my"(马来西亚→误匹配英文my)
-    # 这些改由长关键词和TLD判断
-    asia_2letter = {
-        "hk", "tw", "jp", "sg", "kr", "th", "vn",
-        "ph", "mo", "mn", "kh", "mm", "bn",
-        "tl", "np", "lk", "bd", "bt", "mv",
-    }
-    # BUGFIX v28.20: 移除 "id" 和 "in" 二字母代码
-    # "id" 在节点名中常见（如 node-id-01）导致非印尼节点误判
-    # "in" 在英文中太常见（如 within/main），也移除
-    # 印尼/印度改由长关键词和 TLD 判断
-    if tokens & asia_2letter:
-        return True
-    # 长关键词子串匹配
-    asia_long = [
-        "hongkong", "港", "taiwan", "台", "japan", "日",
-        "singapore", "新加坡", "狮城", "korea", "韩", "asia",
-        "hkt", "thailand", "泰", "vietnam", "越", "malaysia", "马",
-        "indonesia", "印尼", "philippines", "菲律宾", "phillipines",
-        "macau", "澳门", "macao", "mongolia", "蒙古",
-        "cambodia", "柬埔寨", "laos", "老挝", "myanmar", "缅甸",
-        "brunei", "文莱", "nepal", "尼泊尔", "sri lanka", "斯里兰卡",
-        "bangladesh", "孟加拉", "bhutan", "不丹", "maldives", "马尔代夫",
-        "east asia", "southeast asia", "south asia", "东亚", "东南亚", "南亚",
-        "asia pacific", "apac", "亚太", "tokyo", "osaka", "seoul",
-        "bangkok", "hanoi", "jakarta", "manila", "kuala", "taipei",
-    ]
-    if any(k in t for k in asia_long):
-        return True
-    # v28.16: IP地理位置判断
-    server = p.get("server", "")
-    if is_pure_ip(server):
-        try:
-            limiter = _get_limiter()
-            geo = limiter.get_geo(server)
-            if geo:
-                cc = geo.get("countryCode", "").upper()
-                if cc in ASIA_REGIONS:
-                    return True
-        except (ImportError, AttributeError):
-            logging.debug("Limiter not ready, skipping geo lookup")  # limiter 未就绪时跳过
-    # v28.16: SNI/域名TLD判断
-    sni = (p.get("sni", "") or p.get("servername", "")).lower()
-    ws_opts = p.get("ws-opts", {})
-    ws_host = (
-        ws_opts.get("headers", {}).get("Host", "")
-        if isinstance(ws_opts, dict) else ""
-    )
-    check_domains = f"{sni} {ws_host} {server}".lower()
-    asia_tlds = [
-        ".hk", ".tw", ".jp", ".sg", ".kr", ".th", ".vn",
-        ".my", ".id", ".ph", ".mo", ".mn", ".kh", ".la",
-    ]
-    for tld in asia_tlds:
-        if tld in check_domains:
-            return True
-    return False
-
-
-def is_china_mainland(p):
-    """判断是否为内地直连节点（一般不可用，用于过滤）"""
-    if not p or not isinstance(p, dict):
-        return False
-    try:
-        t = f"{p.get('name', '')} {p.get('server', '')}".lower()
-        tokens = set(re.split(r'[\s\-_|,.:;/()（）【】\[\]{}]+', t))
-        cn_2letter = {"cn"}
-        cn_long = ["china", "中国", "国内", "直连", "direct",
-                   "北京", "上海", "广州", "深圳", "成都", "杭州"]
-        if tokens & cn_2letter:
-            return True
-        if any(k in t for k in cn_long):
-            return True
-        # v28.39: 检测 server IP 是否为中国大陆 IP
-        server = p.get("server", "")
-        if is_pure_ip(server):
-            try:
-                limiter = _get_limiter()
-                geo = limiter.get_geo(server)
-                if geo:
-                    cc = geo.get("countryCode", "").upper()
-                    if cc == "CN":
-                        return True
-            except (ImportError, AttributeError):
-                logging.debug("is_china_mainland limiter not ready", exc_info=True)
-        return False
-    except (ValueError, TypeError):
-        logging.debug("is_china_mainland error", exc_info=True)
-        return False
-
-
-
-def _mainland_friendly_score_legacy(p):
-    """v28.23: 评估节点对大陆用户的友好程度，返回0-100分数。
-    综合考虑：地理位置、协议特性、传输层类型、端口特征。
-    高分 = 更可能对大陆用户稳定可用。
-    ⚠️ 此函数为原始评分逻辑，保留用于对比和回退。
-    """
-    if not p or not isinstance(p, dict):
-        return 0
-    score = 0
-
-    # 1. 地理位置加成（权重最大）
-    if is_asia(p):
-        score += 50  # v28.47: 亚洲基础分 40→50
-        # 港日韩新额外加分（最稳定的大陆友好地区）
-        t = f"{p.get('name', '')} {p.get('server', '')}".lower()
-        # 同时检查 emoji flag（如 🇭🇰🇯🇵🇸🇬🇹🇼🇰🇷）
-        premium_regions = [
-            "hk", "hongkong", "港", "🇭🇰",
-            "tw", "taiwan", "台", "🇹🇼",
-            "jp", "japan", "日", "tokyo", "osaka", "🇯🇵",
-            "sg", "singapore", "新加坡", "狮城", "🇸🇬",
-            "kr", "korea", "韩", "seoul", "🇰🇷",
-        ]
-        if any(k in t for k in premium_regions):
-            score += 20  # v28.47: 优质地区额外分 15→20
-    else:
-        # 非亚洲节点看IP地理位置
-        server = p.get("server", "")
-        try:
-            limiter = _get_limiter()
-            geo = limiter.get_geo(server) if server else None
-            if geo:
-                cc = geo.get("countryCode", "").upper()
-                # US西海岸节点对大陆较友好
-                if cc == "US":
-                    score += 10
-                elif cc in ("CA", "AU"):
-                    score += 5
-        except (ImportError, AttributeError):
-            logging.debug("Limiter not ready, skipping geo lookup")  # limiter 未就绪时跳过
-
-    # 2. 协议加成（抗检测能力）
-    ptype = p.get("type", "")
-    proto_bonus = {
-        "vless": 20,       # VLESS+Vision/Reality 抗检测最强
-        "trojan": 15,      # Trojan TLS 加密稳定
-        "vmess": 10,       # VMess WS+TLS 较稳定
-        "hysteria2": 18,   # Hysteria2 QUIC 抗丢包
-        "hysteria": 12,    # Hysteria QUIC
-        "ss": 5,           # SS 协议特征明显，易被识别
-        "ssr": 3,          # SSR 逐渐过时
-    }
-    score += proto_bonus.get(ptype, 0)
-
-    # 3. Reality 加成（最强抗封锁）
-    if p.get("reality-opts") or p.get("tls"):
-        score += 10
-        if p.get("reality-opts"):
-            score += 5  # Reality 额外加成
-
-    # 4. 传输层加成
-    network = p.get("network", "tcp")
-    if network == "ws":
-        score += 5  # WS 伪装好
-    elif network == "grpc":
-        score += 3  # gRPC 多路复用
-
-    # 5. 端口加成（常见端口不易被封）
-    try:
-        port = int(p.get("port", 0))
-    except (ValueError, TypeError):
-        port = 0
-    if port in (443, 8443):
-        score += 5  # HTTPS 端口
-    elif port in (80, 8080):
-        score += 2  # HTTP 端口
-
-    return min(score, 100)
-
-
-def _mainland_friendly_score_new(p):
-    """v28.50: 优化版大陆友好评分（ZRONG_USE_NEW_SCORING=1 时生效）。
-    在 legacy 基础上：
-    - 亚洲节点分层更细（一级港日韩新60分 / 二级东南亚45分 / 三级其他亚洲35分）
-    - IP地理位置确认的优质线路额外+15分
-    - 协议权重调整（vless+25, trojan+20, hysteria2+18, anytls+12）
-    - Reality+VLESS 组合额外+10分
-    - 传输层权重调整（ws+8, grpc+6, h2+4）
-    - 端口评分更精细化
-    - 非亚洲节点仅保留美西等极少数友好地区
-    """
-    if not p or not isinstance(p, dict):
-        return 0
-    score = 0
-
-    # 1. 地理位置加成（分层更精细）
-    if is_asia(p):
-        t = f"{p.get('name', '')} {p.get('server', '')}".lower()
-        # 同时检查 emoji flag（如 🇭🇰🇯🇵🇸🇬🇹🇼 等由两个 Regional Indicator 字符组成）
-        has_hk = "hk" in t or "hongkong" in t or "港" in t or "🇭🇰" in t
-        has_tw = "tw" in t or "taiwan" in t or "台" in t or "🇹🇼" in t
-        has_jp = "jp" in t or "japan" in t or "日" in t or "🇯🇵" in t
-        has_sg = "sg" in t or "singapore" in t or "新加坡" in t or "狮城" in t or "🇸🇬" in t
-        has_kr = "kr" in t or "korea" in t or "韩" in t or "🇰🇷" in t
-        has_th = "th" in t or "thailand" in t or "泰" in t or "🇹🇭" in t
-        has_vn = "vn" in t or "vietnam" in t or "越" in t or "🇻🇳" in t
-        has_ph = "ph" in t or "philippines" in t or "菲" in t or "🇵🇭" in t
-        has_my = "my" in t or "malaysia" in t or "马" in t or "🇲🇾" in t
-        has_id = "id" in t or "indonesia" in t or "印尼" in t or "🇮🇩" in t
-
-        # 一级优选：港日韩新（对大陆最友好）
-        if has_hk or has_tw or has_jp or has_sg:
-            score += 60
-        # 二级优选：东南亚（次优选择）
-        elif has_kr or has_th or has_vn or has_ph or has_my or has_id:
-            score += 45
-        # 三级选择：其他亚洲
-        else:
-            score += 35
-
-        # IP地理位置确认的优质线路额外加分
-        server = p.get("server", "")
-        if is_pure_ip(server):
-            try:
-                limiter = _get_limiter()
-                geo = limiter.get_geo(server)
-                if geo:
-                    cc = geo.get("countryCode", "").upper()
-                    if cc in ("HK", "TW", "JP", "SG"):
-                        score += 15
-            except (ImportError, AttributeError):
-                logging.debug("Limiter not ready, skipping geo lookup")
-    else:
-        # 非亚洲节点：严格限制，只保留美西等极少数友好地区
-        server = p.get("server", "")
-        try:
-            limiter = _get_limiter()
-            geo = limiter.get_geo(server) if server else None
-            if geo:
-                cc = geo.get("countryCode", "").upper()
-                if cc == "US":
-                    t = f"{p.get('name', '')} {server}".lower()
-                    if any(k in t for k in [
-                        "la", "san francisco", "seattle", "portland",
-                        "los angeles", "san jose", "西海岸",
-                    ]):
-                        score += 20
-                    else:
-                        score += 5
-                elif cc in ("JP", "KR"):
-                    score += 10
-        except (ImportError, AttributeError):
-            logging.debug("Limiter not ready, skipping geo lookup")
-
-    # 2. 协议加成（抗检测能力，权重调整）
-    ptype = p.get("type", "")
-    proto_bonus = {
-        "vless": 25,       # VLESS+Vision/Reality 是目前大陆最优选择
-        "trojan": 20,      # TLS伪装好
-        "hysteria2": 18,   # QUIC抗丢包
-        "vmess": 10,       # 较老协议
-        "anytls": 12,      # 通用TLS伪装
-        "hysteria": 8,
-        "tuic": 8,
-        "ss": 3,           # 易被识别
-        "ssr": 1,          # 基本淘汰
-        "http": 2,
-        "socks5": 2,
-    }
-    score += proto_bonus.get(ptype, 0)
-
-    # 3. Reality 加成（大幅提升权重）
-    if p.get("reality-opts"):
-        score += 20  # Reality 是目前最佳抗封锁方案
-        if p.get("type") == "vless":
-            score += 10  # VLESS+Reality 组合额外奖励
-    elif p.get("tls"):
-        score += 8
-
-    # 4. 传输层加成（权重调整）
-    network = p.get("network", "tcp")
-    if network == "ws":
-        score += 8   # WS+TLS是大陆最常用且相对稳定的组合
-    elif network == "grpc":
-        score += 6   # gRPC多路复用对抗丢包有好处
-    elif network == "h2":
-        score += 4   # HTTP/2 在某些情况下表现良好
-    elif network == "quic":
-        score += 3   # QUIC理论好但实际受限较多
-
-    # 5. 端口加成（更精细化的端口友好性评估）
-    try:
-        port = int(p.get("port", 0))
-    except (ValueError, TypeError):
-        port = 0
-    if port == 443:
-        score += 8   # HTTPS标准端口，最不易被封
-    elif port in (8443, 2053, 2083, 2087, 2096):
-        score += 6   # 常见的替代HTTPS端口
-    elif port in (80, 8080, 8880, 2052, 2082, 2086, 2095):
-        score += 4   # HTTP端口
-    elif port < 1024 and port not in (22, 25, 53, 110, 143, 993, 995):
-        score += 2   # 其他知名端口
-
-    return min(score, 100)
-
-
-def mainland_friendly_score(p):
-    """评估节点对大陆用户的友好程度，返回0-100分数。
-    通过环境变量 ZRONG_USE_NEW_SCORING 控制使用新版还是旧版评分逻辑。
-    默认使用旧版（与原版行为完全一致）。
-    """
-    if USE_NEW_SCORING:
-        return _mainland_friendly_score_new(p)
-    return _mainland_friendly_score_legacy(p)
-
-
-# v28.44: 从 crawler.py 迁移
-REQUESTS_PER_SECOND = 6.0
-
-# v28.63: 从 crawler.py 迁移
-ASIA_PRIORITY_BONUS = int(os.getenv("ASIA_PRIORITY_BONUS", "40"))
-
-
-
-
-# v28.44: 从 crawler.py 迁移
-MAX_RETRIES = int(os.getenv("CLASH_TEST_RETRY", "2"))  # v28.21: 1→2，重试容错
-
-WORK_DIR = Path(os.getcwd()) / "clash_temp"
-
-HEADERS_POOL = [{
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    " (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,"
-    "image/avif,image/webp,*/*;q=0.8",
-    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Sec-Fetch-Dest": "document",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "none",
-    "Sec-Fetch-User": "?1",
-    "Connection": "keep-alive",
-}, {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15"
-    " (KHTML, like Gecko) Version/18.2 Safari/605.1.15",
-    "Accept": "*/*",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Accept-Language": "zh-CN,zh;q=0.9",
-    "Sec-Fetch-Dest": "empty",
-    "Sec-Fetch-Mode": "cors",
-    "Sec-Fetch-Site": "same-origin",
-}, {
-    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_3 like Mac OS X)"
-    " AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Mobile/15E148 Safari/604.1",
-    "Accept": "*/*",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Sec-Fetch-Dest": "empty",
-    "Sec-Fetch-Mode": "cors",
-}]

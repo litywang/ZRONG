@@ -3,7 +3,8 @@
 
 import logging
 
-from utils import is_asia, is_pure_ip
+from utils import is_pure_ip
+from core.validator import is_asia
 from network.tcp import tcp_ping, packet_loss_check
 from network.tls import tls_handshake_ok, _proto_handshake_ok
 from network.geo import limiter, _ip_geo_batch

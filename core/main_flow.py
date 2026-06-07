@@ -11,9 +11,13 @@ from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from utils import (
     WORK_DIR, MAX_RETRIES, HEADERS_POOL, REQUESTS_PER_SECOND,
-    is_asia, is_pure_ip, ASIA_REGIONS, NON_FRIENDLY_REGIONS,
-    NON_FRIENDLY_PENALTY, ASIA_PRIORITY_BONUS, mainland_friendly_score,
+    is_pure_ip, ASIA_REGIONS, NON_FRIENDLY_REGIONS,
+    NON_FRIENDLY_PENALTY, ASIA_PRIORITY_BONUS,
 )
+from core.validator import is_asia
+from core.scorer import mainland_friendly_score
+from core.collector import collect_nodes
+
 from core import (
     ClashManager, NodeNamer, format_proxy_to_link,
     check_network_baseline, ensure_clash_dir, create_session, tcp_ping,
@@ -81,118 +85,37 @@ def main():
     # v29: 异步抓取模式（可选启用）
     USE_ASYNC_FETCH = os.getenv("USE_ASYNC_FETCH", "0") == "1"
 
-    logging.info("=" * 50)
-    logging.info("[START] 聚合订阅爬虫 v28.39 - 大陆优化版")
-    logging.info("作者：Anftlity | Version: 28.33")
-    logging.info(f"异步抓取: {'[OK] 启用' if USE_ASYNC_FETCH else '[FAIL] 禁用（同步模式）'}")
-    logging.info("=" * 50)
-
-    all_urls = []
-
     try:
-        # 1. Telegram 频道爬取（最高优先级）
-        logging.info("[TG] 爬取 Telegram 频道（优先）...")
-        tg_subs = crawl_telegram_channels(TELEGRAM_CHANNELS, pages=1, limits=20)
-        tg_urls = list(set([strip_url(u) for u in tg_subs.keys()]))
-        logging.debug(f"[OK] Telegram 订阅：{len(tg_urls)} 个\n")
+        logging.info("=" * 50)
+        logging.info("[START] 聚合订阅爬虫 v28.39 - 大陆优化版")
+        logging.info("作者：Anftlity | Version: 28.33")
+        logging.info(f"异步抓取: {'[OK] 启用' if USE_ASYNC_FETCH else '[FAIL] 禁用（同步模式）'}")
+        logging.info("=" * 50)
 
-        # 2. Telegram 订阅 URL 加入队列（最高优先级）
-        all_urls.extend(tg_urls)
-        logging.debug(f"[OK] Telegram 订阅已加入队列：{len(tg_urls)} 个\n")
+        # ===== 采集节点（已提取到 core/collector.py）=====
+        nodes, stats = collect_nodes(use_async=USE_ASYNC_FETCH)
 
-        # 3. GitHub Fork 发现（中等优先级）
-        logging.info("[SEARCH] GitHub Fork 发现...")
-        fork_subs = discover_github_forks()
-        all_urls.extend(fork_subs)
-        logging.info(f"[OK] Fork 来源：{len(fork_subs)} 个")
-
-        # 4. 固定订阅源（最低优先级，放最后）
-        logging.info("[LOAD] 加载固定订阅源（补充）...")
-        fixed_urls = [strip_url(u) for u in CANDIDATE_URLS if strip_url(u)]
-        all_urls.extend(fixed_urls)
-        logging.info(f"[OK] 固定订阅源：{len(fixed_urls)} 个（跳过验证）")
-
-        # 5. 去重
-        all_urls = list(set(all_urls))
-        logging.info(f"[STAT] 总订阅源：{len(all_urls)} 个")
-
-        # v28.54: 按动态权重排序订阅源（高权重源优先抓取）
-        url_weights = {u: dynamic_source_weight(u) for u in all_urls}
-        all_urls.sort(key=lambda u: -url_weights[u])
-        logging.info(f"[STAT] 源权重排序完成（最高权重: {url_weights[all_urls[0]]:.1f}")
-
-        # 6. 抓取节点（按all_urls顺序，Telegram已在前面）
-        logging.info("[LOAD] 抓取节点...")
-        nodes = {}
-        yaml_count = 0
-        txt_count = 0
-        # v28.54: 追踪每个 URL 的抓取结果用于更新源历史
-        url_results = {}  # url -> (success, node_count, asia_count)
-
-        if USE_ASYNC_FETCH:
-            # v29 异步抓取路径
-            logging.info("[WEB] 使用异步抓取模式...")
-            nodes, yaml_count, txt_count, url_results = asyncio.run(
-                async_fetch_nodes(all_urls, MAX_FETCH_NODES)
-            )
-        else:
-            # v28.x 同步抓取路径（保留）
-            with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as ex:
-                futures = {ex.submit(fetch_and_parse, u): u for u in all_urls}
-                completed = 0
-                for future in as_completed(futures):
-                    url = futures[future]
-                    completed += 1
-                    local_nodes, is_yaml = future.result()
-                    node_count = len(local_nodes)
-                    asia_count = sum(1 for p in local_nodes.values() if is_asia(p))
-                    url_results[url] = (node_count > 0, node_count, asia_count)
-                    for h, p in local_nodes.items():
-                        if h not in nodes:
-                            # v28.54: 使用动态权重覆盖静态权重
-                            p["_src_weight"] = dynamic_source_weight(url)
-                            nodes[h] = p
-                    # BUGFIX: 仅在有节点时才计入 yaml/txt 统计
-                    if local_nodes:
-                        if is_yaml:
-                            yaml_count += 1
-                        else:
-                            txt_count += 1
-                    if completed % 50 == 0:
-                        logging.debug(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
-                    if len(nodes) >= MAX_FETCH_NODES:
-                        break
-
-        # v28.54: 更新所有源的历史记录
-        for url, (success, node_count, asia_count) in url_results.items():
-            update_source_history(url, success, node_count, asia_count)
-
-        logging.debug(f"[OK] 唯一节点：{len(nodes)} 个 (YAML源: {yaml_count}, TXT源: {txt_count})\n")
+        # 输出采集统计
+        logging.info(
+        f"[STAT] 采集统计: TG={stats['tg_count']}, "
+        f"Fork={stats['fork_count']}, "
+        f"固定={stats['fixed_count']}, "
+        f"总URL={stats['total_urls']}, "
+        f"YAML={stats['yaml_count']}, TXT={stats['txt_count']}, "
+        f"过滤={stats['nodes_before_filter']}→{stats['nodes_after_filter']}"
+        )
 
         if not nodes:
             logging.warning("[FAIL] 无有效节点!")
             return
 
-        # 5.5 节点质量过滤（借鉴 wzdnzd/aggregator）
-        logging.info("[SEARCH] 节点质量过滤...")
-        before_filter = len(nodes)
-        nodes = {h: p for h, p in nodes.items() if filter_quality(p)}
-        after_filter = len(nodes)
-        logging.info(f"[OK] 质量过滤：{before_filter} → {after_filter} 个（排除 {before_filter - after_filter} 个低质量节点)")
-
-        if not nodes:
-            logging.warning("[FAIL] 过滤后无有效节点!")
-            return
-
         # v28.58: 同服务器跨协议优选去重
         # 同一服务器同一端口有多个协议节点时，只保留大陆友好度评分最高的那个
-        # 避免同一 IP:Port 的多个协议节点占用宝贵的测试额度
         before_dedup_server = len(nodes)
         srvport_best = {}
         for h, p in nodes.items():
             srv = p.get("server", "").lower()
             port = str(p.get("port", 0))
-            # 提取纯服务器地址（去掉端口）
             if srv.startswith("[") and "]" in srv:
                 host = srv.split("]")[0][1:]
             elif ":" in srv and is_pure_ip(srv.split(":")[0]):
@@ -203,29 +126,27 @@ def main():
             mf = mainland_friendly_score(p)
             if key not in srvport_best or mf > srvport_best[key][1]:
                 srvport_best[key] = (h, mf)
-        # 只保留每个 server:port 评分最高的节点
         nodes = {h: nodes[h] for h, _ in srvport_best.values()}
         after_dedup_server = len(nodes)
         if before_dedup_server > after_dedup_server:
-            logging.info(f"[OK] 同服务器跨协议去重：{before_dedup_server} → {after_dedup_server} 个（保留每IP:Port最优协议）")
+            logging.info(f"[OK]同服务器跨协议去重：{before_dedup_server} → {after_dedup_server} 个（保留每IP:Port最优协议）")
 
         # 5.6 预查询 IP 地理位置（批量，用于节点区域识别）
         logging.info("[GEO] 预查询 IP 地理位置...")
         all_servers = set()
         for p in nodes.values():
             srv = p.get("server", "")
-            # BUGFIX v28.20: IPv6 安全提取 host
             if srv.startswith("[") and "]" in srv:
                 host = srv.split("]")[0][1:]
             elif is_pure_ip(srv) and ":" in srv:
-                host = srv  # 纯 IPv6（如 fe80::1）整体就是 host
+                host = srv
             elif ":" in srv:
                 host = srv.split(":")[0]
             else:
                 host = srv
             if is_pure_ip(host):
                 all_servers.add(host)
-        _ip_geo_batch(list(all_servers)[:500])  # 最多查 500 个
+        _ip_geo_batch(list(all_servers)[:500])
 
         # 6. TCP 测试（提高并发）
         logging.info("[SPEED] 第一层：TCP 延迟测试...")

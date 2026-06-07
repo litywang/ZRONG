@@ -605,6 +605,12 @@ def final_sort_key(p):
     return (-asia, -mf_score, -src_weight, -reality, -proto_score, -region_bonus, -hist_score, lat_from_name)
 
 
+def test_one(item, clash, namer):
+    p = item["proxy"]
+    r = clash.test_proxy(p["name"], server=p.get("server"), port=p.get("port"))
+    return item, p, r
+
+
 def main():
     st = time.time()
 
@@ -896,14 +902,11 @@ def main():
 
                 proxy_ok = True
 
-                def test_one(item):
-                    p = item["proxy"]
-                    r = clash.test_proxy(p["name"], server=p.get("server"), port=p.get("port"))
-                    return item, p, r
+
 
                 try:
                     with ThreadPoolExecutor(max_workers=40) as tex:  # v28.7: 20→40 并发（Clash API 异步，不需要保守）
-                        test_futures = {tex.submit(test_one, item): item for item in batch_items}
+                        test_futures = {tex.submit(test_one, item, clash, namer): item for item in batch_items}
                         done_count = 0
                         for future in as_completed(test_futures):
                             try:

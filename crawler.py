@@ -469,56 +469,7 @@ _init_cn_lookup()
 
 # [STAR] 主程序（集成 Fork 发现）
 
-def test_tcp_node(proxy):
-    try:
-        server = proxy.get("server", "")
-        port = proxy.get("port", 0)
-        if not server or not port:
-            return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
-        # BUGFIX v28.20: IPv6 地址安全提取 host
-        if server.startswith("[") and "]" in server:
-            host = server.split("]")[0][1:]  # 提取 [xxx] 中的 xxx
-        elif is_pure_ip(server) and ":" in server:
-            host = server  # 纯 IPv6 地址（如 fe80::1），整体就是 host
-        elif ":" in server:
-            host = server.split(":")[0]  # IPv4:port 格式
-        else:
-            host = server
-        # v28.13: 预查询 IP 地理位置（用于后续排序优化）
-        if is_pure_ip(host) and limiter.get_geo(host) is None:
-            _ip_geo_batch([host])
-        lat = tcp_ping(host, port)
-        if lat >= 9999:
-            return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
-        # v28.47: 亚洲节点放宽丢包检测，提高亚洲节点通过率
-        if is_asia(proxy):
-            ok, total, usable = packet_loss_check(host, port, timeout=4.0, attempts=2)
-        else:
-            ok, total, usable = packet_loss_check(host, port, timeout=3.0, attempts=2)
-        if not usable:
-            return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
-        # BUGFIX v28.20: TLS 握手检测扩展到所有常用 TLS 端口
-        # 原来只检测 port==443，遗漏 8443/2053/2083/2087/2096 等
-        TLS_PORTS = {443, 8443, 2053, 2083, 2087, 2096, 8880}
-        if proxy.get("tls") and port in TLS_PORTS:
-            tls_ok, _ = tls_handshake_ok(host, port, timeout=3.0)
-            if not tls_ok:
-                return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
-        # v28.47: 协议握手验证 - 亚洲节点放宽验证
-        ptype = proxy.get("type", "").lower()
-        if ptype in ("ss", "ssr", "socks5", "http", "vmess", "vless", "trojan", "hysteria", "hysteria2", "tuic", "snell"):
-            if is_asia(proxy):
-                # 亚洲节点握手失败不直接淘汰，降低延迟要求
-                if not _proto_handshake_ok(host, port, ptype, proxy):
-                    logging.debug(f"亚洲节点 {host}:{port} 握手失败但保留")
-            else:
-                if not _proto_handshake_ok(host, port, ptype, proxy):
-                    return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
-        return {"proxy": proxy, "latency": float(lat), "is_asia": is_asia(proxy),
-                "hist_score": history_stability_score(host, port)}
-    except (OSError, ValueError, TypeError):
-        logging.debug("Exception occurred", exc_info=True)
-        return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
+
 
 def _geo_score(item):
     """IP 地理位置评分：亚洲高分，非友好区域低分"""

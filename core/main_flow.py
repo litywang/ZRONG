@@ -3,6 +3,9 @@ import sys
 import json
 import logging
 import hashlib
+import time
+import signal
+import asyncio
 import httpx
 from pathlib import Path
 from datetime import datetime, timezone
@@ -27,6 +30,15 @@ from core.history import (
 )
 from network.geo import limiter, _ip_geo_batch
 from network.tcp import tcp_ping as _tcp_ping
+from sources.telegram import crawl_telegram_channels
+from sources.utils import strip_url
+from sources.github import discover_github_forks
+from core.history import source_weight
+from network.client import sync_close_async_http_client
+
+
+
+from core.config import session
 
 def write_output(final):
         with open("proxies.yaml", "w", encoding="utf-8") as f:
@@ -119,11 +131,11 @@ def print_source_stats():
             logging.debug("\n[STAT] 源权重统计（Top 10）:")
             sorted_sources = sorted(
                 _SOURCE_HISTORY.items(),
-                key=lambda x: _dynamic_source_weight(x[0]),
+                key=lambda x: source_weight(x[0]),
                 reverse=True
             )[:10]
             for url, rec in sorted_sources:
-                w = _dynamic_source_weight(url)
+                w = source_weight(url)
                 success_rate = rec["success_count"] / max(rec["success_count"] + rec["fail_count"], 1)
                 logging.debug(f"   • 权重{w:.1f} | 成功率{success_rate:.0%} | {url[:60]}...")
 
@@ -327,9 +339,9 @@ def main():
     sources.config.init_config()
 
     # v28.53: 加载节点历史记录
-    _load_node_history()
+    load_node_history()
     # v28.54: 加载源历史记录
-    _load_source_history()
+    load_source_history()
 
     # 注册信号处理（优化：自动保存数据）
 
@@ -364,9 +376,10 @@ def main():
     all_urls = []
 
     try:
+        import crawler
         # 1. Telegram 频道爬取（最高优先级）
         logging.info("[TG] 爬取 Telegram 频道（优先）...")
-        tg_subs = crawl_telegram_channels(TELEGRAM_CHANNELS, pages=1, limits=20)
+        tg_subs = crawl_telegram_channels(crawler.TELEGRAM_CHANNELS, pages=1, limits=20)
         tg_urls = list(set([strip_url(u) for u in tg_subs.keys()]))
         logging.debug(f"[OK] Telegram 订阅：{len(tg_urls)} 个\n")
 
@@ -382,7 +395,7 @@ def main():
 
         # 4. 固定订阅源（最低优先级，放最后）
         logging.info("[LOAD] 加载固定订阅源（补充）...")
-        fixed_urls = [strip_url(u) for u in CANDIDATE_URLS if strip_url(u)]
+        fixed_urls = [strip_url(u) for u in crawler.CANDIDATE_URLS if strip_url(u)]
         all_urls.extend(fixed_urls)
         logging.info(f"[OK] 固定订阅源：{len(fixed_urls)} 个（跳过验证）")
 
@@ -391,7 +404,7 @@ def main():
         logging.info(f"[STAT] 总订阅源：{len(all_urls)} 个")
 
         # v28.54: 按动态权重排序订阅源（高权重源优先抓取）
-        url_weights = {u: _dynamic_source_weight(u) for u in all_urls}
+        url_weights = {u: source_weight(u) for u in all_urls}
         all_urls.sort(key=lambda u: -url_weights[u])
         logging.info(f"[STAT] 源权重排序完成（最高权重: {url_weights[all_urls[0]]:.1f}")
 
@@ -411,7 +424,7 @@ def main():
             )
         else:
             # v28.x 同步抓取路径（保留）
-            with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as ex:
+            with ThreadPoolExecutor(max_workers=crawler.FETCH_WORKERS) as ex:
                 futures = {ex.submit(fetch_and_parse, u): u for u in all_urls}
                 completed = 0
                 for future in as_completed(futures):
@@ -424,7 +437,7 @@ def main():
                     for h, p in local_nodes.items():
                         if h not in nodes:
                             # v28.54: 使用动态权重覆盖静态权重
-                            p["_src_weight"] = _dynamic_source_weight(url)
+                            p["_src_weight"] = source_weight(url)
                             nodes[h] = p
                     # BUGFIX: 仅在有节点时才计入 yaml/txt 统计
                     if local_nodes:
@@ -695,11 +708,12 @@ def main():
             logging.debug("Exception occurred", exc_info=True)
         # v28.53: 程序退出时保存节点历史记录
         try:
-            _save_node_history()
+            save_node_history()
         except (OSError, ValueError):
             logging.debug("Exception occurred", exc_info=True)
         # v28.54: 程序退出时保存源历史记录
         try:
-            _save_source_history()
+            save_source_history()
         except (OSError, ValueError):
             logging.debug("Exception occurred", exc_info=True)
+

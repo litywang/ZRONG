@@ -1,5 +1,6 @@
 # core/clash.py - ClashManager
 # v28.41 Phase3 重构
+from core.config import ensure_clash_dir
 
 class ClashManager:
     def __init__(self):

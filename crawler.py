@@ -22,6 +22,7 @@ from utils import (
     NON_FRIENDLY_PENALTY, PROTOCOL_SCORE,
     WORK_DIR, MAX_RETRIES, HEADERS_POOL,
 )
+from core.main_flow import main
 # tcp_ping 已迁移到 core/config.py，从 network.tcp 导入
 from sources import (
     discover_github_forks,

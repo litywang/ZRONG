@@ -10,19 +10,19 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from utils import (
     WORK_DIR, MAX_RETRIES, HEADERS_POOL, REQUESTS_PER_SECOND,
     is_asia, is_pure_ip, ASIA_REGIONS, NON_FRIENDLY_REGIONS,
-    NON_FRIENDLY_PENALTY, ASIA_PRIORITY_BONUS, mainland_friendly_score,
+    NON_FRIENDLY_PENALTY, mainland_friendly_score,
 )
-from core import (
-    ClashManager, NodeNamer, format_proxy_to_link,
-    check_network_baseline, ensure_clash_dir, create_session, tcp_ping,
-    filter_quality,
-    _signal_handler,
-)
+from core.clash import ClashManager
+from core.namer import NodeNamer
+from core.output import format_proxy_to_link
+from core.config import check_network_baseline, ensure_clash_dir, create_session, tcp_ping
+from core.filter import filter_quality
+from core.history import _signal_handler
 from core.testing import test_tcp_node, test_one
 from core.filter import _geo_score, final_sort_key
 from core.history import (
-    _save_node_history, _save_source_history,
-    _load_node_history, _load_source_history,
+    save_node_history, save_source_history,
+    load_node_history, load_source_history,
     record_history, history_stability_score,
 )
 from network.geo import limiter, _ip_geo_batch

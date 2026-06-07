@@ -9,6 +9,13 @@ on:
       - 'sources.yaml'
       - 'cn_cidr_data.py'
       - '.github/workflows/update.yml'
+      - 'core/**'
+      - 'network/**'
+      - 'utils.py'
+      - 'check_config.py'
+      - 'check_proxies.py'
+      - 'deep_scan.py'
+      - 'patch_optimizations.py'
   schedule:
     - cron: '0 */8 * * *'
   workflow_dispatch:

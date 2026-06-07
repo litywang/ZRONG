@@ -113,6 +113,20 @@ def telegram_push(final, asia_ct, min_lat, tt):
             except (requests.RequestException, OSError, ValueError) as e:
                 logging.debug(f"[WARN] Telegram推送失败：{e}")
 
+def print_source_stats():
+        # v28.54: 输出源权重统计
+        if _SOURCE_HISTORY:
+            logging.debug("\n[STAT] 源权重统计（Top 10）:")
+            sorted_sources = sorted(
+                _SOURCE_HISTORY.items(),
+                key=lambda x: _dynamic_source_weight(x[0]),
+                reverse=True
+            )[:10]
+            for url, rec in sorted_sources:
+                w = _dynamic_source_weight(url)
+                success_rate = rec["success_count"] / max(rec["success_count"] + rec["fail_count"], 1)
+                logging.debug(f"   • 权重{w:.1f} | 成功率{success_rate:.0%} | {url[:60]}...")
+
 def main():
     st = time.time()
 
@@ -590,19 +604,7 @@ def main():
         for p in unique_final:
             cleaned = {k: v for k, v in p.items() if not k.startswith('_') and k in CLASH_FIELDS}
             cleaned_final.append(cleaned)
-
-        # v28.54: 输出源权重统计
-        if _SOURCE_HISTORY:
-            logging.debug("\n[STAT] 源权重统计（Top 10）:")
-            sorted_sources = sorted(
-                _SOURCE_HISTORY.items(),
-                key=lambda x: _dynamic_source_weight(x[0]),
-                reverse=True
-            )[:10]
-            for url, rec in sorted_sources:
-                w = _dynamic_source_weight(url)
-                success_rate = rec["success_count"] / max(rec["success_count"] + rec["fail_count"], 1)
-                logging.debug(f"   • 权重{w:.1f} | 成功率{success_rate:.0%} | {url[:60]}...")
+        print_source_stats()
 
         # v28.52: 大陆路由规则（CN_DIRECT=1 启用）
         _cn_direct = os.getenv("CN_DIRECT", "1") == "1"

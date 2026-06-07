@@ -276,6 +276,35 @@ def get_node_history_score(proxy: dict) -> float:
         return round(score, 1)
 
 
+# ========== 历史稳定性评分（_HISTORY_SCORES）==========
+
+
+def record_history(server_ip, port, latency):
+    """记录 TCP 延迟到历史（线程安全）。"""
+    key = (server_ip, port)
+    with _HISTORY_SCORES_LOCK:
+        if key not in _HISTORY_SCORES:
+            _HISTORY_SCORES[key] = []
+        _HISTORY_SCORES[key].append(latency)
+        if len(_HISTORY_SCORES[key]) > 10:
+            _HISTORY_SCORES[key] = _HISTORY_SCORES[key][-10:]
+
+
+def history_stability_score(server_ip, port):
+    """计算节点历史稳定性评分（0-500+）。"""
+    key = (server_ip, port)
+    with _HISTORY_SCORES_LOCK:
+        if key not in _HISTORY_SCORES or not _HISTORY_SCORES[key]:
+            return 0
+        scores = list(_HISTORY_SCORES[key])
+    n = len(scores)
+    success_rate = sum(1 for s in scores if s < 9999) / n
+    avg = sum(scores) / n
+    variance = sum((s - avg) ** 2 for s in scores) / n
+    std = variance ** 0.5
+    return max(0, int(success_rate * 500 - min(std * 2, 200)))
+
+
 # ========== 兼容性别名（供 crawler.py 平滑迁移） ==========
 
 # 全局变量访问（供 crawler.py 的全局变量引用兼容）

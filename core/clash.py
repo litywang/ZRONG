@@ -247,13 +247,13 @@ class ClashManager:
             # v28.39: 初始化 out 避免未定义
             out = ""
             # v28.50: 确保进程管道正确关闭
+            api_ready = False
             try:
                 for i in range(30):
                     time.sleep(1)
                     if self.process.poll() is not None:
                         try:
                             out, _ = self.process.communicate(timeout=5)
-                            # 打印首尾各 500 字符，YAML 错误通常在末尾
                             out_short = out[:500] + "\n...\n" + out[-500:] if len(out) > 1000 else out
                             logging.debug(f"   [FAIL] Clash 崩溃:\n{out_short}")
                         except (subprocess.TimeoutExpired, OSError):
@@ -262,10 +262,15 @@ class ClashManager:
                     try:
                         if requests.get(f"http://127.0.0.1:{CLASH_API_PORT}/version", timeout=2).status_code == 200:
                             logging.debug("   [OK] Clash API 就绪")
-                            return True
+                            api_ready = True
+                            break
                     except requests.RequestException:
                         logging.debug("Clash API version check failed")
-                logging.debug("   [TIMEOUT] Clash 启动超时")
+                if not api_ready:
+                    logging.debug("   [TIMEOUT] Clash 启动超时")
+                    return False
+            except (OSError, subprocess.SubprocessError) as e:
+                logging.debug(f"   [ERROR] Clash 启动异常：{e}")
                 return False
             finally:
                 # 确保 stdout/stderr 管道关闭
@@ -274,14 +279,7 @@ class ClashManager:
                         self.process.stdout.close()
                     except OSError as e:
                         logging.debug(f"关闭 stdout 管道失败: {e}", exc_info=True)
-                try:
-                    if requests.get(f"http://127.0.0.1:{CLASH_API_PORT}/version", timeout=2).status_code == 200:
-                        logging.debug("   [OK] Clash API 就绪")
-                        return True
-                except requests.RequestException:
-                    logging.debug("Clash API version check failed")
-            logging.debug("   [TIMEOUT] Clash 启动超时")
-            return False
+            return True
         except (OSError, subprocess.SubprocessError) as e:
             logging.debug(f"   [ERROR] Clash 启动异常：{e}")
             return False

@@ -228,6 +228,6 @@ class ProxyNode(BaseModel):
             vless_opts=d.get("vless_opts"),
             _score=d.get("_score", 0.0),
             _src_weight=d.get("_src_weight", 0.0),
-            _mainland_reachable=d.get("_mainland_reachable", False),
+            _mainland_reachable=d.get("mainland_reachable", False),
             _extra={k: v for k, v in d.items() if k.startswith("_") or k in ("protocol", "obfs", "obfs-param", "protocol-param", "group")}
         )

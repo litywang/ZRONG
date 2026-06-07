@@ -30,7 +30,15 @@ from core.history import (
 )
 from network.geo import limiter, _ip_geo_batch
 from network.tcp import tcp_ping as _tcp_ping
-from sources.subscription import async_fetch_nodes
+import asyncio
+
+# v28.40: 导入 sources 包的函数和配置
+from sources import (
+    crawl_telegram_channels, strip_url, discover_github_forks,
+    fetch_and_parse, async_fetch_nodes, sync_close_async_http_client,
+)
+from sources.config import TELEGRAM_CHANNELS, CANDIDATE_URLS, MAX_FETCH_NODES, FETCH_WORKERS, MAX_TCP_TEST_NODES, MAX_LATENCY
+
 
 def main():
     import argparse

@@ -33,12 +33,19 @@ def init_config() -> None:
         'MAX_FORK_REPOS': getattr(cr, 'MAX_FORK_REPOS', 60),
         'MAX_FORK_URLS': getattr(cr, 'MAX_FORK_URLS', 1500),
         'GITHUB_BASE_REPOS': getattr(cr, 'GITHUB_BASE_REPOS', []),
+        # v28.67: 新增配置项
+        'TELEGRAM_CHANNELS': getattr(cr, 'TELEGRAM_CHANNELS', []),
+        'CANDIDATE_URLS': getattr(cr, 'CANDIDATE_URLS', []),
+        'MAX_TCP_TEST_NODES': getattr(cr, 'MAX_TCP_TEST_NODES', 500),
+        'MAX_LATENCY': getattr(cr, 'MAX_LATENCY', 800),
         # 动态权重
         '_dynamic_source_weight': getattr(cr, '_dynamic_source_weight', None),
         'is_asia': getattr(cr, 'is_asia', None),
         # 异步客户端
         '_async_http_client': getattr(cr, '_async_http_client', None),
     }
+    # v28.67: 更新模块级变量
+    _update_module_vars()
 
 
 def _check() -> Dict[str, Any]:
@@ -141,3 +148,25 @@ def is_asia(node: dict) -> bool:
 
 def async_http_client():
     return _check().get('_async_http_client')
+
+
+# v28.67: 模块级变量，由 init_config() 设置
+TELEGRAM_CHANNELS = []
+CANDIDATE_URLS = []
+MAX_FETCH_NODES = 5000
+FETCH_WORKERS = 150
+MAX_TCP_TEST_NODES = 500
+MAX_LATENCY = 800
+
+
+def _update_module_vars():
+    """从 _config 更新模块级变量"""
+    if _config is None:
+        return
+    global TELEGRAM_CHANNELS, CANDIDATE_URLS, MAX_FETCH_NODES, FETCH_WORKERS, MAX_TCP_TEST_NODES, MAX_LATENCY
+    TELEGRAM_CHANNELS = _config.get('TELEGRAM_CHANNELS', [])
+    CANDIDATE_URLS = _config.get('CANDIDATE_URLS', [])
+    MAX_FETCH_NODES = _config.get('MAX_FETCH_NODES', 5000)
+    FETCH_WORKERS = _config.get('FETCH_WORKERS', 150)
+    MAX_TCP_TEST_NODES = _config.get('MAX_TCP_TEST_NODES', 500)
+    MAX_LATENCY = _config.get('MAX_LATENCY', 800)

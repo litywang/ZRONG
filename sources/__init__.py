@@ -9,7 +9,8 @@ from .subscription import (
     async_fetch_url, async_fetch_urls,
     check_subscription_quality, is_valid_url, clean_url,
     is_base64, decode_b64, is_yaml_content, parse_yaml_proxies,
-    strip_url, check_url, check_url_fast
+    strip_url, check_url, check_url_fast,
+    sync_close_async_http_client,
 )
 
 __all__ = [
@@ -23,4 +24,6 @@ __all__ = [
     "check_subscription_quality", "is_valid_url", "clean_url",
     "is_base64", "decode_b64", "is_yaml_content", "parse_yaml_proxies",
     "strip_url", "check_url", "check_url_fast",
+    # Async client management
+    "sync_close_async_http_client",
 ]

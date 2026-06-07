@@ -342,3 +342,37 @@ async def async_fetch_urls(urls: List[str], mirror_pool: List[str] = None) -> Di
         results = await asyncio.gather(*tasks)
 
     return {url: content for url, content in zip(urls, results) if content}
+
+def sync_close_async_http_client():
+    """同步关闭异步HTTP客户端（用于 finally 块）
+    
+    httpx.AsyncClient.aclose() 是异步方法，需要在事件循环中调用。
+    此函数处理各种事件循环场景，确保客户端被正确关闭。
+    """
+    import asyncio
+    import logging
+    from . import config
+    
+    async_client = config.async_http_client()
+    if not async_client:
+        return
+    
+    async def _close_client():
+        await async_client.aclose()
+    
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # 事件循环正在运行（例如在 async context 中）
+            asyncio.ensure_future(_close_client())
+        else:
+            # 事件循环存在但未运行
+            loop.run_until_complete(_close_client())
+    except (RuntimeError, asyncio.CancelledError):
+        # 没有事件循环或循环已关闭，尝试创建新的
+        try:
+            asyncio.run(_close_client())
+        except Exception:
+            logging.debug("关闭异步HTTP客户端失败", exc_info=True)
+    except Exception as e:
+        logging.debug("关闭异步HTTP客户端失败: %s", e)

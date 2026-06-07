@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import sys
+import os, sys
 from pathlib import Path
 # v28.40: 确保当前文件所在目录在 sys.path 中（GitHub Actions 兼容）
 _sys_path = str(Path(__file__).parent)

@@ -7,6 +7,7 @@ import logging
 import os
 import re
 import ipaddress
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -814,3 +815,43 @@ def mainland_friendly_score(p):
         return _mainland_friendly_score_new(p)
     return _mainland_friendly_score_legacy(p)
 
+
+# v28.44: 从 crawler.py 迁移
+REQUESTS_PER_SECOND = 6.0
+
+
+
+# v28.44: 从 crawler.py 迁移
+MAX_RETRIES = int(os.getenv("CLASH_TEST_RETRY", "2"))  # v28.21: 1→2，重试容错
+
+WORK_DIR = Path(os.getcwd()) / "clash_temp"
+
+HEADERS_POOL = [{
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    " (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,"
+    "image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Connection": "keep-alive",
+}, {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15"
+    " (KHTML, like Gecko) Version/18.2 Safari/605.1.15",
+    "Accept": "*/*",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Accept-Language": "zh-CN,zh;q=0.9",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-origin",
+}, {
+    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_3 like Mac OS X)"
+    " AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Mobile/15E148 Safari/604.1",
+    "Accept": "*/*",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+}]

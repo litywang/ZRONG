@@ -1,7 +1,15 @@
 # core/config.py - 配置与工具函数
 # v28.42 Phase4 重构
 
+import logging
+import random
+
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
 from network.tcp import _tcp_ping, tcp_ping
+from utils import WORK_DIR, MAX_RETRIES, HEADERS_POOL
 
 # ===== 网络基准（check_network_baseline 依赖）=====
 _NETWORK_BASELINE = {"latency": 9999, "verified": False}

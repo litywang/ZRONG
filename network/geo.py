@@ -20,7 +20,7 @@ from urllib.parse import urlparse
 import httpx
 
 from utils import REQUESTS_PER_SECOND, is_pure_ip
-from utils import CN_IP_RANGES  # v28.15: CN IP 范围常量
+from cn_cidr_data import CN_IP_RANGES  # v28.15: CN IP 范围常量
 
 # ===== CN IP 查找表 =====
 _CN_IP_SET = set()

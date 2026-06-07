@@ -25,6 +25,7 @@ from core.history import (
     save_node_history, save_source_history,
     load_node_history, load_source_history,
     record_history, history_stability_score,
+    dynamic_source_weight, update_source_history,
 )
 from network.geo import limiter, _ip_geo_batch
 from network.tcp import tcp_ping as _tcp_ping
@@ -43,9 +44,9 @@ def main():
     sources.config.init_config()
 
     # v28.53: 加载节点历史记录
-    _load_node_history()
+    load_node_history()
     # v28.54: 加载源历史记录
-    _load_source_history()
+    load_source_history()
 
     # 注册信号处理（优化：自动保存数据）
 
@@ -107,7 +108,7 @@ def main():
         logging.info(f"[STAT] 总订阅源：{len(all_urls)} 个")
 
         # v28.54: 按动态权重排序订阅源（高权重源优先抓取）
-        url_weights = {u: _dynamic_source_weight(u) for u in all_urls}
+        url_weights = {u: dynamic_source_weight(u) for u in all_urls}
         all_urls.sort(key=lambda u: -url_weights[u])
         logging.info(f"[STAT] 源权重排序完成（最高权重: {url_weights[all_urls[0]]:.1f}")
 
@@ -140,7 +141,7 @@ def main():
                     for h, p in local_nodes.items():
                         if h not in nodes:
                             # v28.54: 使用动态权重覆盖静态权重
-                            p["_src_weight"] = _dynamic_source_weight(url)
+                            p["_src_weight"] = dynamic_source_weight(url)
                             nodes[h] = p
                     # BUGFIX: 仅在有节点时才计入 yaml/txt 统计
                     if local_nodes:
@@ -155,7 +156,7 @@ def main():
 
         # v28.54: 更新所有源的历史记录
         for url, (success, node_count, asia_count) in url_results.items():
-            _update_source_history(url, success, node_count, asia_count)
+            update_source_history(url, success, node_count, asia_count)
 
         logging.debug(f"[OK] 唯一节点：{len(nodes)} 个 (YAML源: {yaml_count}, TXT源: {txt_count})\n")
 

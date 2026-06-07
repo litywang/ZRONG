@@ -65,6 +65,54 @@ def write_output(final):
         logging.debug(f"• 耗时：{tt:.1f} 秒")
         logging.debug("=" * 180 + "\n")
 
+def telegram_push(final, asia_ct, min_lat, tt):
+        if BOT_TOKEN and CHAT_ID and REPO_NAME:
+            try:
+                ts = int(time.time())
+                yaml_raw_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/proxies.yaml?t={ts}"
+                txt_raw_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/subscription.txt?t={ts}"
+                repo_path = f"https://github.com/{REPO_NAME}/blob/main/"
+                yaml_html_url = f"{repo_path}proxies.yaml"
+                txt_html_url = f"{repo_path}subscription.txt"
+
+                start_icon = "[START]"
+                end_icon = "[CELEBRATE]"
+                update_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+                msg = f"""{start_icon}<b>节点更新完成</b>{end_icon}
+
+    [STAT] <b>统计数据:</b>
+    • Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总订阅：{len(all_urls)}
+    • Fork 来源：{len(fork_subs)}
+    • 原始：{len(nodes)} | TCP: {len(nres)} | 最终：<code>{len(unique_final)}</code> 个
+    • 亚洲：{asia_ct} 个 ({asia_pct}%)
+    • 最低延迟：{min_lat:.1f} ms
+    • 平均耗时：{tt:.1f} 秒
+    ━━━━━━━━━━━━━━━━━━━━━━━
+
+    [SAVE] <b>直链下载:</b>
+    YAML: <code>{yaml_raw_url}</code>
+    TXT: <code>{txt_raw_url}</code>
+
+    [WEB] <b>网页查看:</b>
+    YAML: <a href="{yaml_html_url}">{yaml_html_url}</a>
+    TXT: <a href="{txt_html_url}">{txt_html_url}</a>
+
+    ━━━━━━━━━━━━━━━━━━━━━━━
+
+    [WEB] <b>支持协议:</b> VMess | VLESS | Trojan | SS | Hysteria2 | Hysteria | TUIC | WireGuard
+    [PERSON]‍[PC] <b>作者:</b> Anftlity
+
+    <b>更新时间:</b> {update_time}"""
+                requests.post(
+                    f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                    json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"},
+                    timeout=10
+                )
+                logging.debug("[OK] Telegram通知已发送")
+            except (requests.RequestException, OSError, ValueError) as e:
+                logging.debug(f"[WARN] Telegram推送失败：{e}")
+
 def main():
     st = time.time()
 
@@ -612,52 +660,8 @@ def main():
         write_output(final)
 
         # 9. Telegram 推送（保留）
-        if BOT_TOKEN and CHAT_ID and REPO_NAME:
-            try:
-                ts = int(time.time())
-                yaml_raw_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/proxies.yaml?t={ts}"
-                txt_raw_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/subscription.txt?t={ts}"
-                repo_path = f"https://github.com/{REPO_NAME}/blob/main/"
-                yaml_html_url = f"{repo_path}proxies.yaml"
-                txt_html_url = f"{repo_path}subscription.txt"
+        telegram_push(final, asia_ct, min_lat, tt)
 
-                start_icon = "[START]"
-                end_icon = "[CELEBRATE]"
-                update_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-                msg = f"""{start_icon}<b>节点更新完成</b>{end_icon}
-
-[STAT] <b>统计数据:</b>
-• Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总订阅：{len(all_urls)}
-• Fork 来源：{len(fork_subs)}
-• 原始：{len(nodes)} | TCP: {len(nres)} | 最终：<code>{len(unique_final)}</code> 个
-• 亚洲：{asia_ct} 个 ({asia_pct}%)
-• 最低延迟：{min_lat:.1f} ms
-• 平均耗时：{tt:.1f} 秒
-━━━━━━━━━━━━━━━━━━━━━━━
-
-[SAVE] <b>直链下载:</b>
-YAML: <code>{yaml_raw_url}</code>
-TXT: <code>{txt_raw_url}</code>
-
-[WEB] <b>网页查看:</b>
-YAML: <a href="{yaml_html_url}">{yaml_html_url}</a>
-TXT: <a href="{txt_html_url}">{txt_html_url}</a>
-
-━━━━━━━━━━━━━━━━━━━━━━━
-
-[WEB] <b>支持协议:</b> VMess | VLESS | Trojan | SS | Hysteria2 | Hysteria | TUIC | WireGuard
-[PERSON]‍[PC] <b>作者:</b> Anftlity
-
-<b>更新时间:</b> {update_time}"""
-                requests.post(
-                    f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-                    json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"},
-                    timeout=10
-                )
-                logging.debug("[OK] Telegram通知已发送")
-            except (requests.RequestException, OSError, ValueError) as e:
-                logging.debug(f"[WARN] Telegram推送失败：{e}")
         logging.debug("[CELEBRATE] 任务完成！")
 
     except (OSError, ValueError, TypeError, KeyboardInterrupt) as e:

@@ -438,6 +438,7 @@ from core.history import (
     get_node_history, get_source_history, get_history_scores,
     NODE_HISTORY_FILE, SOURCE_HISTORY_FILE,
     _NODE_HISTORY, _SOURCE_HISTORY, _NODE_HISTORY_LOCK, _SOURCE_HISTORY_LOCK,
+    _HISTORY_SCORES, _HISTORY_SCORES_LOCK,
 )
 # 兼容旧名
 _load_node_history = load_node_history

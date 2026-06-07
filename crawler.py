@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import sys
+from pathlib import Path
+# v28.40: 确保当前文件所在目录在 sys.path 中（GitHub Actions 兼容）
+_sys_path = str(Path(__file__).parent)
+if _sys_path not in sys.path:
+    sys.path.insert(0, _sys_path)
 # v28.34: 从 parsers 包导入协议解析器
 from parsers import (
     parse_vmess, parse_vless, parse_trojan, parse_trojan_go,

@@ -13,9 +13,11 @@ core/history.py - 节点与源的智能历史记录系统
 import json
 import hashlib
 import logging
+import sys
 import threading
 from datetime import datetime
 from pathlib import Path
+from network.geo import limiter
 
 # ===== 历史稳定性记录 ======
 _HISTORY_SCORES = {}
@@ -319,3 +321,10 @@ def get_source_history():
 def get_history_scores():
     """获取历史稳定性评分字典（只读访问）。"""
     return _HISTORY_SCORES
+
+def _signal_handler(sig, frame):
+    logging.debug(f"[EXIT] 捕获信号 {sig}，保存运行数据...")
+    _save_node_history()
+    _save_source_history()
+    limiter.save_geo_cache()
+    sys.exit(0)

@@ -468,12 +468,6 @@ _init_cn_lookup()
 
 
 # [STAR] 主程序（集成 Fork 发现）
-def _signal_handler(sig, frame):
-    logging.debug(f"[EXIT] 捕获信号 {sig}，保存运行数据...")
-    _save_node_history()
-    _save_source_history()
-    limiter.save_geo_cache()
-    sys.exit(0)
 
 def test_tcp_node(proxy):
     try:

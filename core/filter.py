@@ -46,7 +46,7 @@ def filter_quality(p):
         return False
 
     # v28.63: 大陆可达性评分（大陆不可达仅扣分，不硬筛）
-    if p.get("_mainland_pass") is False:
+    if p.get("mainland_reachable") is False:
         logging.debug("Score: mainland-unreachable node %s, -30 score", p.get('name', '?'))
         # 不直接过滤，交给评分函数处理
 
@@ -93,10 +93,10 @@ def _geo_score(item):
     return score
 
 def final_sort_key(p):
-    # v28.68: 仅在大陆出口IP检测开启时才使用 mainland_pass 评分
-    #         默认关闭，mainland_pass=False 不扣分（避免将未测节点全部压在底部）
+    # v28.68: 仅在大陆出口IP检测开启时才使用 mainland_reachable 评分
+    #         默认关闭，mainland_reachable=False 不扣分（避免将未测节点全部压在底部）
     if ENABLE_MAINLAND_TEST:
-        ml_bonus = MAINLAND_PASS_BONUS if p.get("_mainland_pass", False) else (-30 if p.get("_mainland_pass") is False else 0)
+        ml_bonus = MAINLAND_PASS_BONUS if p.get("mainland_reachable", False) else (-30 if p.get("mainland_reachable") is False else 0)
     else:
         ml_bonus = 0
     # v28.23: 排序整合大陆友好性评分 + 源权重

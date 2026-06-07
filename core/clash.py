@@ -310,7 +310,7 @@ class ClashManager:
         """v28.7: 多URL测速 + 失败重试
         v28.57: 第一阶段超时5s→8s（亚洲出口慢），大陆测试从强制淘汰改为评分降级
         """
-        result = {"success": False, "latency": 9999.0, "speed": 0.0, "error": "", "mainland_pass": False}
+        result = {"success": False, "latency": 9999.0, "speed": 0.0, "error": "", "mainland_reachable": False}
         try:
             requests.put(f"http://127.0.0.1:{CLASH_API_PORT}/proxies/TEST", json={"name": name}, timeout=2)
             time.sleep(0.05)
@@ -322,7 +322,7 @@ class ClashManager:
                     resp = requests.get(url, proxies=px, timeout=8, allow_redirects=False)
                     lat = (time.time() - start) * 1000
                     if resp.status_code in [200, 204, 301, 302]:
-                        result = {"success": True, "latency": round(lat, 1), "speed": 0.0, "error": "", "mainland_pass": False}
+                        result = {"success": True, "latency": round(lat, 1), "speed": 0.0, "error": "", "mainland_reachable": False}
                         break
                 except requests.RequestException as e:
                     logging.debug("Test URL failed for proxy %s: %s", name, str(e)[:50])
@@ -335,7 +335,7 @@ class ClashManager:
                         resp = requests.get(url, proxies=px, timeout=8, allow_redirects=False)
                         lat = (time.time() - start) * 1000
                         if resp.status_code in [200, 204, 301, 302]:
-                            result = {"success": True, "latency": round(lat, 1), "speed": 0.0, "error": "", "mainland_pass": False}
+                            result = {"success": True, "latency": round(lat, 1), "speed": 0.0, "error": "", "mainland_reachable": False}
                             break
                     except requests.RequestException:
                         continue
@@ -367,7 +367,7 @@ class ClashManager:
                         logging.debug("Exit IP check failed: %s", str(e)[:50])
                     # 写入缓存（按代理 config 去重，同IP端口只查一次）
                     _exit_ip_cache[cache_key] = ml_ok
-                result["mainland_pass"] = ml_ok
+                result["mainland_reachable"] = ml_ok
                 if ml_ok:
                     logging.debug("Mainland reachable: %s", name)
                 else:

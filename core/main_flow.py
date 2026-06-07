@@ -365,10 +365,10 @@ def main():
                                     p["name"] = namer.generate(
                                         fl, int(r["latency"]), r["speed"], tcp=False,
                                         server=srv, sni=sni_val,
-                                        mainland_pass=r.get("mainland_pass", False)
+                                        mainland_reachable=r.get("mainland_reachable", False)
                                     )
                                     # v28.57: 附加真实大陆可达性测试结果，供 final_sort_key 使用
-                                    p["_mainland_pass"] = r.get("mainland_pass", False)
+                                    p["mainland_reachable"] = r.get("mainland_reachable", False)
                                     # v28.68: 移除硬筛大陆不可达节点的逻辑
                                     #         ENABLE_MAINLAND_TEST 默认关闭，TCP Ping+协议握手+Clash测速
                                     #         已能有效判断节点可用性，无需额外大陆出口IP检测
@@ -418,9 +418,9 @@ def main():
                         fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
                         p["name"] = namer.generate(
                             fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val,
-                            mainland_pass=False
+                            mainland_reachable=False
                         ) + "[TCP]"
-                        p['_mainland_pass'] = False  # v28.59: TCP节点标记大陆不可达
+                        p["mainland_reachable"] = False  # v28.59: TCP节点标记大陆不可达
                         final.append(p)
                         logging.info(f"   [TCP] {p['name']}")
                     elif item["latency"] < 800:
@@ -438,9 +438,9 @@ def main():
                         fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
                         p["name"] = namer.generate(
                             fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val,
-                            mainland_pass=False
+                            mainland_reachable=False
                         ) + "[TCP]"
-                        p['_mainland_pass'] = False  # v28.59: TCP节点标记大陆不可达
+                        p["mainland_reachable"] = False  # v28.59: TCP节点标记大陆不可达
                         final.append(p)
                         logging.info(f"   [TCP] {p['name']}")
                     else:

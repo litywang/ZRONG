@@ -37,7 +37,7 @@ class NodeNamer:
 
         return ''.join(self.FANCY.get(c.upper(), c) for c in t)
 
-    def generate(self, flag, lat=None, score=None, speed=None, tcp=False, server=None, sni=None, mainland_pass=None):
+    def generate(self, flag, lat=None, score=None, speed=None, tcp=False, server=None, sni=None, mainland_reachable=None):
         """【v28.58】命名包含区域emoji + 编号 + 延迟 + 评分 + 大陆可达标记 + 哥特体后缀"""
         code, region = get_region(flag, server=server, sni=sni)
         self.counters[region] = self.counters.get(region, 0) + 1
@@ -47,7 +47,7 @@ class NodeNamer:
         # 大陆友好评分（保留1位小数）
         score_str = f"s{score:.1f}" if score is not None else ""
         # v28.58: 大陆可达性标记
-        ml_str = "✓" if mainland_pass else ""
+        ml_str = "✓" if mainland_reachable else ""
         # 哥特体后缀
         gothic = "𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"
         return f"{code}{num}-{lat_str}{score_str}{ml_str}-{gothic}"

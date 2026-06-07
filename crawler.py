@@ -526,6 +526,37 @@ def test_tcp_node(proxy):
         logging.debug("Exception occurred", exc_info=True)
         return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
 
+def _geo_score(item):
+    """IP 地理位置评分：亚洲高分，非友好区域低分"""
+    srv = item["proxy"].get("server", "")
+    # BUGFIX v28.20: IPv6 安全提取 host
+    if srv.startswith("[") and "]" in srv:
+        host = srv.split("]")[0][1:]
+    elif is_pure_ip(srv) and ":" in srv:
+        host = srv  # 纯 IPv6（如 fe80::1）整体就是 host
+    elif ":" in srv:
+        host = srv.split(":")[0]
+    else:
+        host = srv
+    score = 0
+    geo = limiter.get_geo(host)  # v28.22: 统一使用 limiter.get_geo()
+    if geo:
+        score += 2  # 有地理位置信息，更可靠
+        cc = geo.get("countryCode", "").upper()
+        # v28.8: 亚洲友好区域高额加分
+        if cc in ASIA_REGIONS:
+            score += ASIA_PRIORITY_BONUS
+        # v28.8: 非友好区域扣分
+        elif cc in NON_FRIENDLY_REGIONS:
+            score -= NON_FRIENDLY_PENALTY
+    # 大陆友好加分：名称含大陆/CN/内地关键词
+    name_lower = item.get("proxy", {}).get("name", "").lower()
+    cn_friendly_kw = ["cn", "china", "国内", "大陆", "直连", "beijing", "shanghai", "guangzhou", "shenzhen"]
+    if any(kw in name_lower for kw in cn_friendly_kw):
+        score += 30
+    return score
+
+
 def main():
     st = time.time()
 
@@ -761,35 +792,7 @@ def main():
 
         # v28.8: 利用 IP 地理位置优化排序（增强大陆友好性）
 
-        def _geo_score(item):
-            """IP 地理位置评分：亚洲高分，非友好区域低分"""
-            srv = item["proxy"].get("server", "")
-            # BUGFIX v28.20: IPv6 安全提取 host
-            if srv.startswith("[") and "]" in srv:
-                host = srv.split("]")[0][1:]
-            elif is_pure_ip(srv) and ":" in srv:
-                host = srv  # 纯 IPv6（如 fe80::1）整体就是 host
-            elif ":" in srv:
-                host = srv.split(":")[0]
-            else:
-                host = srv
-            score = 0
-            geo = limiter.get_geo(host)  # v28.22: 统一使用 limiter.get_geo()
-            if geo:
-                score += 2  # 有地理位置信息，更可靠
-                cc = geo.get("countryCode", "").upper()
-                # v28.8: 亚洲友好区域高额加分
-                if cc in ASIA_REGIONS:
-                    score += ASIA_PRIORITY_BONUS
-                # v28.8: 非友好区域扣分
-                elif cc in NON_FRIENDLY_REGIONS:
-                    score -= NON_FRIENDLY_PENALTY
-            # 大陆友好加分：名称含大陆/CN/内地关键词
-            name_lower = item.get("proxy", {}).get("name", "").lower()
-            cn_friendly_kw = ["cn", "china", "国内", "大陆", "直连", "beijing", "shanghai", "guangzhou", "shenzhen"]
-            if any(kw in name_lower for kw in cn_friendly_kw):
-                score += 30
-            return score
+
 
         # v28.49: 增强排序逻辑，大幅优先亚洲节点
         nres.sort(key=lambda x: (

@@ -285,111 +285,8 @@ if _cfg_path.exists():
         logging.debug("[sources.yaml] permission denied, using empty config")
 
 
-def _source_weight(url: str) -> int:
-    """v28.23: 根据URL特征推断源权重（1-10），国内友好源得分更高。
-    高权重源中解析出的节点在最终排序中获得额外加分。
-    """
-    u = url.lower()
-    # 国内友好源（历史数据表明亚洲节点占比高）
-    domestic_keywords = [
-        "ermaozi", "peasoft", "aiboboxx", "mfuu", "freefq", "kxswa",
-        "llywhn", "adiwzx", "changfengoss", "mymysub", "yeahwu",
-        "mksshare", "bulianglin", "yiiss", "free18", "shaoyouvip",
-        "yonggekkk", "vxiaodong", "wxloststar",
-    ]
-    for kw in domestic_keywords:
-        if kw in u:
-            return 8
-    # 大聚合源（量大但亚洲占比一般）
-    aggregator_keywords = ["mahdibland", "epodonios", "barry-far"]
-    for kw in aggregator_keywords:
-        if kw in u:
-            return 5
-    # 协议专项源（vless/hysteria2 对大陆更友好）
-    if "vless" in u or "hysteria2" in u:
-        return 7
-    if "trojan" in u:
-        return 6
-    # 默认权重
-    return 3
-
-_INLINE_CANDIDATE_URLS = [
-    # ============ 内联回退列表（sources.yaml 不存在时使用） ============
-    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
-    "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt",
-    "https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/v2",
-    "https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray",
-    "https://raw.githubusercontent.com/freefq/free/master/v2",
-    "https://raw.githubusercontent.com/kxswa/v2rayfree/main/v2ray",
-    "https://raw.githubusercontent.com/llywhn/v2ray-subscribe/main/v2ray.txt",
-
-    # ============ 国际稳定源 ============
-    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
-    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vmess.txt",
-    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/trojan.txt",
-    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/ss.txt",
-    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/hysteria2.txt",
-    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/Eternity.txt",
-    "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
-    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
-    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vless.txt",
-    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vmess.txt",
-    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/trojan.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vless.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vmess.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/trojan.txt",
-    "https://raw.githubusercontent.com/roosterkid/openproxylist/main/SS.json",
-    "https://raw.githubusercontent.com/roosterkid/openproxylist/main/VMESS.json",
-    "https://raw.githubusercontent.com/baaif/Subconverter/master/sub/sub.ini",
-    "https://shz.al/~WangCai",
-    # ============ 额外高质量源 ============
-    "https://raw.githubusercontent.com/fishball-2048/Subconverter/main/Sub/subconverter_subscribe.ini",
-    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/All_Configs_Sub.txt",
-    "https://raw.githubusercontent.com/SagerNet/sing-box/develop/Configs/proxies.json",
-    "https://raw.githubusercontent.com/XTLS/Xray-core/master/examples/config.json",
-    # v28.0: api.mrx.one 假token 已移除（由 sources.yaml 管理）
-    # ============ 国内额外优质源 ============
-    "https://raw.githubusercontent.com/adiwzx/freenode/main/v2ray.txt",
-    "https://raw.githubusercontent.com/xingsin/test/main/list",
-    "https://raw.githubusercontent.com/vxiaodong/zgq/main/sub",
-    "https://raw.githubusercontent.com/changfengoss/pro/main/sub",
-    "https://raw.githubusercontent.com/mymysub/V2raySubscribe/main/v2ray",
-    "https://raw.githubusercontent.com/wxloststar/v2ray_sub/master/v2ray.txt",
-    "https://raw.githubusercontent.com/aiboboxx/clashfree/main/clash",
-    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/clash.yaml",
-    "https://raw.githubusercontent.com/yonggekkk/yonggekkk.github.io/master/v2raylink.txt",
-    "https://raw.githubusercontent.com/ONGKB/V2RayAggregator/master/sub/sub_merge.txt",
-    "https://raw.githubusercontent.com/yeahwu/v2ray-wuzhi/main/v2ray",
-    "https://raw.githubusercontent.com/v2ray-free/v2ray-free/master/v2ray",
-    "https://raw.githubusercontent.com/ssrsub/ssr/master/v2ray",
-    # ============ 国际额外源 ============
-    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/ss.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/ss.txt",
-    "https://raw.githubusercontent.com/anaer/Sub/main/sub_merge.txt",
-    # ============ v25新增国内友好源 ============
-    "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
-    "https://raw.githubusercontent.com/mksshare/mksshare.github.io/main/sub",
-    "https://raw.githubusercontent.com/yiiss/ProxyScrape/main/sub",
-    "https://raw.githubusercontent.com/bulianglin/demo/main/sub",
-    "https://raw.githubusercontent.com/chengaikun/V2RayNode/main/list",
-    "https://raw.githubusercontent.com/xream/awesome-vpn/main/sub",
-    "https://raw.githubusercontent.com/FreeFlyingMan/v2rayfree/main/v2ray",
-    "https://raw.githubusercontent.com/NastyaFan/mihomo-clash/main/proxy",
-    # ============ v25: 2026-04-20 最新大陆优质源（12个高频维护） ============
-    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/clash.yml",
-    "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.meta.yml",
-    "https://raw.githubusercontent.com/free18/v2ray/refs/heads/main/v.txt",
-    "https://raw.githubusercontent.com/free18/v2ray/refs/heads/main/c.yaml",
-    "https://raw.githubusercontent.com/shaoyouvip/free/refs/heads/main/all.yaml",
-    "https://raw.githubusercontent.com/shaoyouvip/free/refs/heads/main/base64.txt",
-    "https://raw.githubusercontent.com/a2470982985/getNode/main/clash.yaml",
-    "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list_raw.txt",
-    "https://nodesfree.github.io/clashnode/clash.yaml",
-    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/hysteria2.txt",
-    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/tuic.txt",
-    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/main/sub/splitted/vless.txt",
-]
+# _source_weight 已迁移到 core/history.py（通过 _source_weight 别名兼容）
+# _INLINE_CANDIDATE_URLS 已废弃：CANDIDATE_URLS 直接从 sources.yaml 读取
 CANDIDATE_URLS = _yaml_urls  # v28.34: 强制从 sources.yaml 读取，不再使用内联回退
 
 
@@ -532,236 +429,31 @@ _DNS_CACHE = {}
 _DNS_CACHE_LOCK = threading.Lock()  # v28.22: 线程安全锁
 DNS_CACHE_TTL = 300
 
-# ===== 历史稳定性记录 ======
-_HISTORY_SCORES = {}
-_HISTORY_SCORES_LOCK = threading.Lock()  # v28.22: 线程安全锁
-
-# v28.53: 节点历史可用性追踪（node_history.json）
-NODE_HISTORY_FILE = Path("node_history.json")
-_NODE_HISTORY = {}
-_NODE_HISTORY_LOCK = threading.Lock()
-
-# v28.54: 智能源权重系统（source_history.json）
-SOURCE_HISTORY_FILE = Path("source_history.json")
-_SOURCE_HISTORY = {}
-_SOURCE_HISTORY_LOCK = threading.Lock()
-
-
-def _load_node_history():
-    """加载节点历史记录。"""
-    global _NODE_HISTORY
-    if NODE_HISTORY_FILE.exists():
-        try:
-            with open(NODE_HISTORY_FILE, "r", encoding="utf-8") as f:
-                _NODE_HISTORY = json.load(f)
-        except (json.JSONDecodeError, OSError, ValueError):
-            _NODE_HISTORY = {}
-    else:
-        _NODE_HISTORY = {}
+# v28.68: 历史记录模块已迁移到 core/history.py
+from core.history import (
+    load_node_history, load_source_history,
+    save_source_history, save_node_history,
+    update_source_history, dynamic_source_weight, source_weight,
+    update_node_history, get_node_history_score,
+    get_node_history, get_source_history, get_history_scores,
+    NODE_HISTORY_FILE, SOURCE_HISTORY_FILE,
+    _NODE_HISTORY, _SOURCE_HISTORY, _NODE_HISTORY_LOCK, _SOURCE_HISTORY_LOCK,
+)
+# 兼容旧名
+_load_node_history = load_node_history
+_load_source_history = load_source_history
+_save_node_history = save_node_history
+_save_source_history = save_source_history
+_update_source_history = update_source_history
+_dynamic_source_weight = dynamic_source_weight
+_source_weight = source_weight
+_update_node_history = update_node_history
+_get_node_history_score = get_node_history_score
+_HISTORY_COMPAT_IMPORTED = True  # 标记：历史模块已从 core.history 导入
 
 
-def _load_source_history():
-    """加载源历史记录。"""
-    global _SOURCE_HISTORY
-    if SOURCE_HISTORY_FILE.exists():
-        try:
-            with open(SOURCE_HISTORY_FILE, "r", encoding="utf-8") as f:
-                _SOURCE_HISTORY = json.load(f)
-        except (json.JSONDecodeError, OSError, ValueError):
-            _SOURCE_HISTORY = {}
-    else:
-        _SOURCE_HISTORY = {}
 
 
-def _save_source_history():
-    """保存源历史记录。"""
-    try:
-        with open(SOURCE_HISTORY_FILE, "w", encoding="utf-8") as f:
-            json.dump(_SOURCE_HISTORY, f, ensure_ascii=False, indent=2)
-    except (OSError, ValueError):
-        logging.debug("Save source history failed", exc_info=True)
-
-
-def _save_node_history():
-    """保存节点历史记录。"""
-    try:
-        with open(NODE_HISTORY_FILE, "w", encoding="utf-8") as f:
-            json.dump(_NODE_HISTORY, f, ensure_ascii=False, indent=2)
-    except (OSError, ValueError):
-        logging.debug("Save node history failed", exc_info=True)
-
-
-def _update_source_history(url: str, success: bool, node_count: int = 0, asia_count: int = 0):
-    """更新单个源的历史记录。
-    
-    Args:
-        url: 订阅源 URL
-        success: 本次抓取是否成功
-        node_count: 本次抓取的节点数
-        asia_count: 本次抓取的亚洲节点数
-    """
-    now = datetime.now().isoformat()
-    with _SOURCE_HISTORY_LOCK:
-        if url not in _SOURCE_HISTORY:
-            _SOURCE_HISTORY[url] = {
-                "first_seen": now,
-                "last_seen": now,
-                "success_count": 0,
-                "fail_count": 0,
-                "total_nodes": 0,
-                "total_asia_nodes": 0,
-                "fetch_count": 0,
-                "history": [],  # 最近10次记录
-            }
-        rec = _SOURCE_HISTORY[url]
-        rec["last_seen"] = now
-        rec["fetch_count"] += 1
-        if success:
-            rec["success_count"] += 1
-        else:
-            rec["fail_count"] += 1
-        if node_count > 0:
-            rec["total_nodes"] += node_count
-            rec["total_asia_nodes"] += asia_count
-            # 保留最近10次记录
-            rec["history"].append({
-                "time": now,
-                "nodes": node_count,
-                "asia_nodes": asia_count,
-            })
-            if len(rec["history"]) > 10:
-                rec["history"] = rec["history"][-10:]
-
-
-def _dynamic_source_weight(url: str) -> float:
-    """计算动态源权重（1-20分）。
-    
-    融合静态规则 + 历史表现动态计算：
-    - 静态规则：URL 关键词硬编码（1-10分）
-    - 动态因子：成功率、亚洲比例、新鲜度、趋势
-    
-    公式：static * (0.4 + success_rate * 1.2) * (0.8 + asia_rate * 0.4) * recency * trend
-    """
-    # 1. 静态基础分（1-10）
-    static = float(_source_weight(url))
-    
-    with _SOURCE_HISTORY_LOCK:
-        rec = _SOURCE_HISTORY.get(url)
-        if not rec:
-            # 无历史数据：返回静态分 * 中性因子（1.0）
-            return round(static * 1.0, 1)
-        
-        # 2. 成功率因子（0.4 - 1.6）
-        total_fetches = rec["success_count"] + rec["fail_count"]
-        success_rate = rec["success_count"] / total_fetches if total_fetches > 0 else 0.5
-        success_factor = 0.4 + success_rate * 1.2
-        
-        # 3. 亚洲比例因子（0.8 - 1.2）
-        total_nodes = rec["total_nodes"]
-        asia_rate = rec["total_asia_nodes"] / total_nodes if total_nodes > 0 else 0.3
-        asia_factor = 0.8 + asia_rate * 0.4
-        
-        # 4. 新鲜度因子（0.4 - 1.3）
-        last_seen = datetime.fromisoformat(rec["last_seen"])
-        days_since = (datetime.now() - last_seen).total_seconds() / 86400
-        if days_since < 1:
-            recency = 1.3
-        elif days_since < 7:
-            recency = 1.0
-        elif days_since < 30:
-            recency = 0.7
-        else:
-            recency = 0.4
-        
-        # 5. 趋势因子（0.7 - 1.9）
-        history = rec.get("history", [])
-        if len(history) >= 3:
-            recent = sum(h["nodes"] for h in history[-3:]) / 3.0
-            older = sum(h["nodes"] for h in history[:-3]) / max(len(history) - 3, 1)
-            if older > 0:
-                trend = 0.7 + min(recent / older, 1.2) * 1.0
-            else:
-                trend = 1.0
-        else:
-            trend = 1.0
-        
-        # 综合计算
-        weight = static * success_factor * asia_factor * recency * trend
-        # 限制在 1-20 范围
-        weight = max(1.0, min(20.0, weight))
-        return round(weight, 1)
-
-
-def _update_node_history(proxy: dict, success: bool):
-    """更新单个节点的历史记录。
-    
-    Args:
-        proxy: 节点配置字典
-        success: 本次测试是否成功
-    """
-    # 节点指纹作为唯一键
-    uid = proxy.get("uuid", "")
-    pwd = proxy.get("password", "")
-    auth = uid or pwd or ""
-    host = proxy.get("sni", "") or proxy.get("servername", "") or proxy.get("server", "")
-    path = ""
-    ws_opts = proxy.get("ws-opts", {})
-    if isinstance(ws_opts, dict):
-        path = ws_opts.get("path", "")
-    key = hashlib.md5(
-        f"{proxy.get('type', '')}|{proxy.get('server', '')}|{proxy.get('port', 0)}|{auth}|{path}|{host}".encode(),
-        usedforsecurity=False,
-    ).hexdigest()
-    
-    now = datetime.now().isoformat()
-    with _NODE_HISTORY_LOCK:
-        if key not in _NODE_HISTORY:
-            _NODE_HISTORY[key] = {
-                "first_seen": now,
-                "last_seen": now,
-                "success_count": 0,
-                "fail_count": 0,
-                "availability": 0.0,
-            }
-        rec = _NODE_HISTORY[key]
-        rec["last_seen"] = now
-        if success:
-            rec["success_count"] += 1
-        else:
-            rec["fail_count"] += 1
-        total = rec["success_count"] + rec["fail_count"]
-        rec["availability"] = round(rec["success_count"] / total, 3) if total > 0 else 0.0
-
-
-def _get_node_history_score(proxy: dict) -> float:
-    """获取节点历史可用性评分（0-20分）。
-    
-    高可用性节点获得额外加分，新节点中性评分。
-    """
-    uid = proxy.get("uuid", "")
-    pwd = proxy.get("password", "")
-    auth = uid or pwd or ""
-    host = proxy.get("sni", "") or proxy.get("servername", "") or proxy.get("server", "")
-    path = ""
-    ws_opts = proxy.get("ws-opts", {})
-    if isinstance(ws_opts, dict):
-        path = ws_opts.get("path", "")
-    key = hashlib.md5(
-        f"{proxy.get('type', '')}|{proxy.get('server', '')}|{proxy.get('port', 0)}|{auth}|{path}|{host}".encode(),
-        usedforsecurity=False,
-    ).hexdigest()
-    
-    with _NODE_HISTORY_LOCK:
-        rec = _NODE_HISTORY.get(key)
-        if not rec:
-            return 10.0  # 新节点：中性评分
-        avail = rec["availability"]
-        total = rec["success_count"] + rec["fail_count"]
-        # 可用性评分：根据历史可用率加权
-        # 样本量越大，评分越可信
-        confidence = min(total / 10.0, 1.0)  # 10次以上达到最大置信度
-        score = avail * 20.0 * confidence + 10.0 * (1 - confidence)
-        return round(score, 1)
 
 # ===== 网络基准 ======
 _NETWORK_BASELINE = {"latency": 9999, "verified": False}

@@ -28,6 +28,43 @@ from core.history import (
 from network.geo import limiter, _ip_geo_batch
 from network.tcp import tcp_ping as _tcp_ping
 
+def write_output(final):
+        with open("proxies.yaml", "w", encoding="utf-8") as f:
+            yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False, Dumper=yaml.SafeDumper)
+
+        # BUGFIX: 标准订阅格式 = 整块 base64 编码（大部分客户端要求此格式）
+        plain_lines = '\n'.join(link for p in unique_final if (link := format_proxy_to_link(p)) is not None)  # v28.22: 过滤None
+        b64_content = base64.b64encode(plain_lines.encode('utf-8')).decode('utf-8')
+        with open("subscription.txt", "w", encoding="utf-8") as f:
+            f.write(b64_content)
+
+        # 统计
+        tt = time.time() - st
+        asia_ct = sum(1 for p in unique_final if is_asia(p))
+        # v28.39: 从节点名称提取延迟用于统计
+        min_lat = 9999
+        for p in unique_final[:20]:
+            m = re.search(r"(\d+)", p.get("name", ""))
+            if m:
+                lat = int(m.group(1))
+                if 0 < lat < min_lat:
+                    min_lat = lat
+        if min_lat == 9999:
+            min_lat = 0
+
+        logging.debug("\n" + "=" * 180)
+        logging.debug("[STAT] 统计结果")
+        logging.debug("=" * 180)
+        logging.debug(f"• Fork 来源：{len(fork_subs)}")
+        logging.debug(f"• Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总：{len(all_urls)}")
+        logging.debug(f"• 原始：{len(nodes)} | TCP: {len(nres)} | 最终：{len(unique_final)}")
+        # v28.13: 修复亚洲占比计算（避免除零，使用更精确的计算）
+        asia_pct = round(asia_ct * 100 / max(len(unique_final), 1), 1)
+        logging.debug(f"• 亚洲：{asia_ct} 个 ({asia_pct}%)")
+        logging.debug(f"• 最低延迟：{min_lat:.1f} ms")
+        logging.debug(f"• 耗时：{tt:.1f} 秒")
+        logging.debug("=" * 180 + "\n")
+
 def main():
     st = time.time()
 
@@ -572,41 +609,7 @@ def main():
                                  "type": "select",
                                  "proxies": ["[START] Auto"] + [p["name"] for p in cleaned_final]}],
                "rules": _rules}
-        with open("proxies.yaml", "w", encoding="utf-8") as f:
-            yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False, Dumper=yaml.SafeDumper)
-
-        # BUGFIX: 标准订阅格式 = 整块 base64 编码（大部分客户端要求此格式）
-        plain_lines = '\n'.join(link for p in unique_final if (link := format_proxy_to_link(p)) is not None)  # v28.22: 过滤None
-        b64_content = base64.b64encode(plain_lines.encode('utf-8')).decode('utf-8')
-        with open("subscription.txt", "w", encoding="utf-8") as f:
-            f.write(b64_content)
-
-        # 统计
-        tt = time.time() - st
-        asia_ct = sum(1 for p in unique_final if is_asia(p))
-        # v28.39: 从节点名称提取延迟用于统计
-        min_lat = 9999
-        for p in unique_final[:20]:
-            m = re.search(r"(\d+)", p.get("name", ""))
-            if m:
-                lat = int(m.group(1))
-                if 0 < lat < min_lat:
-                    min_lat = lat
-        if min_lat == 9999:
-            min_lat = 0
-
-        logging.debug("\n" + "=" * 180)
-        logging.debug("[STAT] 统计结果")
-        logging.debug("=" * 180)
-        logging.debug(f"• Fork 来源：{len(fork_subs)}")
-        logging.debug(f"• Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总：{len(all_urls)}")
-        logging.debug(f"• 原始：{len(nodes)} | TCP: {len(nres)} | 最终：{len(unique_final)}")
-        # v28.13: 修复亚洲占比计算（避免除零，使用更精确的计算）
-        asia_pct = round(asia_ct * 100 / max(len(unique_final), 1), 1)
-        logging.debug(f"• 亚洲：{asia_ct} 个 ({asia_pct}%)")
-        logging.debug(f"• 最低延迟：{min_lat:.1f} ms")
-        logging.debug(f"• 耗时：{tt:.1f} 秒")
-        logging.debug("=" * 180 + "\n")
+        write_output(final)
 
         # 9. Telegram 推送（保留）
         if BOT_TOKEN and CHAT_ID and REPO_NAME:

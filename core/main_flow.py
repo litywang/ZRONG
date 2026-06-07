@@ -3,9 +3,6 @@ import sys
 import json
 import logging
 import hashlib
-import time
-import signal
-import asyncio
 import httpx
 from pathlib import Path
 from datetime import datetime, timezone
@@ -13,14 +10,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from utils import (
     WORK_DIR, MAX_RETRIES, HEADERS_POOL, REQUESTS_PER_SECOND,
     is_asia, is_pure_ip, ASIA_REGIONS, NON_FRIENDLY_REGIONS,
-    NON_FRIENDLY_PENALTY, mainland_friendly_score,
+    NON_FRIENDLY_PENALTY, ASIA_PRIORITY_BONUS, mainland_friendly_score,
 )
-from core.clash import ClashManager
-from core.namer import NodeNamer
-from core.output import format_proxy_to_link
-from core.config import check_network_baseline, ensure_clash_dir, create_session, tcp_ping
-from core.filter import filter_quality
-from core.history import _signal_handler
+from core import (
+    ClashManager, NodeNamer, format_proxy_to_link,
+    check_network_baseline, ensure_clash_dir, create_session, tcp_ping,
+    filter_quality,
+    _signal_handler,
+)
 from core.testing import test_tcp_node, test_one
 from core.filter import _geo_score, final_sort_key
 from core.history import (
@@ -30,116 +27,271 @@ from core.history import (
 )
 from network.geo import limiter, _ip_geo_batch
 from network.tcp import tcp_ping as _tcp_ping
-from sources.telegram import crawl_telegram_channels
-from sources.utils import strip_url
-from sources.github import discover_github_forks
-from core.history import source_weight
-from network.client import sync_close_async_http_client
+from sources.subscription import async_fetch_nodes
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description='ZRONG 代理订阅聚合工具')
+    parser.add_argument('--version', action='version', version='ZRONG v28.63')
+    args = parser.parse_args()
+
+    st = time.time()
+
+    # v28.53: 初始化 sources 配置访问层（必须在其他 sources 函数调用前）
+    import sources.config
+    sources.config.init_config()
+
+    # v28.53: 加载节点历史记录
+    _load_node_history()
+    # v28.54: 加载源历史记录
+    _load_source_history()
+
+    # 注册信号处理（优化：自动保存数据）
+
+    signal.signal(signal.SIGINT, _signal_handler)
+    signal.signal(signal.SIGTERM, _signal_handler)
+    logging.debug("[OK] 信号处理已注册（自动保存数据）")
+
+    # v28.22: CN CIDR 数据有效期校验（gen_cn_cidr.py 每次运行会重新生成 cn_cidr_data.py，所以不能在那里加函数）
+    try:
+        _cidr_file = Path(__file__).parent / "cn_cidr_data.py"
+        if _cidr_file.exists():
+            _cidr_age_days = (time.time() - _cidr_file.stat().st_mtime) / 86400
+            if _cidr_age_days > 30:
+                logging.warning("[WARN] CN_CIDR 数据已过期 (%.0f 天)，建议运行 gen_cn_cidr.py 更新", _cidr_age_days)
+    except (OSError, ValueError):
+        logging.debug("Exception occurred", exc_info=True)
+        # 校验失败不影响主流程
+
+    clash = ClashManager()
+    namer = NodeNamer()
+    proxy_ok = False
+
+    # v29: 异步抓取模式（可选启用）
+    USE_ASYNC_FETCH = os.getenv("USE_ASYNC_FETCH", "0") == "1"
+
+    logging.info("=" * 50)
+    logging.info("[START] 聚合订阅爬虫 v28.39 - 大陆优化版")
+    logging.info("作者：Anftlity | Version: 28.33")
+    logging.info(f"异步抓取: {'[OK] 启用' if USE_ASYNC_FETCH else '[FAIL] 禁用（同步模式）'}")
+    logging.info("=" * 50)
+
+    all_urls = []
+
+    try:
+        # 1. Telegram 频道爬取（最高优先级）
+        logging.info("[TG] 爬取 Telegram 频道（优先）...")
+        tg_subs = crawl_telegram_channels(TELEGRAM_CHANNELS, pages=1, limits=20)
+        tg_urls = list(set([strip_url(u) for u in tg_subs.keys()]))
+        logging.debug(f"[OK] Telegram 订阅：{len(tg_urls)} 个\n")
+
+        # 2. Telegram 订阅 URL 加入队列（最高优先级）
+        all_urls.extend(tg_urls)
+        logging.debug(f"[OK] Telegram 订阅已加入队列：{len(tg_urls)} 个\n")
+
+        # 3. GitHub Fork 发现（中等优先级）
+        logging.info("[SEARCH] GitHub Fork 发现...")
+        fork_subs = discover_github_forks()
+        all_urls.extend(fork_subs)
+        logging.info(f"[OK] Fork 来源：{len(fork_subs)} 个")
+
+        # 4. 固定订阅源（最低优先级，放最后）
+        logging.info("[LOAD] 加载固定订阅源（补充）...")
+        fixed_urls = [strip_url(u) for u in CANDIDATE_URLS if strip_url(u)]
+        all_urls.extend(fixed_urls)
+        logging.info(f"[OK] 固定订阅源：{len(fixed_urls)} 个（跳过验证）")
+
+        # 5. 去重
+        all_urls = list(set(all_urls))
+        logging.info(f"[STAT] 总订阅源：{len(all_urls)} 个")
+
+        # v28.54: 按动态权重排序订阅源（高权重源优先抓取）
+        url_weights = {u: _dynamic_source_weight(u) for u in all_urls}
+        all_urls.sort(key=lambda u: -url_weights[u])
+        logging.info(f"[STAT] 源权重排序完成（最高权重: {url_weights[all_urls[0]]:.1f}")
+
+        # 6. 抓取节点（按all_urls顺序，Telegram已在前面）
+        logging.info("[LOAD] 抓取节点...")
+        nodes = {}
+        yaml_count = 0
+        txt_count = 0
+        # v28.54: 追踪每个 URL 的抓取结果用于更新源历史
+        url_results = {}  # url -> (success, node_count, asia_count)
+
+        if USE_ASYNC_FETCH:
+            # v29 异步抓取路径
+            logging.info("[WEB] 使用异步抓取模式...")
+            nodes, yaml_count, txt_count, url_results = asyncio.run(
+                async_fetch_nodes(all_urls, MAX_FETCH_NODES)
+            )
+        else:
+            # v28.x 同步抓取路径（保留）
+            with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as ex:
+                futures = {ex.submit(fetch_and_parse, u): u for u in all_urls}
+                completed = 0
+                for future in as_completed(futures):
+                    url = futures[future]
+                    completed += 1
+                    local_nodes, is_yaml = future.result()
+                    node_count = len(local_nodes)
+                    asia_count = sum(1 for p in local_nodes.values() if is_asia(p))
+                    url_results[url] = (node_count > 0, node_count, asia_count)
+                    for h, p in local_nodes.items():
+                        if h not in nodes:
+                            # v28.54: 使用动态权重覆盖静态权重
+                            p["_src_weight"] = _dynamic_source_weight(url)
+                            nodes[h] = p
+                    # BUGFIX: 仅在有节点时才计入 yaml/txt 统计
+                    if local_nodes:
+                        if is_yaml:
+                            yaml_count += 1
+                        else:
+                            txt_count += 1
+                    if completed % 50 == 0:
+                        logging.debug(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
+                    if len(nodes) >= MAX_FETCH_NODES:
+                        break
+
+        # v28.54: 更新所有源的历史记录
+        for url, (success, node_count, asia_count) in url_results.items():
+            _update_source_history(url, success, node_count, asia_count)
+
+        logging.debug(f"[OK] 唯一节点：{len(nodes)} 个 (YAML源: {yaml_count}, TXT源: {txt_count})\n")
+
+        if not nodes:
+            logging.warning("[FAIL] 无有效节点!")
+            return
+
+        # 5.5 节点质量过滤（借鉴 wzdnzd/aggregator）
+        logging.info("[SEARCH] 节点质量过滤...")
+        before_filter = len(nodes)
+        nodes = {h: p for h, p in nodes.items() if filter_quality(p)}
+        after_filter = len(nodes)
+        logging.info(f"[OK] 质量过滤：{before_filter} → {after_filter} 个（排除 {before_filter - after_filter} 个低质量节点)")
+
+        if not nodes:
+            logging.warning("[FAIL] 过滤后无有效节点!")
+            return
+
+        # v28.58: 同服务器跨协议优选去重
+        # 同一服务器同一端口有多个协议节点时，只保留大陆友好度评分最高的那个
+        # 避免同一 IP:Port 的多个协议节点占用宝贵的测试额度
+        before_dedup_server = len(nodes)
+        srvport_best = {}
+        for h, p in nodes.items():
+            srv = p.get("server", "").lower()
+            port = str(p.get("port", 0))
+            # 提取纯服务器地址（去掉端口）
+            if srv.startswith("[") and "]" in srv:
+                host = srv.split("]")[0][1:]
+            elif ":" in srv and is_pure_ip(srv.split(":")[0]):
+                host = srv.rsplit(":", 1)[0]
+            else:
+                host = srv.split(":")[0] if ":" in srv else srv
+            key = f"{host}:{port}"
+            mf = mainland_friendly_score(p)
+            if key not in srvport_best or mf > srvport_best[key][1]:
+                srvport_best[key] = (h, mf)
+        # 只保留每个 server:port 评分最高的节点
+        nodes = {h: nodes[h] for h, _ in srvport_best.values()}
+        after_dedup_server = len(nodes)
+        if before_dedup_server > after_dedup_server:
+            logging.info(f"[OK] 同服务器跨协议去重：{before_dedup_server} → {after_dedup_server} 个（保留每IP:Port最优协议）")
+
+        # 5.6 预查询 IP 地理位置（批量，用于节点区域识别）
+        logging.info("[GEO] 预查询 IP 地理位置...")
+        all_servers = set()
+        for p in nodes.values():
+            srv = p.get("server", "")
+            # BUGFIX v28.20: IPv6 安全提取 host
+            if srv.startswith("[") and "]" in srv:
+                host = srv.split("]")[0][1:]
+            elif is_pure_ip(srv) and ":" in srv:
+                host = srv  # 纯 IPv6（如 fe80::1）整体就是 host
+            elif ":" in srv:
+                host = srv.split(":")[0]
+            else:
+                host = srv
+            if is_pure_ip(host):
+                all_servers.add(host)
+        _ip_geo_batch(list(all_servers)[:500])  # 最多查 500 个
+
+        # 6. TCP 测试（提高并发）
+        logging.info("[SPEED] 第一层：TCP 延迟测试...")
+        # v28.49: TCP测试队列优化——亚洲节点优先测试，提高亚洲测试比例
+        all_nodes_list = list(nodes.values())
+        asia_nodes_list = [n for n in all_nodes_list if is_asia(n)]
+        non_asia_nodes_list = [n for n in all_nodes_list if not is_asia(n)]
+        # v28.49: 亚洲节点优先，分配80%测试额度给亚洲（原为70%）
+        asia_tcp_ratio = 0.80
+        asia_quota = min(len(asia_nodes_list), int(MAX_TCP_TEST_NODES * asia_tcp_ratio))
+        non_asia_quota = min(len(non_asia_nodes_list), MAX_TCP_TEST_NODES - asia_quota)
+        # v28.49: 亚洲节点保底——至少测试120个亚洲节点（如果存在）
+        asia_min_test = min(120, len(asia_nodes_list))
+        if asia_quota < asia_min_test:
+            asia_quota = asia_min_test
+            non_asia_quota = min(len(non_asia_nodes_list), MAX_TCP_TEST_NODES - asia_quota)
+
+        # v28.58: 亚洲节点按大陆友好度评分排序，高分节点优先进入TCP测试队列
+        # 这样确保有限的TCP测试额度优先分配给更可能大陆友好的节点
+        try:
+            asia_nodes_list.sort(key=lambda n: mainland_friendly_score(n), reverse=True)
+        except (ValueError, KeyError, TypeError):
+            logging.debug("Asia nodes sort by mf_score failed, using original order")
+
+        nlist = asia_nodes_list[:asia_quota] + non_asia_nodes_list[:non_asia_quota]
+        logging.info(f"   [STAT] TCP测试队列：{len(asia_nodes_list[:asia_quota])} 亚洲"
+              f" + {len(non_asia_nodes_list[:non_asia_quota])} 非亚洲 = {len(nlist)} 总计")
+        nres = []
 
 
 
-from core.config import session
+        # 提高并发数用于 TCP 测试（大幅提高）
+        tcp_workers = min(int(os.getenv("TCP_WORKERS", "200")), 500)  # v28.22: 可配置，上限500
+        with ThreadPoolExecutor(max_workers=tcp_workers) as ex:
+            futures = {ex.submit(test_tcp_node, p): p for p in nlist}
+            completed = 0
+            for future in as_completed(futures):
+                try:
+                    result = future.result(timeout=2)  # 缩短超时
+                    if result["latency"] < MAX_LATENCY:
+                        nres.append(result)
+                        # v28.53: TCP测试通过，更新历史记录
+                        _update_node_history(result["proxy"], success=True)
+                    else:
+                        # v28.53: TCP测试失败，更新历史记录
+                        _update_node_history(result["proxy"], success=False)
+                    completed += 1
+                    if completed % 50 == 0:
+                        logging.debug(f"   进度：{completed}/{len(nlist)} | 合格：{len(nres)}")
+                except (OSError, ValueError, TypeError):
+                    logging.debug("Proxy test error for node")
 
-def write_output(final):
-        with open("proxies.yaml", "w", encoding="utf-8") as f:
-            yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False, Dumper=yaml.SafeDumper)
+        # v28.8: 利用 IP 地理位置优化排序（增强大陆友好性）
 
-        # BUGFIX: 标准订阅格式 = 整块 base64 编码（大部分客户端要求此格式）
-        plain_lines = '\n'.join(link for p in unique_final if (link := format_proxy_to_link(p)) is not None)  # v28.22: 过滤None
-        b64_content = base64.b64encode(plain_lines.encode('utf-8')).decode('utf-8')
-        with open("subscription.txt", "w", encoding="utf-8") as f:
-            f.write(b64_content)
 
-        # 统计
-        tt = time.time() - st
-        asia_ct = sum(1 for p in unique_final if is_asia(p))
-        # v28.39: 从节点名称提取延迟用于统计
-        min_lat = 9999
-        for p in unique_final[:20]:
-            m = re.search(r"(\d+)", p.get("name", ""))
-            if m:
-                lat = int(m.group(1))
-                if 0 < lat < min_lat:
-                    min_lat = lat
-        if min_lat == 9999:
-            min_lat = 0
 
-        logging.debug("\n" + "=" * 180)
-        logging.debug("[STAT] 统计结果")
-        logging.debug("=" * 180)
-        logging.debug(f"• Fork 来源：{len(fork_subs)}")
-        logging.debug(f"• Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总：{len(all_urls)}")
-        logging.debug(f"• 原始：{len(nodes)} | TCP: {len(nres)} | 最终：{len(unique_final)}")
-        # v28.13: 修复亚洲占比计算（避免除零，使用更精确的计算）
-        asia_pct = round(asia_ct * 100 / max(len(unique_final), 1), 1)
-        logging.debug(f"• 亚洲：{asia_ct} 个 ({asia_pct}%)")
-        logging.debug(f"• 最低延迟：{min_lat:.1f} ms")
-        logging.debug(f"• 耗时：{tt:.1f} 秒")
-        logging.debug("=" * 180 + "\n")
+        # v28.49: 增强排序逻辑，大幅优先亚洲节点
+        nres.sort(key=lambda x: (
+            -_geo_score(x),  # IP 地理位置加权（亚洲加分，非友好区域扣分）
+            -x["is_asia"],
+            -(1 if is_reality_friendly(x["proxy"]) else 0),  # Reality节点优先
+            -PROTOCOL_SCORE.get(x["proxy"].get("type", ""), 0) / 10.0,  # 协议评分加权
+            x["latency"]
+        ))
+        # v28.49: 如果亚洲节点不足75%，调整排序策略强制提升（原为70%）
+        asia_count = sum(1 for n in nres if n["is_asia"])
+        if asia_count > 0 and asia_count < len(nres) * 0.75:
+            # 重新排序：亚洲节点全部置顶，非亚洲按延迟排序
+            asia_nodes = [n for n in nres if n["is_asia"]]
+            non_asia_nodes = [n for n in nres if not n["is_asia"]]
+            nres = asia_nodes + non_asia_nodes
+            logging.info("   强制亚洲置顶：{} 亚洲 + {} 非亚洲".format(len(asia_nodes), len(non_asia_nodes)))
+        # v28.14: 重新计算亚洲数量（排序后可能已调整）
+        asia_count = sum(1 for n in nres if n["is_asia"])
+        tcp_asia_pct = round(asia_count * 100 / max(len(nres), 1), 1)
+        logging.debug(f"[OK] 第一层合格：{len(nres)} 个（亚洲：{asia_count}，占比：{tcp_asia_pct}%）\n")
 
-def telegram_push(final, asia_ct, min_lat, tt):
-        if BOT_TOKEN and CHAT_ID and REPO_NAME:
-            try:
-                ts = int(time.time())
-                yaml_raw_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/proxies.yaml?t={ts}"
-                txt_raw_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/subscription.txt?t={ts}"
-                repo_path = f"https://github.com/{REPO_NAME}/blob/main/"
-                yaml_html_url = f"{repo_path}proxies.yaml"
-                txt_html_url = f"{repo_path}subscription.txt"
-
-                start_icon = "[START]"
-                end_icon = "[CELEBRATE]"
-                update_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-                msg = f"""{start_icon}<b>节点更新完成</b>{end_icon}
-
-    [STAT] <b>统计数据:</b>
-    • Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总订阅：{len(all_urls)}
-    • Fork 来源：{len(fork_subs)}
-    • 原始：{len(nodes)} | TCP: {len(nres)} | 最终：<code>{len(unique_final)}</code> 个
-    • 亚洲：{asia_ct} 个 ({asia_pct}%)
-    • 最低延迟：{min_lat:.1f} ms
-    • 平均耗时：{tt:.1f} 秒
-    ━━━━━━━━━━━━━━━━━━━━━━━
-
-    [SAVE] <b>直链下载:</b>
-    YAML: <code>{yaml_raw_url}</code>
-    TXT: <code>{txt_raw_url}</code>
-
-    [WEB] <b>网页查看:</b>
-    YAML: <a href="{yaml_html_url}">{yaml_html_url}</a>
-    TXT: <a href="{txt_html_url}">{txt_html_url}</a>
-
-    ━━━━━━━━━━━━━━━━━━━━━━━
-
-    [WEB] <b>支持协议:</b> VMess | VLESS | Trojan | SS | Hysteria2 | Hysteria | TUIC | WireGuard
-    [PERSON]‍[PC] <b>作者:</b> Anftlity
-
-    <b>更新时间:</b> {update_time}"""
-                requests.post(
-                    f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-                    json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"},
-                    timeout=10
-                )
-                logging.debug("[OK] Telegram通知已发送")
-            except (requests.RequestException, OSError, ValueError) as e:
-                logging.debug(f"[WARN] Telegram推送失败：{e}")
-
-def print_source_stats():
-        # v28.54: 输出源权重统计
-        if _SOURCE_HISTORY:
-            logging.debug("\n[STAT] 源权重统计（Top 10）:")
-            sorted_sources = sorted(
-                _SOURCE_HISTORY.items(),
-                key=lambda x: source_weight(x[0]),
-                reverse=True
-            )[:10]
-            for url, rec in sorted_sources:
-                w = source_weight(url)
-                success_rate = rec["success_count"] / max(rec["success_count"] + rec["fail_count"], 1)
-                logging.debug(f"   • 权重{w:.1f} | 成功率{success_rate:.0%} | {url[:60]}...")
-
-def clash_test(final, clash, namer, nres, tested):
         # 7. 真实测速 + TCP 保底（保留）
         logging.info("[START] 真实代理测速（分批）...")
         final = []
@@ -330,267 +482,6 @@ def clash_test(final, clash, namer, nres, tested):
         logging.debug(f"\n[OK] 最终：{len(final)} 个")
         logging.debug(f"[STAT] 真实测速：{'[OK]' if proxy_ok else '[FAIL]'}\n")
 
-
-def main():
-    st = time.time()
-
-    # v28.53: 初始化 sources 配置访问层（必须在其他 sources 函数调用前）
-    import sources.config
-    sources.config.init_config()
-
-    # v28.53: 加载节点历史记录
-    load_node_history()
-    # v28.54: 加载源历史记录
-    load_source_history()
-
-    # 注册信号处理（优化：自动保存数据）
-
-    signal.signal(signal.SIGINT, _signal_handler)
-    signal.signal(signal.SIGTERM, _signal_handler)
-    logging.debug("[OK] 信号处理已注册（自动保存数据）")
-
-    # v28.22: CN CIDR 数据有效期校验（gen_cn_cidr.py 每次运行会重新生成 cn_cidr_data.py，所以不能在那里加函数）
-    try:
-        _cidr_file = Path(__file__).parent / "cn_cidr_data.py"
-        if _cidr_file.exists():
-            _cidr_age_days = (time.time() - _cidr_file.stat().st_mtime) / 86400
-            if _cidr_age_days > 30:
-                logging.warning("[WARN] CN_CIDR 数据已过期 (%.0f 天)，建议运行 gen_cn_cidr.py 更新", _cidr_age_days)
-    except (OSError, ValueError):
-        logging.debug("Exception occurred", exc_info=True)
-        # 校验失败不影响主流程
-
-    clash = ClashManager()
-    namer = NodeNamer()
-    proxy_ok = False
-
-    # v29: 异步抓取模式（可选启用）
-    USE_ASYNC_FETCH = os.getenv("USE_ASYNC_FETCH", "0") == "1"
-
-    logging.info("=" * 50)
-    logging.info("[START] 聚合订阅爬虫 v28.39 - 大陆优化版")
-    logging.info("作者：Anftlity | Version: 28.33")
-    logging.info(f"异步抓取: {'[OK] 启用' if USE_ASYNC_FETCH else '[FAIL] 禁用（同步模式）'}")
-    logging.info("=" * 50)
-
-    all_urls = []
-
-    try:
-        import crawler
-        # 1. Telegram 频道爬取（最高优先级）
-        logging.info("[TG] 爬取 Telegram 频道（优先）...")
-        tg_subs = crawl_telegram_channels(crawler.TELEGRAM_CHANNELS, pages=1, limits=20)
-        tg_urls = list(set([strip_url(u) for u in tg_subs.keys()]))
-        logging.debug(f"[OK] Telegram 订阅：{len(tg_urls)} 个\n")
-
-        # 2. Telegram 订阅 URL 加入队列（最高优先级）
-        all_urls.extend(tg_urls)
-        logging.debug(f"[OK] Telegram 订阅已加入队列：{len(tg_urls)} 个\n")
-
-        # 3. GitHub Fork 发现（中等优先级）
-        logging.info("[SEARCH] GitHub Fork 发现...")
-        fork_subs = discover_github_forks()
-        all_urls.extend(fork_subs)
-        logging.info(f"[OK] Fork 来源：{len(fork_subs)} 个")
-
-        # 4. 固定订阅源（最低优先级，放最后）
-        logging.info("[LOAD] 加载固定订阅源（补充）...")
-        fixed_urls = [strip_url(u) for u in crawler.CANDIDATE_URLS if strip_url(u)]
-        all_urls.extend(fixed_urls)
-        logging.info(f"[OK] 固定订阅源：{len(fixed_urls)} 个（跳过验证）")
-
-        # 5. 去重
-        all_urls = list(set(all_urls))
-        logging.info(f"[STAT] 总订阅源：{len(all_urls)} 个")
-
-        # v28.54: 按动态权重排序订阅源（高权重源优先抓取）
-        url_weights = {u: source_weight(u) for u in all_urls}
-        all_urls.sort(key=lambda u: -url_weights[u])
-        logging.info(f"[STAT] 源权重排序完成（最高权重: {url_weights[all_urls[0]]:.1f}")
-
-        # 6. 抓取节点（按all_urls顺序，Telegram已在前面）
-        logging.info("[LOAD] 抓取节点...")
-        nodes = {}
-        yaml_count = 0
-        txt_count = 0
-        # v28.54: 追踪每个 URL 的抓取结果用于更新源历史
-        url_results = {}  # url -> (success, node_count, asia_count)
-
-        if USE_ASYNC_FETCH:
-            # v29 异步抓取路径
-            logging.info("[WEB] 使用异步抓取模式...")
-            nodes, yaml_count, txt_count, url_results = asyncio.run(
-                async_fetch_nodes(all_urls, MAX_FETCH_NODES)
-            )
-        else:
-            # v28.x 同步抓取路径（保留）
-            with ThreadPoolExecutor(max_workers=crawler.FETCH_WORKERS) as ex:
-                futures = {ex.submit(fetch_and_parse, u): u for u in all_urls}
-                completed = 0
-                for future in as_completed(futures):
-                    url = futures[future]
-                    completed += 1
-                    local_nodes, is_yaml = future.result()
-                    node_count = len(local_nodes)
-                    asia_count = sum(1 for p in local_nodes.values() if is_asia(p))
-                    url_results[url] = (node_count > 0, node_count, asia_count)
-                    for h, p in local_nodes.items():
-                        if h not in nodes:
-                            # v28.54: 使用动态权重覆盖静态权重
-                            p["_src_weight"] = source_weight(url)
-                            nodes[h] = p
-                    # BUGFIX: 仅在有节点时才计入 yaml/txt 统计
-                    if local_nodes:
-                        if is_yaml:
-                            yaml_count += 1
-                        else:
-                            txt_count += 1
-                    if completed % 50 == 0:
-                        logging.debug(f"   进度: {completed}/{len(all_urls)} | 节点: {len(nodes)}")
-                    if len(nodes) >= MAX_FETCH_NODES:
-                        break
-
-        # v28.54: 更新所有源的历史记录
-        for url, (success, node_count, asia_count) in url_results.items():
-            _update_source_history(url, success, node_count, asia_count)
-
-        logging.debug(f"[OK] 唯一节点：{len(nodes)} 个 (YAML源: {yaml_count}, TXT源: {txt_count})\n")
-
-        if not nodes:
-            logging.warning("[FAIL] 无有效节点!")
-            return
-
-        # 5.5 节点质量过滤（借鉴 wzdnzd/aggregator）
-        logging.info("[SEARCH] 节点质量过滤...")
-        before_filter = len(nodes)
-        nodes = {h: p for h, p in nodes.items() if filter_quality(p)}
-        after_filter = len(nodes)
-        logging.info(f"[OK] 质量过滤：{before_filter} → {after_filter} 个（排除 {before_filter - after_filter} 个低质量节点)")
-
-        if not nodes:
-            logging.warning("[FAIL] 过滤后无有效节点!")
-            return
-
-        # v28.58: 同服务器跨协议优选去重
-        # 同一服务器同一端口有多个协议节点时，只保留大陆友好度评分最高的那个
-        # 避免同一 IP:Port 的多个协议节点占用宝贵的测试额度
-        before_dedup_server = len(nodes)
-        srvport_best = {}
-        for h, p in nodes.items():
-            srv = p.get("server", "").lower()
-            port = str(p.get("port", 0))
-            # 提取纯服务器地址（去掉端口）
-            if srv.startswith("[") and "]" in srv:
-                host = srv.split("]")[0][1:]
-            elif ":" in srv and is_pure_ip(srv.split(":")[0]):
-                host = srv.rsplit(":", 1)[0]
-            else:
-                host = srv.split(":")[0] if ":" in srv else srv
-            key = f"{host}:{port}"
-            mf = mainland_friendly_score(p)
-            if key not in srvport_best or mf > srvport_best[key][1]:
-                srvport_best[key] = (h, mf)
-        # 只保留每个 server:port 评分最高的节点
-        nodes = {h: nodes[h] for h, _ in srvport_best.values()}
-        after_dedup_server = len(nodes)
-        if before_dedup_server > after_dedup_server:
-            logging.info(f"[OK] 同服务器跨协议去重：{before_dedup_server} → {after_dedup_server} 个（保留每IP:Port最优协议）")
-
-        # 5.6 预查询 IP 地理位置（批量，用于节点区域识别）
-        logging.info("[GEO] 预查询 IP 地理位置...")
-        all_servers = set()
-        for p in nodes.values():
-            srv = p.get("server", "")
-            # BUGFIX v28.20: IPv6 安全提取 host
-            if srv.startswith("[") and "]" in srv:
-                host = srv.split("]")[0][1:]
-            elif is_pure_ip(srv) and ":" in srv:
-                host = srv  # 纯 IPv6（如 fe80::1）整体就是 host
-            elif ":" in srv:
-                host = srv.split(":")[0]
-            else:
-                host = srv
-            if is_pure_ip(host):
-                all_servers.add(host)
-        _ip_geo_batch(list(all_servers)[:500])  # 最多查 500 个
-
-        # 6. TCP 测试（提高并发）
-        logging.info("[SPEED] 第一层：TCP 延迟测试...")
-        # v28.49: TCP测试队列优化——亚洲节点优先测试，提高亚洲测试比例
-        all_nodes_list = list(nodes.values())
-        asia_nodes_list = [n for n in all_nodes_list if is_asia(n)]
-        non_asia_nodes_list = [n for n in all_nodes_list if not is_asia(n)]
-        # v28.49: 亚洲节点优先，分配80%测试额度给亚洲（原为70%）
-        asia_tcp_ratio = 0.80
-        asia_quota = min(len(asia_nodes_list), int(MAX_TCP_TEST_NODES * asia_tcp_ratio))
-        non_asia_quota = min(len(non_asia_nodes_list), MAX_TCP_TEST_NODES - asia_quota)
-        # v28.49: 亚洲节点保底——至少测试120个亚洲节点（如果存在）
-        asia_min_test = min(120, len(asia_nodes_list))
-        if asia_quota < asia_min_test:
-            asia_quota = asia_min_test
-            non_asia_quota = min(len(non_asia_nodes_list), MAX_TCP_TEST_NODES - asia_quota)
-
-        # v28.58: 亚洲节点按大陆友好度评分排序，高分节点优先进入TCP测试队列
-        # 这样确保有限的TCP测试额度优先分配给更可能大陆友好的节点
-        try:
-            asia_nodes_list.sort(key=lambda n: mainland_friendly_score(n), reverse=True)
-        except (ValueError, KeyError, TypeError):
-            logging.debug("Asia nodes sort by mf_score failed, using original order")
-
-        nlist = asia_nodes_list[:asia_quota] + non_asia_nodes_list[:non_asia_quota]
-        logging.info(f"   [STAT] TCP测试队列：{len(asia_nodes_list[:asia_quota])} 亚洲"
-              f" + {len(non_asia_nodes_list[:non_asia_quota])} 非亚洲 = {len(nlist)} 总计")
-        nres = []
-
-
-
-        # 提高并发数用于 TCP 测试（大幅提高）
-        tcp_workers = min(int(os.getenv("TCP_WORKERS", "200")), 500)  # v28.22: 可配置，上限500
-        with ThreadPoolExecutor(max_workers=tcp_workers) as ex:
-            futures = {ex.submit(test_tcp_node, p): p for p in nlist}
-            completed = 0
-            for future in as_completed(futures):
-                try:
-                    result = future.result(timeout=2)  # 缩短超时
-                    if result["latency"] < MAX_LATENCY:
-                        nres.append(result)
-                        # v28.53: TCP测试通过，更新历史记录
-                        _update_node_history(result["proxy"], success=True)
-                    else:
-                        # v28.53: TCP测试失败，更新历史记录
-                        _update_node_history(result["proxy"], success=False)
-                    completed += 1
-                    if completed % 50 == 0:
-                        logging.debug(f"   进度：{completed}/{len(nlist)} | 合格：{len(nres)}")
-                except (OSError, ValueError, TypeError):
-                    logging.debug("Proxy test error for node")
-
-        # v28.8: 利用 IP 地理位置优化排序（增强大陆友好性）
-
-
-
-        # v28.49: 增强排序逻辑，大幅优先亚洲节点
-        nres.sort(key=lambda x: (
-            -_geo_score(x),  # IP 地理位置加权（亚洲加分，非友好区域扣分）
-            -x["is_asia"],
-            -(1 if is_reality_friendly(x["proxy"]) else 0),  # Reality节点优先
-            -PROTOCOL_SCORE.get(x["proxy"].get("type", ""), 0) / 10.0,  # 协议评分加权
-            x["latency"]
-        ))
-        # v28.49: 如果亚洲节点不足75%，调整排序策略强制提升（原为70%）
-        asia_count = sum(1 for n in nres if n["is_asia"])
-        if asia_count > 0 and asia_count < len(nres) * 0.75:
-            # 重新排序：亚洲节点全部置顶，非亚洲按延迟排序
-            asia_nodes = [n for n in nres if n["is_asia"]]
-            non_asia_nodes = [n for n in nres if not n["is_asia"]]
-            nres = asia_nodes + non_asia_nodes
-            logging.info("   强制亚洲置顶：{} 亚洲 + {} 非亚洲".format(len(asia_nodes), len(non_asia_nodes)))
-        # v28.14: 重新计算亚洲数量（排序后可能已调整）
-        asia_count = sum(1 for n in nres if n["is_asia"])
-        tcp_asia_pct = round(asia_count * 100 / max(len(nres), 1), 1)
-        logging.debug(f"[OK] 第一层合格：{len(nres)} 个（亚洲：{asia_count}，占比：{tcp_asia_pct}%）\n")
-        final = clash_test(final, clash, namer, nres, tested)
-
         # 8. 输出配置（保留）
         logging.debug("[NOTE] 生成配置...\n")
         final_names = {}
@@ -620,7 +511,19 @@ def main():
         for p in unique_final:
             cleaned = {k: v for k, v in p.items() if not k.startswith('_') and k in CLASH_FIELDS}
             cleaned_final.append(cleaned)
-        print_source_stats()
+
+        # v28.54: 输出源权重统计
+        if _SOURCE_HISTORY:
+            logging.debug("\n[STAT] 源权重统计（Top 10）:")
+            sorted_sources = sorted(
+                _SOURCE_HISTORY.items(),
+                key=lambda x: _dynamic_source_weight(x[0]),
+                reverse=True
+            )[:10]
+            for url, rec in sorted_sources:
+                w = _dynamic_source_weight(url)
+                success_rate = rec["success_count"] / max(rec["success_count"] + rec["fail_count"], 1)
+                logging.debug(f"   • 权重{w:.1f} | 成功率{success_rate:.0%} | {url[:60]}...")
 
         # v28.52: 大陆路由规则（CN_DIRECT=1 启用）
         _cn_direct = os.getenv("CN_DIRECT", "1") == "1"
@@ -675,11 +578,89 @@ def main():
                                  "type": "select",
                                  "proxies": ["[START] Auto"] + [p["name"] for p in cleaned_final]}],
                "rules": _rules}
-        write_output(final)
+        with open("proxies.yaml", "w", encoding="utf-8") as f:
+            yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False, Dumper=yaml.SafeDumper)
+
+        # BUGFIX: 标准订阅格式 = 整块 base64 编码（大部分客户端要求此格式）
+        plain_lines = '\n'.join(link for p in unique_final if (link := format_proxy_to_link(p)) is not None)  # v28.22: 过滤None
+        b64_content = base64.b64encode(plain_lines.encode('utf-8')).decode('utf-8')
+        with open("subscription.txt", "w", encoding="utf-8") as f:
+            f.write(b64_content)
+
+        # 统计
+        tt = time.time() - st
+        asia_ct = sum(1 for p in unique_final if is_asia(p))
+        # v28.39: 从节点名称提取延迟用于统计
+        min_lat = 9999
+        for p in unique_final[:20]:
+            m = re.search(r"(\d+)", p.get("name", ""))
+            if m:
+                lat = int(m.group(1))
+                if 0 < lat < min_lat:
+                    min_lat = lat
+        if min_lat == 9999:
+            min_lat = 0
+
+        logging.debug("\n" + "=" * 180)
+        logging.debug("[STAT] 统计结果")
+        logging.debug("=" * 180)
+        logging.debug(f"• Fork 来源：{len(fork_subs)}")
+        logging.debug(f"• Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总：{len(all_urls)}")
+        logging.debug(f"• 原始：{len(nodes)} | TCP: {len(nres)} | 最终：{len(unique_final)}")
+        # v28.13: 修复亚洲占比计算（避免除零，使用更精确的计算）
+        asia_pct = round(asia_ct * 100 / max(len(unique_final), 1), 1)
+        logging.debug(f"• 亚洲：{asia_ct} 个 ({asia_pct}%)")
+        logging.debug(f"• 最低延迟：{min_lat:.1f} ms")
+        logging.debug(f"• 耗时：{tt:.1f} 秒")
+        logging.debug("=" * 180 + "\n")
 
         # 9. Telegram 推送（保留）
-        telegram_push(final, asia_ct, min_lat, tt)
+        if BOT_TOKEN and CHAT_ID and REPO_NAME:
+            try:
+                ts = int(time.time())
+                yaml_raw_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/proxies.yaml?t={ts}"
+                txt_raw_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/subscription.txt?t={ts}"
+                repo_path = f"https://github.com/{REPO_NAME}/blob/main/"
+                yaml_html_url = f"{repo_path}proxies.yaml"
+                txt_html_url = f"{repo_path}subscription.txt"
 
+                start_icon = "[START]"
+                end_icon = "[CELEBRATE]"
+                update_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+                msg = f"""{start_icon}<b>节点更新完成</b>{end_icon}
+
+[STAT] <b>统计数据:</b>
+• Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总订阅：{len(all_urls)}
+• Fork 来源：{len(fork_subs)}
+• 原始：{len(nodes)} | TCP: {len(nres)} | 最终：<code>{len(unique_final)}</code> 个
+• 亚洲：{asia_ct} 个 ({asia_pct}%)
+• 最低延迟：{min_lat:.1f} ms
+• 平均耗时：{tt:.1f} 秒
+━━━━━━━━━━━━━━━━━━━━━━━
+
+[SAVE] <b>直链下载:</b>
+YAML: <code>{yaml_raw_url}</code>
+TXT: <code>{txt_raw_url}</code>
+
+[WEB] <b>网页查看:</b>
+YAML: <a href="{yaml_html_url}">{yaml_html_url}</a>
+TXT: <a href="{txt_html_url}">{txt_html_url}</a>
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+[WEB] <b>支持协议:</b> VMess | VLESS | Trojan | SS | Hysteria2 | Hysteria | TUIC | WireGuard
+[PERSON]‍[PC] <b>作者:</b> Anftlity
+
+<b>更新时间:</b> {update_time}"""
+                requests.post(
+                    f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                    json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"},
+                    timeout=10
+                )
+                logging.debug("[OK] Telegram通知已发送")
+            except (requests.RequestException, OSError, ValueError) as e:
+                logging.debug(f"[WARN] Telegram推送失败：{e}")
         logging.debug("[CELEBRATE] 任务完成！")
 
     except (OSError, ValueError, TypeError, KeyboardInterrupt) as e:
@@ -708,12 +689,11 @@ def main():
             logging.debug("Exception occurred", exc_info=True)
         # v28.53: 程序退出时保存节点历史记录
         try:
-            save_node_history()
+            _save_node_history()
         except (OSError, ValueError):
             logging.debug("Exception occurred", exc_info=True)
         # v28.54: 程序退出时保存源历史记录
         try:
-            save_source_history()
+            _save_source_history()
         except (OSError, ValueError):
             logging.debug("Exception occurred", exc_info=True)
-

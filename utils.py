@@ -819,6 +819,10 @@ def mainland_friendly_score(p):
 # v28.44: 从 crawler.py 迁移
 REQUESTS_PER_SECOND = 6.0
 
+# v28.63: 从 crawler.py 迁移
+ASIA_PRIORITY_BONUS = int(os.getenv("ASIA_PRIORITY_BONUS", "40"))
+
+
 
 
 # v28.44: 从 crawler.py 迁移

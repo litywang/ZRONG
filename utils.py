@@ -15,23 +15,13 @@ import ipaddress
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+from config import (
+    NON_FRIENDLY_REGIONS, NON_FRIENDLY_PENALTY,
+    ASIA_REGIONS, REQUESTS_PER_SECOND,
+    ASIA_PRIORITY_BONUS, MAX_RETRIES,
+)
 
-NON_FRIENDLY_REGIONS = [
-    "IR", "IN", "RU", "NG", "ZA", "BR", "AR", "CL", "PE", "VE", "EC", "CO", "MX",
-    "US", "CA", "AU", "EU", "GB", "DE", "FR", "NL", "IT", "ES", "SE", "NO", "FI",
-    "DK", "PL", "CZ", "HU", "RO", "BG", "GR", "PT", "AT", "CH", "BE", "IE"
-]
 
-NON_FRIENDLY_PENALTY = 40
-
-ASIA_REGIONS = ["HK", "TW", "JP", "SG", "KR", "TH", "VN", "MY", "ID", "PH", "MO",
-                "MN", "KH", "LA", "MM", "BN", "TL", "NP", "LK", "BD", "BT", "MV"]
-
-REQUESTS_PER_SECOND = 6.0
-
-ASIA_PRIORITY_BONUS = int(os.getenv("ASIA_PRIORITY_BONUS", "40"))
-
-MAX_RETRIES = int(os.getenv("CLASH_TEST_RETRY", "2"))  # v28.21: 1→2，重试容错
 
 WORK_DIR = Path(os.getcwd()) / "clash_temp"
 

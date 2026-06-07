@@ -15,7 +15,8 @@ import logging
 import socket
 import time
 
-from utils import is_pure_ip, is_cn_proxy_domain
+from utils import is_pure_ip
+from core.validator import is_cn_proxy_domain
 
 
 def check_node_reachability(server, timeout=3.0):

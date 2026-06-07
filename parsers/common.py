@@ -4,6 +4,7 @@
 # generate_unique_id / _safe_port 来自 utils.py
 
 from .proxynode import ProxyNode
-from utils import generate_unique_id, _safe_port
+from core.validator import generate_unique_id
+from utils import _safe_port
 
 __all__ = ['ProxyNode', 'generate_unique_id', '_safe_port']

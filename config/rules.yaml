@@ -1,0 +1,187 @@
+# ZRONG 规则配置文件
+# 从 utils.py / core/scorer.py 提取的硬编码常量
+# 修改此文件后无需改代码，重启爬虫即可生效
+
+# ===== 区域配置 =====
+regions:
+  asia:
+    - "HK"
+    - "TW"
+    - "JP"
+    - "SG"
+    - "KR"
+    - "TH"
+    - "VN"
+    - "MY"
+    - "ID"
+    - "PH"
+    - "MO"
+    - "MN"
+    - "KH"
+    - "LA"
+    - "MM"
+    - "BN"
+    - "TL"
+    - "NP"
+    - "LK"
+    - "BD"
+    - "BT"
+    - "MV"
+  non_friendly:
+    - "IR"
+    - "IN"
+    - "RU"
+    - "NG"
+    - "ZA"
+    - "BR"
+    - "AR"
+    - "CL"
+    - "PE"
+    - "VE"
+    - "EC"
+    - "CO"
+    - "MX"
+    - "US"
+    - "CA"
+    - "AU"
+    - "EU"
+    - "GB"
+    - "DE"
+    - "FR"
+    - "NL"
+    - "IT"
+    - "ES"
+    - "SE"
+    - "NO"
+    - "FI"
+    - "DK"
+    - "PL"
+    - "CZ"
+    - "HU"
+    - "RO"
+    - "BG"
+    - "GR"
+    - "PT"
+    - "AT"
+    - "CH"
+    - "BE"
+    - "IE"
+  premium:  # 优质区域关键词（评分加成用）
+    - "hk"
+    - "hongkong"
+    - "港"
+    - "🇭🇰"
+    - "tw"
+    - "taiwan"
+    - "台"
+    - "🇹🇼"
+    - "jp"
+    - "japan"
+    - "日"
+    - "tokyo"
+    - "osaka"
+    - "🇯🇵"
+    - "sg"
+    - "singapore"
+    - "新加坡"
+    - "狮城"
+    - "🇸🇬"
+    - "kr"
+    - "korea"
+    - "韩"
+    - "seoul"
+    - "🇰🇷"
+
+# ===== 评分规则（旧版 legacy）=====
+scoring_legacy:
+  geo_bonus:
+    asia: 50
+    premium_region: 20  # 在 asia 基础上再加（含优质区域关键词）
+    us: 10
+    ca_au: 5
+  proto_bonus:
+    vless: 20
+    trojan: 15
+    vmess: 10
+    hysteria2: 18
+    hysteria: 12
+    ss: 5
+    ssr: 3
+  reality_bonus: 10
+  reality_extra_bonus: 5  # Reality + TLS 组合
+  network_bonus:
+    ws: 5
+    grpc: 3
+    h2: 0  # 旧版无 h2
+    quic: 0
+  port_bonus:
+    high: [443, 8443]
+    high_value: 5
+    medium: [80, 8080]
+    medium_value: 2
+
+# ===== 评分规则（新版 new）=====
+scoring_new:
+  # 亚洲分层
+  asia_tier1: 60  # 港台日新
+  asia_tier2: 45  # 韩泰越菲马印尼
+  asia_tier3: 35  # 其他亚洲
+  geo_confirm_bonus: 15  # IP 地理确认优质线路额外加分
+
+  # 非亚洲地区
+  us_west: 20  # 美西
+  us_other: 5
+  jp_kr_ip: 10  # IP 确认 JP/KR
+
+  proto_bonus:
+    vless: 25
+    trojan: 20
+    hysteria2: 18
+    vmess: 10
+    anytls: 12
+    hysteria: 8
+    tuic: 8
+    ss: 3
+    ssr: 1
+    http: 2
+    socks5: 2
+
+  reality_bonus: 20
+  reality_vless_bonus: 10  # Reality + VLESS 组合
+  tls_bonus: 8
+
+  network_bonus:
+    ws: 8
+    grpc: 6
+    h2: 4
+    quic: 3
+
+  port_bonus:
+    very_high: [443]
+    very_high_value: 8
+    high: [8443, 2053, 2083, 2087, 2096]
+    high_value: 6
+    medium: [80, 8080, 8880, 2052, 2082, 2086, 2095]
+    medium_value: 4
+    low_range: [1, 1023]  # 1-1023
+    low_value: 2
+    exclude_ports: [22, 25, 53, 110, 143, 993, 995]
+
+# ===== 请求配置 =====
+requests:
+  per_second: 6.0
+  max_retries: 2  # 环境变量 CLASH_TEST_RETRY 默认值
+
+# ===== 大陆优先加成 =====
+asia_priority_bonus: 40  # 环境变量 ASIA_PRIORITY_BONUS 默认值
+
+# ===== 非友好地区惩罚 =====
+non_friendly_penalty: 40
+
+# ===== HEADERS 池 =====
+# 因含 Python 字符串拼接，暂保留在 utils.py 中
+# 如需外置，可改为下方格式（需修改代码读取方式）
+# headers_pool:
+#   - User-Agent: "..."
+#     Accept: "..."
+#     ...

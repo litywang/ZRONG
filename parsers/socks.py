@@ -31,12 +31,7 @@ def parse_http_proxy(node: str) -> dict | None:
         if password:
             node_obj._extra["password"] = password
 
-        d = node_obj.to_dict()
-        if username:
-            d["username"] = username
-        if password:
-            d["password"] = password
-        return d
+        return node_obj.to_dict()
     except (ValueError, TypeError, AttributeError, UnicodeDecodeError) as e:
         logger.debug(f"[parse_http_proxy] 解析失败: {e}", exc_info=True)
         return None
@@ -66,12 +61,7 @@ def parse_socks(node: str) -> dict | None:
         if password:
             node_obj._extra["password"] = password
 
-        d = node_obj.to_dict()
-        if username:
-            d["username"] = username
-        if password:
-            d["password"] = password
-        return d
+        return node_obj.to_dict()
     except (ValueError, TypeError, AttributeError, UnicodeDecodeError) as e:
         logger.debug(f"[parse_socks] 解析失败: {e}", exc_info=True)
         return None

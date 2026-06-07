@@ -1,6 +1,8 @@
 # core/config.py - 配置与工具函数
 # v28.42 Phase4 重构
 
+from network.tcp import _tcp_ping, tcp_ping
+
 # ===== 网络基准（check_network_baseline 依赖）=====
 _NETWORK_BASELINE = {"latency": 9999, "verified": False}
 
@@ -13,7 +15,6 @@ def check_network_baseline():
             _NETWORK_BASELINE["verified"] = True
     return _NETWORK_BASELINE["latency"]
 
-tcp_ping = _tcp_ping
 
 
 def ensure_clash_dir():

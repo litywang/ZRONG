@@ -79,9 +79,11 @@ def crawl_telegram_page(url: str, limits: int = 25) -> Dict[str, dict]:
         collections = {}
 
         # 多级正则匹配（完整移植 wzdnzd）
+        # 注意：Unicode 范围不能写在 raw string 里，必须单独构造
+        chinese = '\u4e00-\u9fa5'
         patterns = [
             # 模式 1: 标准订阅链接
-            r'https?://[a-zA-Z0-9\u4e00-\u9fa5\-]+\.[a-zA-Z0-9\u4e00-\u9fa5\-]+'
+            r'https?://[a-zA-Z0-9' + chinese + r'\-]+(?:\.[a-zA-Z0-9' + chinese + r'\-]+)+'
             r'(?::\d+)?(?:/.*)?(?:sub|subscribe|token)[^\s<>]*',
 
             # 模式 2: GitHub Raw 链接

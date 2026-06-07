@@ -468,6 +468,147 @@ _init_cn_lookup()
 
 
 # [STAR] 主程序（集成 Fork 发现）
+def _signal_handler(sig, frame):
+    logging.debug(f"[EXIT] 捕获信号 {sig}，保存运行数据...")
+    _save_node_history()
+    _save_source_history()
+    limiter.save_geo_cache()
+    sys.exit(0)
+
+def test_tcp_node(proxy):
+    try:
+        server = proxy.get("server", "")
+        port = proxy.get("port", 0)
+        if not server or not port:
+            return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
+        # BUGFIX v28.20: IPv6 地址安全提取 host
+        if server.startswith("[") and "]" in server:
+            host = server.split("]")[0][1:]  # 提取 [xxx] 中的 xxx
+        elif is_pure_ip(server) and ":" in server:
+            host = server  # 纯 IPv6 地址（如 fe80::1），整体就是 host
+        elif ":" in server:
+            host = server.split(":")[0]  # IPv4:port 格式
+        else:
+            host = server
+        # v28.13: 预查询 IP 地理位置（用于后续排序优化）
+        if is_pure_ip(host) and limiter.get_geo(host) is None:
+            _ip_geo_batch([host])
+        lat = tcp_ping(host, port)
+        if lat >= 9999:
+            return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
+        # v28.47: 亚洲节点放宽丢包检测，提高亚洲节点通过率
+        if is_asia(proxy):
+            ok, total, usable = packet_loss_check(host, port, timeout=4.0, attempts=2)
+        else:
+            ok, total, usable = packet_loss_check(host, port, timeout=3.0, attempts=2)
+        if not usable:
+            return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
+        # BUGFIX v28.20: TLS 握手检测扩展到所有常用 TLS 端口
+        # 原来只检测 port==443，遗漏 8443/2053/2083/2087/2096 等
+        TLS_PORTS = {443, 8443, 2053, 2083, 2087, 2096, 8880}
+        if proxy.get("tls") and port in TLS_PORTS:
+            tls_ok, _ = tls_handshake_ok(host, port, timeout=3.0)
+            if not tls_ok:
+                return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
+        # v28.47: 协议握手验证 - 亚洲节点放宽验证
+        ptype = proxy.get("type", "").lower()
+        if ptype in ("ss", "ssr", "socks5", "http", "vmess", "vless", "trojan", "hysteria", "hysteria2", "tuic", "snell"):
+            if is_asia(proxy):
+                # 亚洲节点握手失败不直接淘汰，降低延迟要求
+                if not _proto_handshake_ok(host, port, ptype, proxy):
+                    logging.debug(f"亚洲节点 {host}:{port} 握手失败但保留")
+            else:
+                if not _proto_handshake_ok(host, port, ptype, proxy):
+                    return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
+        return {"proxy": proxy, "latency": float(lat), "is_asia": is_asia(proxy),
+                "hist_score": history_stability_score(host, port)}
+    except (OSError, ValueError, TypeError):
+        logging.debug("Exception occurred", exc_info=True)
+        return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
+
+def _geo_score(item):
+    """IP 地理位置评分：亚洲高分，非友好区域低分"""
+    srv = item["proxy"].get("server", "")
+    # BUGFIX v28.20: IPv6 安全提取 host
+    if srv.startswith("[") and "]" in srv:
+        host = srv.split("]")[0][1:]
+    elif is_pure_ip(srv) and ":" in srv:
+        host = srv  # 纯 IPv6（如 fe80::1）整体就是 host
+    elif ":" in srv:
+        host = srv.split(":")[0]
+    else:
+        host = srv
+    score = 0
+    geo = limiter.get_geo(host)  # v28.22: 统一使用 limiter.get_geo()
+    if geo:
+        score += 2  # 有地理位置信息，更可靠
+        cc = geo.get("countryCode", "").upper()
+        # v28.8: 亚洲友好区域高额加分
+        if cc in ASIA_REGIONS:
+            score += ASIA_PRIORITY_BONUS
+        # v28.8: 非友好区域扣分
+        elif cc in NON_FRIENDLY_REGIONS:
+            score -= NON_FRIENDLY_PENALTY
+    # 大陆友好加分：名称含大陆/CN/内地关键词
+    name_lower = item.get("proxy", {}).get("name", "").lower()
+    cn_friendly_kw = ["cn", "china", "国内", "大陆", "直连", "beijing", "shanghai", "guangzhou", "shenzhen"]
+    if any(kw in name_lower for kw in cn_friendly_kw):
+        score += 30
+    return score
+
+def final_sort_key(p):
+    # v28.68: 仅在大陆出口IP检测开启时才使用 mainland_pass 评分
+    #         默认关闭，mainland_pass=False 不扣分（避免将未测节点全部压在底部）
+    if ENABLE_MAINLAND_TEST:
+        ml_bonus = MAINLAND_PASS_BONUS if p.get("_mainland_pass", False) else (-30 if p.get("_mainland_pass") is False else 0)
+    else:
+        ml_bonus = 0
+    # v28.23: 排序整合大陆友好性评分 + 源权重
+    asia = 3 if is_asia(p) else 0  # v28.14: 提高亚洲权重（2→3）
+    reality = 1 if is_reality_friendly(p) else 0
+    proto_score = PROTOCOL_SCORE.get(p.get("type", ""), 0) / 10.0  # normalize
+    # v28.23: 大陆友好性综合评分（替代纯 region_bonus）
+    mf_score = mainland_friendly_score(p)
+    # v28.49: 亚洲节点额外加分（提高亚洲排序优先级）
+    if asia > 0:
+        mf_score += 15
+    # v28.58: 合并大陆测试加分 + 静态评分（静态评分占100%权重，测试通过额外加分）
+    mf_score = mf_score + ml_bonus
+    # v28.54: 使用动态源权重（1-20分），替代静态权重
+    src_weight = p.get("_src_weight", 3)
+    # 兼容旧 region_bonus 逻辑（IP geo 额外惩罚不友好地区）
+    region_bonus = 0
+    srv = p.get("server", "")
+    # BUGFIX v28.20: IPv6 安全提取 host
+    if srv.startswith("[") and "]" in srv:
+        host = srv.split("]")[0][1:]
+    elif is_pure_ip(srv) and ":" in srv:
+        host = srv  # 纯 IPv6（如 fe80::1）整体就是 host
+    elif ":" in srv:
+        host = srv.split(":")[0]
+    else:
+        host = srv
+    geo = limiter.get_geo(host)
+    if geo:
+        cc = geo.get("countryCode", "").upper()
+        if cc in NON_FRIENDLY_REGIONS:
+            region_bonus = -NON_FRIENDLY_PENALTY
+    # v28.14: extract latency from name for secondary sort
+    lat_from_name = 0
+    m = re.search(r"\d+", p.get("name", ""))
+    if m:
+        lat_from_name = int(m.group(0))
+    # v28.53: 融合历史可用性评分（0-20分）
+    hist_score = _get_node_history_score(p)
+    # sort: asia > mainland_friendly > src_weight > reality > proto > region_penalty > hist > latency
+    return (-asia, -mf_score, -src_weight, -reality, -proto_score, -region_bonus, -hist_score, lat_from_name)
+
+def test_one(item, clash, namer):
+    p = item["proxy"]
+    r = clash.test_proxy(p["name"], server=p.get("server"), port=p.get("port"))
+    return item, p, r
+
+
 def main():
     st = time.time()
 
@@ -481,12 +622,7 @@ def main():
     _load_source_history()
 
     # 注册信号处理（优化：自动保存数据）
-    def _signal_handler(sig, frame):
-        logging.debug(f"[EXIT] 捕获信号 {sig}，保存运行数据...")
-        _save_node_history()
-        _save_source_history()
-        limiter.save_geo_cache()
-        sys.exit(0)
+
     signal.signal(signal.SIGINT, _signal_handler)
     signal.signal(signal.SIGTERM, _signal_handler)
     logging.debug("[OK] 信号处理已注册（自动保存数据）")
@@ -683,56 +819,56 @@ def main():
               f" + {len(non_asia_nodes_list[:non_asia_quota])} 非亚洲 = {len(nlist)} 总计")
         nres = []
 
-        def test_tcp_node(proxy):
-            try:
-                server = proxy.get("server", "")
-                port = proxy.get("port", 0)
-                if not server or not port:
-                    return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
-                # BUGFIX v28.20: IPv6 地址安全提取 host
-                if server.startswith("[") and "]" in server:
-                    host = server.split("]")[0][1:]  # 提取 [xxx] 中的 xxx
-                elif is_pure_ip(server) and ":" in server:
-                    host = server  # 纯 IPv6 地址（如 fe80::1），整体就是 host
-                elif ":" in server:
-                    host = server.split(":")[0]  # IPv4:port 格式
-                else:
-                    host = server
-                # v28.13: 预查询 IP 地理位置（用于后续排序优化）
-                if is_pure_ip(host) and limiter.get_geo(host) is None:
-                    _ip_geo_batch([host])
-                lat = tcp_ping(host, port)
-                if lat >= 9999:
-                    return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
-                # v28.47: 亚洲节点放宽丢包检测，提高亚洲节点通过率
-                if is_asia(proxy):
-                    ok, total, usable = packet_loss_check(host, port, timeout=4.0, attempts=2)
-                else:
-                    ok, total, usable = packet_loss_check(host, port, timeout=3.0, attempts=2)
-                if not usable:
-                    return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
-                # BUGFIX v28.20: TLS 握手检测扩展到所有常用 TLS 端口
-                # 原来只检测 port==443，遗漏 8443/2053/2083/2087/2096 等
-                TLS_PORTS = {443, 8443, 2053, 2083, 2087, 2096, 8880}
-                if proxy.get("tls") and port in TLS_PORTS:
-                    tls_ok, _ = tls_handshake_ok(host, port, timeout=3.0)
-                    if not tls_ok:
-                        return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
-                # v28.47: 协议握手验证 - 亚洲节点放宽验证
-                ptype = proxy.get("type", "").lower()
-                if ptype in ("ss", "ssr", "socks5", "http", "vmess", "vless", "trojan", "hysteria", "hysteria2", "tuic", "snell"):
-                    if is_asia(proxy):
-                        # 亚洲节点握手失败不直接淘汰，降低延迟要求
-                        if not _proto_handshake_ok(host, port, ptype, proxy):
-                            logging.debug(f"亚洲节点 {host}:{port} 握手失败但保留")
-                    else:
-                        if not _proto_handshake_ok(host, port, ptype, proxy):
-                            return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
-                return {"proxy": proxy, "latency": float(lat), "is_asia": is_asia(proxy),
-                        "hist_score": history_stability_score(host, port)}
-            except (OSError, ValueError, TypeError):
-                logging.debug("Exception occurred", exc_info=True)
-                return {"proxy": proxy, "latency": 9999.0, "is_asia": False}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         # 提高并发数用于 TCP 测试（大幅提高）
         tcp_workers = min(int(os.getenv("TCP_WORKERS", "200")), 500)  # v28.22: 可配置，上限500
         with ThreadPoolExecutor(max_workers=tcp_workers) as ex:
@@ -756,35 +892,35 @@ def main():
 
         # v28.8: 利用 IP 地理位置优化排序（增强大陆友好性）
 
-        def _geo_score(item):
-            """IP 地理位置评分：亚洲高分，非友好区域低分"""
-            srv = item["proxy"].get("server", "")
-            # BUGFIX v28.20: IPv6 安全提取 host
-            if srv.startswith("[") and "]" in srv:
-                host = srv.split("]")[0][1:]
-            elif is_pure_ip(srv) and ":" in srv:
-                host = srv  # 纯 IPv6（如 fe80::1）整体就是 host
-            elif ":" in srv:
-                host = srv.split(":")[0]
-            else:
-                host = srv
-            score = 0
-            geo = limiter.get_geo(host)  # v28.22: 统一使用 limiter.get_geo()
-            if geo:
-                score += 2  # 有地理位置信息，更可靠
-                cc = geo.get("countryCode", "").upper()
-                # v28.8: 亚洲友好区域高额加分
-                if cc in ASIA_REGIONS:
-                    score += ASIA_PRIORITY_BONUS
-                # v28.8: 非友好区域扣分
-                elif cc in NON_FRIENDLY_REGIONS:
-                    score -= NON_FRIENDLY_PENALTY
-            # 大陆友好加分：名称含大陆/CN/内地关键词
-            name_lower = item.get("proxy", {}).get("name", "").lower()
-            cn_friendly_kw = ["cn", "china", "国内", "大陆", "直连", "beijing", "shanghai", "guangzhou", "shenzhen"]
-            if any(kw in name_lower for kw in cn_friendly_kw):
-                score += 30
-            return score
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         # v28.49: 增强排序逻辑，大幅优先亚洲节点
         nres.sort(key=lambda x: (
@@ -840,14 +976,14 @@ def main():
 
                 proxy_ok = True
 
-                def test_one(item):
-                    p = item["proxy"]
-                    r = clash.test_proxy(p["name"], server=p.get("server"), port=p.get("port"))
-                    return item, p, r
+
+
+
+
 
                 try:
                     with ThreadPoolExecutor(max_workers=40) as tex:  # v28.7: 20→40 并发（Clash API 异步，不需要保守）
-                        test_futures = {tex.submit(test_one, item): item for item in batch_items}
+                        test_futures = {tex.submit(test_one, item, clash, namer): item for item in batch_items}
                         done_count = 0
                         for future in as_completed(test_futures):
                             try:
@@ -956,52 +1092,52 @@ def main():
         final = final[:MAX_FINAL_NODES]
 
         # v28.57: 最终排序整合真实大陆可达性测试结果
-        def final_sort_key(p):
-            # v28.68: 仅在大陆出口IP检测开启时才使用 mainland_pass 评分
-            #         默认关闭，mainland_pass=False 不扣分（避免将未测节点全部压在底部）
-            if ENABLE_MAINLAND_TEST:
-                ml_bonus = MAINLAND_PASS_BONUS if p.get("_mainland_pass", False) else (-30 if p.get("_mainland_pass") is False else 0)
-            else:
-                ml_bonus = 0
-            # v28.23: 排序整合大陆友好性评分 + 源权重
-            asia = 3 if is_asia(p) else 0  # v28.14: 提高亚洲权重（2→3）
-            reality = 1 if is_reality_friendly(p) else 0
-            proto_score = PROTOCOL_SCORE.get(p.get("type", ""), 0) / 10.0  # normalize
-            # v28.23: 大陆友好性综合评分（替代纯 region_bonus）
-            mf_score = mainland_friendly_score(p)
-            # v28.49: 亚洲节点额外加分（提高亚洲排序优先级）
-            if asia > 0:
-                mf_score += 15
-            # v28.58: 合并大陆测试加分 + 静态评分（静态评分占100%权重，测试通过额外加分）
-            mf_score = mf_score + ml_bonus
-            # v28.54: 使用动态源权重（1-20分），替代静态权重
-            src_weight = p.get("_src_weight", 3)
-            # 兼容旧 region_bonus 逻辑（IP geo 额外惩罚不友好地区）
-            region_bonus = 0
-            srv = p.get("server", "")
-            # BUGFIX v28.20: IPv6 安全提取 host
-            if srv.startswith("[") and "]" in srv:
-                host = srv.split("]")[0][1:]
-            elif is_pure_ip(srv) and ":" in srv:
-                host = srv  # 纯 IPv6（如 fe80::1）整体就是 host
-            elif ":" in srv:
-                host = srv.split(":")[0]
-            else:
-                host = srv
-            geo = limiter.get_geo(host)
-            if geo:
-                cc = geo.get("countryCode", "").upper()
-                if cc in NON_FRIENDLY_REGIONS:
-                    region_bonus = -NON_FRIENDLY_PENALTY
-            # v28.14: extract latency from name for secondary sort
-            lat_from_name = 0
-            m = re.search(r"\d+", p.get("name", ""))
-            if m:
-                lat_from_name = int(m.group(0))
-            # v28.53: 融合历史可用性评分（0-20分）
-            hist_score = _get_node_history_score(p)
-            # sort: asia > mainland_friendly > src_weight > reality > proto > region_penalty > hist > latency
-            return (-asia, -mf_score, -src_weight, -reality, -proto_score, -region_bonus, -hist_score, lat_from_name)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         # v28.49: 配额制节点选择——提高亚洲比例
         # 分组排序后再按配额合并，柔性配额：保底+上限

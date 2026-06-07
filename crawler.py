@@ -101,8 +101,6 @@ CHANGELOG v28.17:
 import signal
 import sys
 from urllib.parse import urlparse, unquote, parse_qs
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from cn_cidr_data import CN_IP_RANGES as _CN_IP_RANGES_RAW  # cn_cidr_data.py 由 gen_cn_cidr.py 自动生成，不可添加自定义函数
@@ -116,20 +114,12 @@ import time
 import json
 
 # v28.45: GeoIP2 本地数据库支持（GitHub Actions 预下载）
-import sys
 import re
 import yaml
 import subprocess
-import signal
 import gzip
 import shutil
 import ssl
-import urllib.request
-import urllib.error
-
-# v28.66a: 出口IP缓存（同IP只查一次）
-_exit_ip_cache = {}
-import urllib.parse
 import threading
 import random
 import logging
@@ -439,42 +429,6 @@ _init_cn_lookup()
 
 # v28.45: GeoIP2 本地数据库读取器（延迟初始化）
 # BUGFIX v28.39: 添加 _ip_geo_batch（主流程依赖）
-
-
-
-
-
-
-
-
-# [STAR] 节点解析器（保持不变）
-# v28.34: 协议解析器已迁移到 parsers/ 包
-# 请从 parsers 包导入:
-# from parsers import (parse_vmess, parse_vless, parse_trojan, parse_trojan_go,
-#     parse_ss, parse_ssr, parse_hysteria, parse_hysteria2,
-#     parse_tuic, parse_snell, parse_http_proxy, parse_socks,
-#     parse_anytls, parse_node)
-
-
-
-
-
-# [STAR] Clash 管理（保持不变）
-
-
-# [STAR] 节点命名（优化版：无后缀）
-
-
-# [STAR] 协议链接转换（扩展版）
-
-
-# [STAR] 主程序（集成 Fork 发现）
-
-
-
-
-
-
 
 
 

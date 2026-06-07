@@ -1,6 +1,9 @@
 # core/filter.py - filter_quality 核心过滤函数
 # v28.42 Phase4 重构
 
+from core.validator import is_china_mainland
+
+
 def filter_quality(p):
     """【v28.58】节点质量过滤，含 CN IP/域名黑名单 + 非代理端口过滤 + 大陆友好性评分"""
     if not p or not isinstance(p, dict):

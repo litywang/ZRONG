@@ -86,6 +86,7 @@ def main():
     USE_ASYNC_FETCH = os.getenv("USE_ASYNC_FETCH", "0") == "1"
 
     try:
+        session = create_session()
         logging.info("=" * 50)
         logging.info("[START] 聚合订阅爬虫 v28.39 - 大陆优化版")
         logging.info("作者：Anftlity | Version: 28.33")
@@ -610,7 +611,8 @@ TXT: <a href="{txt_html_url}">{txt_html_url}</a>
             logging.debug("关闭异步HTTP客户端失败", exc_info=True)
         # ISSUE-3-05: 关闭 requests session，避免资源泄漏
         try:
-            session.close()
+            if session:
+                session.close()
             logging.debug("[OK] Requests session 已关闭")
         except (OSError, ValueError):
             logging.debug("Exception occurred", exc_info=True)

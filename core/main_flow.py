@@ -31,6 +31,7 @@ from core.history import (
     load_node_history, load_source_history,
     record_history, history_stability_score,
     dynamic_source_weight, update_source_history,
+    update_node_history,
 )
 from network.geo import limiter, _ip_geo_batch
 from network.tcp import tcp_ping as _tcp_ping
@@ -41,7 +42,13 @@ from sources import (
     crawl_telegram_channels, strip_url, discover_github_forks,
     fetch_and_parse, async_fetch_nodes, sync_close_async_http_client,
 )
-from sources.config import TELEGRAM_CHANNELS, CANDIDATE_URLS, MAX_FETCH_NODES, FETCH_WORKERS, MAX_TCP_TEST_NODES, MAX_LATENCY
+from sources.config import (
+    TELEGRAM_CHANNELS, CANDIDATE_URLS, MAX_FETCH_NODES, FETCH_WORKERS,
+    MAX_TCP_TEST_NODES, MAX_LATENCY, MAX_PROXY_TEST_NODES,
+    MAX_FINAL_NODES, MAX_PROXY_LATENCY, TEST_URL,
+    TARGET_ASIA_RATIO, ASIA_TCP_RELAX, ASIA_MIN_COUNT,
+    BOT_TOKEN, CHAT_ID, REPO_NAME,
+)
 
 
 def main():
@@ -190,10 +197,10 @@ def main():
                     if result["latency"] < MAX_LATENCY:
                         nres.append(result)
                         # v28.53: TCP测试通过，更新历史记录
-                        _update_node_history(result["proxy"], success=True)
+                        update_node_history(result["proxy"], success=True)
                     else:
                         # v28.53: TCP测试失败，更新历史记录
-                        _update_node_history(result["proxy"], success=False)
+                        update_node_history(result["proxy"], success=False)
                     completed += 1
                     if completed % 50 == 0:
                         logging.debug(f"   进度：{completed}/{len(nlist)} | 合格：{len(nres)}")
@@ -297,11 +304,11 @@ def main():
                                     final.append(p)
                                     tested.add(k)  # v28.12: restore
                                     # v28.53: 真实测速通过，更新历史记录
-                                    _update_node_history(p, success=True)
+                                    update_node_history(p, success=True)
                                     logging.info(f"   [OK] {p['name']}")
                                 else:
                                     # v28.53: 真实测速失败，更新历史记录
-                                    _update_node_history(p, success=False)
+                                    update_node_history(p, success=False)
                                 if len(final) >= MAX_FINAL_NODES:
                                     batch_enough = True  # BUGFIX: 通知外层 while 退出
                                     break

@@ -5,17 +5,13 @@ on:
     branches: [main]
     paths:
       - 'crawler.py'
-      - 'gen_cn_cidr.py'
+
       - 'sources.yaml'
       - 'cn_cidr_data.py'
       - '.github/workflows/update.yml'
       - 'core/**'
       - 'network/**'
       - 'utils.py'
-      - 'check_config.py'
-      - 'check_proxies.py'
-      - 'deep_scan.py'
-      - 'patch_optimizations.py'
   schedule:
     - cron: '0 */8 * * *'
   workflow_dispatch:
@@ -51,9 +47,6 @@ jobs:
           ls -lh GeoLite2-City.mmdb
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 更新中国 CIDR 数据
-        run: python gen_cn_cidr.py
 
       - name: Run Crawler v28.58
         env:

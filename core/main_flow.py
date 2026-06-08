@@ -13,6 +13,7 @@ from utils import (
     WORK_DIR, MAX_RETRIES, HEADERS_POOL, REQUESTS_PER_SECOND,
     is_pure_ip, ASIA_REGIONS, NON_FRIENDLY_REGIONS,
     NON_FRIENDLY_PENALTY, ASIA_PRIORITY_BONUS,
+    get_region,
 )
 from core.validator import is_asia
 from core.scorer import mainland_friendly_score, PROTOCOL_SCORE

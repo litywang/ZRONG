@@ -10,6 +10,7 @@ network/geo.py - GeoIP 查询与限流
 """
 
 import json
+import random
 import logging
 import os
 import threading

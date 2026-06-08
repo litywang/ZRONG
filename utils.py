@@ -7,11 +7,6 @@ import logging
 import os
 import re
 import ipaddress
-import hashlib
-import logging
-import os
-import re
-import ipaddress
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -72,6 +67,18 @@ def is_pure_ip(host: str) -> bool:
         return True
     except (ValueError, TypeError):
         return False
+
+_limiter_instance = None
+
+
+def _get_limiter():
+    """延迟导入 SmartRateLimiter，避免循环依赖"""
+    global _limiter_instance
+    if _limiter_instance is None:
+        from network.geo import SmartRateLimiter
+        _limiter_instance = SmartRateLimiter()
+    return _limiter_instance
+
 
 def get_region(name, server=None, sni=None):
     """根据节点名称检测区域 - v27: 修复emoji flag识别 + 域名fallback + sni支持

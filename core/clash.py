@@ -8,6 +8,17 @@ import signal
 import subprocess
 import sys
 import time
+import logging
+import os
+import re
+import shutil
+import signal
+import subprocess
+import sys
+import time
+import yaml
+
+import requests
 from core.config import ensure_clash_dir, CLASH_PORT, CLASH_API_PORT, CLASH_VERSION, CLASH_PATH, CONFIG_FILE, LOG_FILE
 
 class ClashManager:

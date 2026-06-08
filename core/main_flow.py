@@ -623,11 +623,11 @@ TXT: <a href="{txt_html_url}">{txt_html_url}</a>
             logging.debug("Exception occurred", exc_info=True)
         # v28.53: 程序退出时保存节点历史记录
         try:
-            _save_node_history()
+            save_node_history()
         except (OSError, ValueError):
             logging.debug("Exception occurred", exc_info=True)
         # v28.54: 程序退出时保存源历史记录
         try:
-            _save_source_history()
+            save_source_history()
         except (OSError, ValueError):
             logging.debug("Exception occurred", exc_info=True)

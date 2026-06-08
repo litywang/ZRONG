@@ -1,7 +1,20 @@
 # core/filter.py - filter_quality 核心过滤函数
 # v28.42 Phase4 重构
 
-from core.validator import is_china_mainland
+import os
+import re
+import logging
+
+from core.validator import is_china_mainland, is_asia, NON_PROXY_PORTS
+from core.scorer import mainland_friendly_score, PROTOCOL_SCORE
+from core import is_reality_friendly
+from core.history import get_node_history_score as _get_node_history_score
+from config import ASIA_REGIONS, ASIA_PRIORITY_BONUS, NON_FRIENDLY_REGIONS, NON_FRIENDLY_PENALTY
+from network.geo import limiter
+from utils import is_pure_ip
+
+ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "0") == "1"
+MAINLAND_PASS_BONUS = int(os.getenv("MAINLAND_PASS_BONUS", "20"))
 
 
 def filter_quality(p):

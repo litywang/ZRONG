@@ -39,7 +39,7 @@ def init_config() -> None:
         'MAX_TCP_TEST_NODES': getattr(cr, 'MAX_TCP_TEST_NODES', 500),
         'MAX_LATENCY': getattr(cr, 'MAX_LATENCY', 800),
         'MAX_PROXY_TEST_NODES': getattr(cr, 'MAX_PROXY_TEST_NODES', 1000),
-        'MAX_FINAL_NODES': getattr(cr, 'MAX_FINAL_NODES', 200),
+        'MAX_FINAL_NODES': getattr(cr, 'MAX_FINAL_NODES', 150),
         'MAX_PROXY_LATENCY': getattr(cr, 'MAX_PROXY_LATENCY', 5000),
         'TEST_URL': getattr(cr, 'TEST_URL', 'https://myip.ipip.net/json'),
         'TARGET_ASIA_RATIO': getattr(cr, 'TARGET_ASIA_RATIO', 0.60),
@@ -204,7 +204,7 @@ FETCH_WORKERS = 150
 MAX_TCP_TEST_NODES = 500
 MAX_LATENCY = 800
 MAX_PROXY_TEST_NODES = 1000
-MAX_FINAL_NODES = 200
+MAX_FINAL_NODES = 150
 MAX_PROXY_LATENCY = 5000
 TEST_URL = 'https://myip.ipip.net/json'
 TARGET_ASIA_RATIO = 0.60
@@ -229,7 +229,7 @@ def _update_module_vars():
     MAX_TCP_TEST_NODES = _config.get('MAX_TCP_TEST_NODES', 500)
     MAX_LATENCY = _config.get('MAX_LATENCY', 800)
     MAX_PROXY_TEST_NODES = _config.get('MAX_PROXY_TEST_NODES', 1000)
-    MAX_FINAL_NODES = _config.get('MAX_FINAL_NODES', 200)
+    MAX_FINAL_NODES = _config.get('MAX_FINAL_NODES', 150)
     MAX_PROXY_LATENCY = _config.get('MAX_PROXY_LATENCY', 5000)
     TEST_URL = _config.get('TEST_URL', 'https://myip.ipip.net/json')
     TARGET_ASIA_RATIO = _config.get('TARGET_ASIA_RATIO', 0.60)

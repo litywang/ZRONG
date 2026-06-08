@@ -33,6 +33,10 @@ from core.history import (
     record_history, history_stability_score,
     dynamic_source_weight, update_source_history,
     update_node_history,
+    # v28.76: 补上下划线全局变量（重构时遗漏）
+    _NODE_HISTORY, _SOURCE_HISTORY,
+    _NODE_HISTORY_LOCK, _SOURCE_HISTORY_LOCK,
+    _HISTORY_SCORES, _HISTORY_SCORES_LOCK,
 )
 from network.geo import limiter, _ip_geo_batch
 from network.tcp import tcp_ping as _tcp_ping
@@ -547,8 +551,8 @@ def main():
         logging.debug("\n" + "=" * 180)
         logging.debug("[STAT] 统计结果")
         logging.debug("=" * 180)
-        logging.debug(f"• Fork 来源：{len(fork_subs)}")
-        logging.debug(f"• Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总：{len(all_urls)}")
+        logging.debug(f"• Fork 来源：{stats['fork_count']}")
+        logging.debug(f"• Telegram: {stats['tg_count']} | 固定：{stats['fixed_count']} | 总：{stats['total_urls']}")
         logging.debug(f"• 原始：{len(nodes)} | TCP: {len(nres)} | 最终：{len(unique_final)}")
         # v28.13: 修复亚洲占比计算（避免除零，使用更精确的计算）
         asia_pct = round(asia_ct * 100 / max(len(unique_final), 1), 1)
@@ -574,8 +578,8 @@ def main():
                 msg = f"""{start_icon}<b>节点更新完成</b>{end_icon}
 
 [STAT] <b>统计数据:</b>
-• Telegram: {len(tg_urls)} | 固定：{len(fixed_urls)} | 总订阅：{len(all_urls)}
-• Fork 来源：{len(fork_subs)}
+• Telegram: {stats['tg_count']} | 固定：{stats['fixed_count']} | 总订阅：{stats['total_urls']}
+• Fork 来源：{stats['fork_count']}
 • 原始：{len(nodes)} | TCP: {len(nres)} | 最终：<code>{len(unique_final)}</code> 个
 • 亚洲：{asia_ct} 个 ({asia_pct}%)
 • 最低延迟：{min_lat:.1f} ms

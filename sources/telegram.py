@@ -179,9 +179,9 @@ def crawl_telegram_channels(channels: List[str], pages: int = 2, limits: int = 2
         for future in as_completed(futures):
             completed += 1
             try:
-                channel_subs, channel, status = future.result()
-            except (CancelledError, RuntimeError) as e:
-                logger.debug("Channel crawl failed: %s", e)
+                channel_subs, channel, status = future.result(timeout=30)
+            except (CancelledError, RuntimeError, TimeoutError) as e:
+                logger.debug("Channel crawl failed or timeout: %s", e)
                 channel_subs = {}
                 channel = futures[future]
                 status = str(e)[:50]

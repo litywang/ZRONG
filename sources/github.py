@@ -74,7 +74,11 @@ def discover_github_forks() -> List[str]:
     with ThreadPoolExecutor(max_workers=cfg.get('MAX_WORKERS', 80)) as ex:
         futures = {ex.submit(fetch_forks, base, session): base for base in base_repos}
         for future in as_completed(futures):
-            forks = future.result()
+            try:
+                forks = future.result(timeout=30)
+            except Exception as e:
+                logging.debug("fork fetch failed or timeout: %s", e)
+                forks = []
             all_forks.extend(forks)
             if forks:
                 logging.debug(f"   [PACKAGE] {futures[future]}: {len(forks)} forks")

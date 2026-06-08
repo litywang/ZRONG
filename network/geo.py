@@ -112,7 +112,7 @@ def _ip_geo_batch(ips):
     """批量查询 IP 地理位置，优先 GeoIP2，回退 ip-api.com"""
     if not ips:
         return
-    from network.client import limiter, get_http_client
+    from network.client import get_http_client
     to_query = [ip for ip in ips if limiter.get_geo(ip) is None and is_pure_ip(ip)]
     if not to_query:
         return

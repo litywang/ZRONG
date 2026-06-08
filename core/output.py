@@ -1,6 +1,10 @@
 # core/output.py - format_proxy_to_link
 # v28.41 Phase3 重构
+import base64
+import json
+import logging
 import urllib
+import uuid
 
 
 def format_proxy_to_link(p):

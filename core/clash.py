@@ -1,5 +1,6 @@
 # core/clash.py - ClashManager
 # v28.41 Phase3 重构
+import logging
 from core.config import ensure_clash_dir
 
 class ClashManager:

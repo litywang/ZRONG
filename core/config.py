@@ -54,3 +54,25 @@ def create_session():
     return session
 
 session = create_session()
+
+# ===== 测速 URL（v28.69 从 crawler.py 迁移）=====
+# 测速URL优先国内服务，未通过国内测速的节点直接淘汰
+# v28.57: 超时5s→8s，亚洲出口节点响应慢，5s太严苛；添加http/https混合降低TLS握手负担
+TEST_URLS = [
+    "http://myip.ipip.net/json",
+    "https://myip.ipip.net/json",
+    "http://ip.3322.org",
+    "https://www.baidu.com",
+    "https://www.qq.com",
+    "https://www.taobao.com",
+    "http://cp.cloudflare.com/generate_204",
+    "http://captive.apple.com/generation_204",
+]
+# 原国际测速地址降级为备用（仅国内地址全部失败时启用）
+# v28.57: 备用池移除了google（含TLS握手延迟），保留gstatic作为最终兜底
+TEST_URLS_BACKUP = [
+    "https://www.gstatic.com/generate_204",
+    "http://www.msftconnecttest.com/connecttest.txt",
+]
+
+ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "0") == "1"

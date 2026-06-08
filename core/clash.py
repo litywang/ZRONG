@@ -1,13 +1,6 @@
 # core/clash.py - ClashManager
 # v28.41 Phase3 重构
-import logging
-import os
-import re
-import shutil
-import signal
-import subprocess
-import sys
-import time
+import gzip
 import logging
 import os
 import re
@@ -19,12 +12,26 @@ import time
 import yaml
 
 import requests
-from core.config import ensure_clash_dir, CLASH_PORT, CLASH_API_PORT, CLASH_VERSION, CLASH_PATH, CONFIG_FILE, LOG_FILE
+from network.geo import _geoip2_lookup, _GEOIP2_AVAILABLE
+from core.config import (
+    ensure_clash_dir,
+    CLASH_PORT,
+    CLASH_API_PORT,
+    CLASH_VERSION,
+    CLASH_PATH,
+    CONFIG_FILE,
+    LOG_FILE,
+    TEST_URLS,
+    TEST_URLS_BACKUP,
+    ENABLE_MAINLAND_TEST,
+)
+from utils import WORK_DIR
 
 class ClashManager:
     def __init__(self):
         self.process = None
         self._geo_cache = {}  # v28.61: 缓存出口IP归属，避免重复调用ip-api.com
+        self._exit_ip_cache = {}  # v28.69: 缓存出口IP检测结果
         ensure_clash_dir()
 
     def download_clash(self):
@@ -363,8 +370,8 @@ class ClashManager:
                 # v28.66a: 先查缓存（按代理配置去重）
                 # v28.67: server/port 需从外部传入
                 cache_key = f"{server}:{port}" if server and port else name
-                if cache_key in _exit_ip_cache:
-                    ml_ok = _exit_ip_cache[cache_key]
+                if cache_key in self._exit_ip_cache:
+                    ml_ok = self._exit_ip_cache[cache_key]
                     logging.debug("Exit IP cache hit: %s -> %s", cache_key, ml_ok)
                 else:
                     try:
@@ -383,7 +390,7 @@ class ClashManager:
                     except requests.RequestException as e:
                         logging.debug("Exit IP check failed: %s", str(e)[:50])
                     # 写入缓存（按代理 config 去重，同IP端口只查一次）
-                    _exit_ip_cache[cache_key] = ml_ok
+                    self._exit_ip_cache[cache_key] = ml_ok
                 result["mainland_reachable"] = ml_ok
                 if ml_ok:
                     logging.debug("Mainland reachable: %s", name)

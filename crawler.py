@@ -45,7 +45,7 @@ from sources import (
 from core.clash import ClashManager
 from core.namer import NodeNamer
 from core.output import format_proxy_to_link
-from core.config import (_NETWORK_BASELINE, check_network_baseline, ensure_clash_dir, create_session, session, tcp_ping, CLASH_PORT, CLASH_API_PORT, CLASH_VERSION, CLASH_PATH, CONFIG_FILE, LOG_FILE)
+from core.config import (_NETWORK_BASELINE, check_network_baseline, ensure_clash_dir, create_session, session, tcp_ping, CLASH_PORT, CLASH_API_PORT, CLASH_VERSION, CLASH_PATH, CONFIG_FILE, LOG_FILE, TEST_URLS, TEST_URLS_BACKUP, ENABLE_MAINLAND_TEST)
 from core.filter import filter_quality
 # v28.42: 设置 stdout 编码为 utf-8，避免 Windows GBK 下 Unicode 输出报错
 import io
@@ -239,28 +239,13 @@ MAX_PROXY_LATENCY = int(os.getenv("MAX_PROXY_LATENCY", "5000"))  # v28.8: 放宽
 TEST_URL = "https://myip.ipip.net/json"  # 国内IP查询服务，验证节点大陆可达性
 # 测速URL优先国内服务，未通过国内测速的节点直接淘汰
 # v28.57: 超时5s→8s，亚洲出口节点响应慢，5s太严苛；添加http/https混合降低TLS握手负担
-TEST_URLS = [
-    "http://myip.ipip.net/json",
-    "https://myip.ipip.net/json",
-    "http://ip.3322.org",
-    "https://www.baidu.com",
-    "https://www.qq.com",
-    "https://www.taobao.com",
-    "http://cp.cloudflare.com/generate_204",
-    "http://captive.apple.com/generation_204",
-]
 # 原国际测速地址降级为备用（仅国内地址全部失败时启用）
 # v28.57: 备用池移除了google（含TLS握手延迟），保留gstatic作为最终兜底
-TEST_URLS_BACKUP = [
-    "https://www.gstatic.com/generate_204",
-    "http://www.msftconnecttest.com/connecttest.txt",
-]
 
 NODE_NAME_PREFIX = "Anftlity"
 
 # v28.57: 大陆端点测试改为评分降级（非淘汰），避免误杀真实可用节点；换入更多国内可达URL
 # v28.68: 默认关闭大陆出口IP检测（api.ip.sb从GitHub Actions访问慢+堆积，导致超时）
-ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "0") == "1"
 MAINLAND_TEST_URLS = [
     # v28.60: 大陆专属检测：只有从大陆IP访问才返回预期内容
     # 境外访问会被阻断或返回非预期内容，用于真正区分节点是否走大陆出口
@@ -280,7 +265,6 @@ MAINLAND_TEST_URLS = [
 ]
 # v28.57: 大陆测试改为评分降级而非直接淘汰，减少误杀
 # v28.68: 默认关闭大陆出口IP检测（api.ip.sb从GitHub Actions访问慢+堆积，导致超时）
-ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "0") == "1"
 MAINLAND_SCORE_THRESHOLD = int(os.getenv("MAINLAND_SCORE_THRESHOLD", "30"))
 # v28.58: 大陆可达性测试通过后的额外加分（可配置，默认20分）
 MAINLAND_PASS_BONUS = int(os.getenv("MAINLAND_PASS_BONUS", "20"))

@@ -1,6 +1,9 @@
 # core/namer.py - NodeNamer
 # v28.41 Phase3 重构
 
+import logging
+from utils import get_region
+
 class NodeNamer:
     FANCY = {
         'A': '𝔄',

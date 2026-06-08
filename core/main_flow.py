@@ -3,6 +3,7 @@ import signal
 import os
 import sys
 import json
+import yaml
 import logging
 import hashlib
 import httpx

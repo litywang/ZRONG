@@ -464,11 +464,11 @@ def main():
             logging.debug("\n[STAT] 源权重统计（Top 10）:")
             sorted_sources = sorted(
                 _SOURCE_HISTORY.items(),
-                key=lambda x: _dynamic_source_weight(x[0]),
+                key=lambda x: dynamic_source_weight(x[0]),
                 reverse=True
             )[:10]
             for url, rec in sorted_sources:
-                w = _dynamic_source_weight(url)
+                w = dynamic_source_weight(url)
                 success_rate = rec["success_count"] / max(rec["success_count"] + rec["fail_count"], 1)
                 logging.debug(f"   • 权重{w:.1f} | 成功率{success_rate:.0%} | {url[:60]}...")
 

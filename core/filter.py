@@ -7,7 +7,7 @@ import logging
 
 from core.validator import is_china_mainland, is_asia, NON_PROXY_PORTS
 from core.scorer import mainland_friendly_score, PROTOCOL_SCORE
-from core import is_reality_friendly
+from network.tls import is_reality_friendly
 from core.history import get_node_history_score as _get_node_history_score
 from config import ASIA_REGIONS, ASIA_PRIORITY_BONUS, NON_FRIENDLY_REGIONS, NON_FRIENDLY_PENALTY
 from network.geo import limiter

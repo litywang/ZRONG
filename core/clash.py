@@ -1,6 +1,13 @@
 # core/clash.py - ClashManager
 # v28.41 Phase3 重构
 import logging
+import os
+import re
+import shutil
+import signal
+import subprocess
+import sys
+import time
 from core.config import ensure_clash_dir
 
 class ClashManager:

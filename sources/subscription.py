@@ -9,6 +9,7 @@ import base64
 import hashlib
 import logging
 import asyncio
+import socket
 from typing import Dict, List, Tuple, Optional
 
 import httpx
@@ -34,6 +35,10 @@ from .utils import (
 
 def fetch(url: str) -> str:
     """同步抓取单个 URL（GitHub URL 多镜像池遍历 + HTTP/2 + 重试）"""
+    # v28.74: 设置 socket 默认超时，防止 TCP/SSL 无限阻塞
+    import config
+    socket.setdefaulttimeout(config.TIMEOUT())
+    
     limiter = config.limiter()
     client = config.get_http_client()
     cfg = config.config()

@@ -1,8 +1,10 @@
 # core/config.py - 配置与工具函数
 # v28.42 Phase4 重构
+# v28.69: 补全 CLASH_* 常量（从 crawler.py 迁移）
 
 import logging
 import random
+import os
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -10,6 +12,14 @@ from urllib3.util.retry import Retry
 
 from network.tcp import _tcp_ping, tcp_ping
 from utils import WORK_DIR, MAX_RETRIES, HEADERS_POOL
+
+# ===== Clash 配置常量（v28.69 从 crawler.py 迁移）=====
+CLASH_PORT = int(os.getenv("CLASH_PORT", "17890"))  # v28.23: 可配置
+CLASH_API_PORT = int(os.getenv("CLASH_API_PORT", "19090"))  # v28.23: 可配置
+CLASH_VERSION = os.getenv("CLASH_VERSION", "v1.19.0")  # v28.23: 可配置
+CLASH_PATH = WORK_DIR / "mihomo"
+CONFIG_FILE = WORK_DIR / "config.yaml"
+LOG_FILE = WORK_DIR / "clash.log"
 
 # ===== 网络基准（check_network_baseline 依赖）=====
 _NETWORK_BASELINE = {"latency": 9999, "verified": False}

@@ -20,7 +20,7 @@ from .history import (
 from .clash import ClashManager
 from .namer import NodeNamer
 from .output import format_proxy_to_link
-from .config import check_network_baseline, ensure_clash_dir, create_session, tcp_ping
+from .config import check_network_baseline, ensure_clash_dir, create_session, tcp_ping, CLASH_PORT, CLASH_API_PORT, CLASH_VERSION, CLASH_PATH, CONFIG_FILE, LOG_FILE
 from .filter import filter_quality
 from .history import _signal_handler
 
@@ -46,4 +46,10 @@ __all__ = [
     "tcp_ping",
     "filter_quality",
     "_signal_handler",
+    "CLASH_PORT",
+    "CLASH_API_PORT",
+    "CLASH_VERSION",
+    "CLASH_PATH",
+    "CONFIG_FILE",
+    "LOG_FILE",
 ]

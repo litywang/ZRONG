@@ -45,7 +45,7 @@ from sources import (
 from core.clash import ClashManager
 from core.namer import NodeNamer
 from core.output import format_proxy_to_link
-from core.config import (_NETWORK_BASELINE, check_network_baseline, ensure_clash_dir, create_session, session, tcp_ping)
+from core.config import (_NETWORK_BASELINE, check_network_baseline, ensure_clash_dir, create_session, session, tcp_ping, CLASH_PORT, CLASH_API_PORT, CLASH_VERSION, CLASH_PATH, CONFIG_FILE, LOG_FILE)
 from core.filter import filter_quality
 # v28.42: 设置 stdout 编码为 utf-8，避免 Windows GBK 下 Unicode 输出报错
 import io
@@ -256,9 +256,6 @@ TEST_URLS_BACKUP = [
     "http://www.msftconnecttest.com/connecttest.txt",
 ]
 
-CLASH_PORT = int(os.getenv("CLASH_PORT", "17890"))  # v28.23: 可配置
-CLASH_API_PORT = int(os.getenv("CLASH_API_PORT", "19090"))  # v28.23: 可配置
-CLASH_VERSION = os.getenv("CLASH_VERSION", "v1.19.0")  # v28.23: 可配置
 NODE_NAME_PREFIX = "Anftlity"
 
 # v28.57: 大陆端点测试改为评分降级（非淘汰），避免误杀真实可用节点；换入更多国内可达URL
@@ -365,9 +362,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 REPO_NAME = os.getenv("GITHUB_REPOSITORY", "user/repo")
 
-CLASH_PATH = WORK_DIR / "mihomo"
-CONFIG_FILE = WORK_DIR / "config.yaml"
-LOG_FILE = WORK_DIR / "clash.log"
+
 
 USER_AGENT_POOL = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",

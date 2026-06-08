@@ -1,8 +1,8 @@
-# 🚀 ZRONG —— 智能订阅聚合工具 v28.39
+# 🚀 ZRONG —— 智能订阅聚合工具 v28
 
 > 🌟 **极致 · 稳定 · 精准 · 高效** | GitHub Actions 全自动化节点筛选平台
 > 基于 wzdnzd/aggregator + mahdibland/V2RayAggregator 核心逻辑深度重构
-> **v28.39 优化版：智能去重 + 区域优化 + IP地理定位 + 协议握手检测 + 异步采集**
+> **v28 模块化版：分层架构 + 四层验证 + 亚洲优先配额 + 异步采集**
 
 [![GitHub stars](https://img.shields.io/github/stars/litywang/ZRONG?style=flat-square)](https://github.com/litywang/ZRONG/stargazers)
 [![GitHub workflow](https://img.shields.io/github/actions/workflow/status/litywang/ZRONG/update.yml?style=flat-square)](https://github.com/litywang/ZRONG/actions)
@@ -14,18 +14,54 @@
 
 | 维度 | 功能亮点 | 技术实现 |
 |------|----------|---------|
-| 🔥 **多源采集** | Telegram + GitHub Fork + 固定订阅源(63+) | 三路并行发现 + 异步采集 |
-| 🌏 **区域优化** | 特定区域维护源优先加载 | ermaozi / peasoft / aiboboxx 等 |
-| 🇭🇰 **亚洲优先** | 亚洲节点强制≥60%配额 | 多层加权 + 延迟放宽 + 保底机制 |
+| 🔥 **多源采集** | Telegram 频道(30+) + GitHub Fork(60仓库) + 固定订阅源(63+) | 三路并行发现 + 异步采集 |
+| 🌏 **亚洲优先** | 亚洲节点强制≥60%配额，上限75% | 多层加权 + 延迟放宽 + 保底机制 |
 | 📄 **双格式解析** | TXT 协议链接 + YAML 配置 | 自动识别并行处理 |
 | 🔗 **全协议支持** | 12种协议 | VMess / VLESS / Trojan / SS / SSR / Hysteria2 / Hysteria / TUIC / Snell / HTTP / SOCKS5 / AnyTLS |
 | 🧹 **智能去重** | MD5(协议特征) | 重复率 < 1% |
-| 🔍 **质量过滤** | 排除过期/测试/高倍率节点 | 借鉴 wzdnzd/aggregator |
 | ⚡ **四层验证** | TCP Ping → 协议握手 → Clash测速 → TCP补充 | 分层递进，层层收紧 |
-| 🌏 **IP地理定位** | ip-api.com 批量查询 | 纯IP节点也能正确标记区域 |
-| 🔄 **多URL验证** | gstatic + Cloudflare + Apple | 消除单URL不可达误杀 |
-| 🔁 **失败重试** | Clash测速失败自动重试1次 | 减少网络抖动误杀 |
-| 🚀 **异步采集** | httpx AsyncClient | 采集效率提升 |
+| 🌏 **IP地理定位** | GeoLite2 本地库 + ip-api.com 批量回退 | 纯IP节点也能正确标记区域 |
+| 🔄 **多URL验证** | gstatic + Cloudflare + Apple + ipip.net | 消除单URL不可达误杀 |
+| 🔁 **失败重试** | Clash测速失败自动重试 | 减少网络抖动误杀 |
+| 🚀 **异步采集** | httpx AsyncClient + 域名级限流 | 采集效率大幅提升 |
+| 🧠 **智能历史** | 节点历史可用性追踪 + 源历史动态权重 | 优质源持续加权，劣质源自动降权 |
+| 🔍 **质量过滤** | CN域名黑名单 + 非代理端口过滤 + 大陆友好性评分 | 排除直连/中转/低质量节点 |
+
+---
+
+## 🏗️ 架构说明
+
+```
+ZRONG/
+├── crawler.py              # 主入口，加载配置 + 调度 core.main_flow
+├── core/
+│   ├── main_flow.py        # 主流程：采集→TCP→Clash测速→配额分配→输出
+│   ├── collector.py        # 节点采集（TG/Fork/订阅源 + 去重 + 权重）
+│   ├── validator.py        # 节点验证与去重（域名/IP/协议）
+│   ├── scorer.py           # 节点评分（大陆友好度 + 协议 + 端口）
+│   ├── filter.py           # 质量过滤 + 最终排序
+│   ├── clash.py            # ClashManager（下载/配置/测速/出口IP检测）
+│   ├── testing.py          # TCP节点测试（丢包/握手/TLS）
+│   ├── history.py          # 历史记录（节点可用性 + 源动态权重）
+│   ├── output.py           # 协议链接格式化（全12种协议）
+│   └── namer.py            # 节点命名（emoji区域 + 延迟 + 评分）
+├── network/
+│   ├── client.py           # httpx同步/异步客户端（连接池 + 重试）
+│   ├── tcp.py              # TCP连接验证（丢包率 + 延迟测量）
+│   ├── dns.py              # DNS解析（线程安全缓存）
+│   ├── geo.py              # GeoIP查询 + 智能限流
+│   └── tls.py              # TLS握手验证
+├── sources/
+│   ├── telegram.py         # Telegram频道爬虫
+│   ├── github.py           # GitHub Fork发现
+│   ├── subscription.py     # 订阅源抓取（同步/异步）
+│   ├── config.py           # 配置访问层
+│   └── utils.py            # 公用工具函数
+├── config/
+│   └── __init__.py         # 规则配置加载（rules.yaml）
+└── parsers/
+    └── *.py                # 协议解析器
+```
 
 ---
 
@@ -59,45 +95,32 @@
 
 ```
 ==================================================
-🚀 ZRONG v28.7 - 高可用版
+🚀 ZRONG v28 - 智能订阅聚合
 作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
 ==================================================
 
-🔍 GitHub Fork 发现...
-   📦 wzdnzd/aggregator: 30 forks
-✅ Fork 来源：1500 个
-
-📱 爬取 Telegram 频道（32频道）...
-✅ Telegram 订阅：8 个
-
-📥 加载固定订阅源（63个）...
-✅ 固定订阅源：63 个
-
-📊 总订阅源：1571 个
-
-📥 异步抓取节点...
-   进度: 100/1571 | 节点: 5000
-✅ 唯一节点：5000 个
-
-🔍 质量过滤：5000 → 4200 个
-
-🌍 IP 地理位置预查询...
-   🌍 IP 地理位置查询：100 个（已缓存 85）
-
-⚡ 第一层：TCP 延迟测试 + 协议握手验证...
-✅ 第一层合格：600 个（亚洲：240）
-
-🚀 真实代理测速（分批 600/批，40并发，多URL+重试）...
-   ✅ 🇭🇰1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | ⚡145ms
-   ✅ 🇯🇵1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | ⚡89ms
-   ✅ 🇸🇬1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶 | ⚡210ms
-
-✅ 最终：150 个节点
+[TG] 爬取 Telegram 频道（优先）...
+[SEARCH] GitHub Fork 发现...
+[LOAD] 加载固定订阅源（补充）...
+[STAT] 源权重排序完成
+[WEB] 使用异步抓取模式...
+[SEARCH] 节点质量过滤...
+[STAT] 采集统计: TG=34, Fork=1500, 固定=81, 总URL=1615
+[OK] 质量过滤：5075 → 4191 个
+[OK] 同服务器跨协议去重：4191 → 3425 个
+[GEO] 预查询 IP 地理位置...
+[SPEED] 第一层：TCP 延迟测试...
+[STAT] TCP测试队列：400 亚洲 + 100 非亚洲 = 500 总计
+[START] 真实代理测速（分批）...
+[PACKAGE] 第1批：202 个节点...
+[PASS] 🇭🇰1-145ms | [PASS] 🇯🇵1-89ms | [PASS] 🇸🇬1-210ms
+...
+最终：150 个节点
 
 📊 统计结果
 --------------------------------------------------
-• 总订阅：1571 | 原始：5000 | 过滤：4200 | TCP：600 | 最终：150
-• 亚洲：90 个 (60%) ← v28.16 强制配额保障
+• 总订阅：1615 | 原始：5075 | 过滤：4191 | TCP：500 | 最终：150
+• 亚洲：90 个 (60%) ← 亚洲优先配额保障
 --------------------------------------------------
 ```
 
@@ -131,27 +154,27 @@
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
 | `MAX_WORKERS` | 60 | 并发线程数 |
-| `FETCH_WORKERS` | 100 | 抓取并发数 |
+| `FETCH_WORKERS` | 150 | 异步抓取并发数 |
 | `USE_ASYNC_FETCH` | 1 | 启用异步抓取 |
-| `TIMEOUT` | 8s | 请求超时 |
-| `MAX_LATENCY` | 3000ms | TCP 延迟阈值（v28.6 收紧，v28.16 亚洲放宽至4500） |
-| `MAX_PROXY_LATENCY` | 3000ms | 代理延迟阈值（v28.16 亚洲放宽至4500） |
+| `TIMEOUT` | 12s | 请求超时 |
+| `MAX_LATENCY` | 800ms | TCP 延迟阈值（亚洲放宽至1800ms） |
+| `MAX_PROXY_LATENCY` | 5000ms | 代理延迟阈值 |
 | `MAX_FETCH_NODES` | 5000 | 抓取上限 |
-| `MAX_TCP_TEST_NODES` | 1200 | TCP 测试上限 |
-| `MAX_PROXY_TEST_NODES` | 600 | 代理测试上限（分批） |
-| `MAX_FINAL_NODES` | 150 | 最终输出上限（v28.16 亚洲强制≥90个） |
-| `TARGET_ASIA_RATIO` | 0.6 | 亚洲节点目标比例（v28.16 新增） |
-| `ASIA_PRIORITY_BONUS` | 80 | 亚洲节点评分加权（v28.16） |
+| `MAX_TCP_TEST_NODES` | 500 | TCP 测试上限 |
+| `MAX_PROXY_TEST_NODES` | 1000 | 代理测试上限（分批） |
+| `MAX_FINAL_NODES` | 150 | 最终输出上限 |
+| `TARGET_ASIA_RATIO` | 0.60 | 亚洲节点目标比例 |
+| `ASIA_MIN_COUNT` | 60 | 亚洲节点保底数量 |
 
 ### 环境变量覆盖
 
-所有 `MAX_*` 参数和 `USE_ASYNC_FETCH` 均可通过 GitHub Actions 环境变量覆盖，无需修改代码：
+所有参数均可通过 GitHub Actions 环境变量覆盖，无需修改代码：
 
 ```yaml
 env:
   USE_ASYNC_FETCH: 1
-  MAX_FINAL_NODES: 200
-  MAX_PROXY_LATENCY: 3000
+  MAX_FINAL_NODES: 150
+  TARGET_ASIA_RATIO: 0.60
 ```
 
 ---
@@ -169,7 +192,7 @@ env:
 <details>
 <summary><b>Q: 节点数量太少如何优化？</b></summary>
 
-1. 放宽 `MAX_PROXY_LATENCY`（如改为 5000）
+1. 放宽 `MAX_PROXY_LATENCY`（如改为 8000）
 2. 增加 `MAX_FINAL_NODES`（如改为 200）
 3. 添加更多固定订阅源到 `sources.yaml`
 4. 增加 Telegram 频道数量
@@ -178,70 +201,54 @@ env:
 <details>
 <summary><b>Q: 节点区域全显示 🌐 怎么办？</b></summary>
 
-v28.6 已加入 IP 地理位置查询（ip-api.com），纯 IP 节点也能正确识别区域。如仍显示 🌐，可能是 IP 查询超时，可检查网络环境。
+已内置 GeoLite2 本地数据库，纯 IP 节点也能正确识别区域。回退使用 ip-api.com 批量查询。
 </details>
 
 <details>
 <summary><b>Q: 如何避免 503 错误封禁？</b></summary>
 
-1. 降低请求频率
-2. 减少并发数
-3. 使用 SmartRateLimiter 独立域名限流
+1. 已内置 SmartRateLimiter 域名级限流
+2. 异步抓取有并发上限控制
+3. 降低 `FETCH_WORKERS`
 </details>
 
 ---
 
 ## 📜 更新日志
 
+### v28 (2026-06) - 🏗️ 模块化重构版
+- ✅ **代码模块化重构**：core/ + network/ + sources/ + config/ 分层解耦
+- ✅ **四层验证体系**：TCP Ping → 协议握手 → Clash测速 → TCP补充
+- ✅ **智能历史系统**：节点可用性追踪 + 源动态权重
+- ✅ **亚洲优先配额**：强制≥60%，上限75%，保底60个
+- ✅ **GeoLite2本地库**：离线IP地理查询，零API依赖
+- ✅ **全协议格式化**：12种协议链接格式化
+- ✅ **智能质量过滤**：CN域名黑名单 + 非代理端口 + 大陆友好性评分
+- ✅ **ClashManager**：下载/配置/测速/出口IP检测
+- ✅ **网络工具包**：httpx同步/异步客户端 + DNS缓存 + TLS握手
+
 ### v28.39 (2026-04-27) - 🔧 架构重构版
-- ✅ **代码模块化重构**：parsers/ 协议解析包 + sources/ 抓取包 + utils.py 工具函数
-- ✅ **智能去重修复**：generate_unique_id 包含协议类型和路径，避免不同协议节点误去重
+- ✅ **代码模块化**：parsers/ 协议解析包 + sources/ 抓取包 + utils.py 工具函数
+- ✅ **智能去重修复**：generate_unique_id 包含协议类型和路径
 - ✅ **节点后缀更新**：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶（哥特体）
-- ✅ **代码质量提升**：批量修复 F841/F541/B324/E741 等 lint 错误
-- ✅ **延迟导入解耦**：避免循环依赖，模块可独立导入
+- ✅ **延迟导入解耦**：避免循环依赖
 
 ### v28.16 (2026-04-24) - 🇭🇰 亚洲优先版
-- ✅ **亚洲节点强制≥60%**：配额制分配，亚洲不足时全部保留
-- ✅ **亚洲延迟放宽**：TCP测试/代理测速/补充阶段均放宽1.5倍
-- ✅ **扩展亚洲区域检测**：新增 MO/MN/KH/LA/MM/BN/NP/LK/BD 等区域
-- ✅ **TLD后缀识别**：.mo/.mn/.kh/.la/.mm/.bn 等亚洲域名自动识别
-- ✅ **多层亚洲优先排序**：_geo_score + is_asia + 强制置顶 + 协议评分
-- ✅ **代码质量全量修复**：通过 pylint/flake8/bandit 扫描，0 HIGH问题
+- ✅ **亚洲节点强制≥60%**：配额制分配
+- ✅ **亚洲延迟放宽**：TCP/代理测速均放宽1.5倍
+- ✅ **扩展亚洲区域检测**：MO/MN/KH/LA/MM/BN/NP/LK/BD 等
 
 ### v28.7 (2026-04-21) - 🎯 高可用版
-- ✅ **多URL测速验证**：gstatic + Cloudflare + Apple，任一成功即通过
-- ✅ **Clash 失败重试**：首次失败后等 0.5s 重测，减少网络抖动误杀
-- ✅ **测速并发翻倍**：20→40 线程，加快测速速度
-- ✅ **Geo 感知排序**：IP 地理位置已知节点优先送入 Clash 测速
+- ✅ **多URL测速验证**：gstatic + Cloudflare + Apple
+- ✅ **Clash 失败重试**：减少网络抖动误杀
 
 ### v28.6 (2026-04-21) - 🔒 TCP 层收紧版
-- ✅ **协议握手验证**：TCP 不只验端口，验证 vmess/vless/trojan 的 TLS 握手、ss/ssr 的静默响应、http/socks5 的协议握手
-- ✅ **MAX_LATENCY 收紧**：10000ms → 3000ms，甩掉高延迟废节点
-- ✅ **IP 地理位置查询**：ip-api.com 批量查询，纯 IP 节点也能标记区域
+- ✅ **协议握手验证**：vmess/vless/trojan TLS握手、ss/ssr静默响应
+- ✅ **MAX_LATENCY 收紧**：10000ms → 3000ms
 
 ### v28.5 (2026-04-21) - 🔧 分批测速修复版
-- ✅ **Clash 分批测速**：600节点/批，Clash 停启循环，避免 Mihomo 崩溃
-- ✅ **CANDIDATE_URLS 条件修复**：63 个固定订阅源从 v28.0 起未生效，已修复
-- ✅ **异步抓取层**：httpx AsyncClient 抓取，提升效率
-
-### v28.3 (2026-04-21) - 🎯 可用率修复版
-- ✅ **恢复 gstatic.com**：国际出口才是代理核心指标
-- ✅ **保留 3s 阈值**：剔除极慢不稳定节点
-
-### v28.0 (2026-04-20) - 🔧 性能优化版
-- ✅ **sources.yaml 外置配置**：订阅源配置与代码分离
-- ✅ **TCP 测试并发提升**：200 并发上限
-- ✅ **ws-opts Host 检测**：WebSocket 域名精确识别
-
-### v27.0 (2026-04-15) - 🔧 区域识别修复版
-- ✅ **修复 TLD 匹配逻辑**：避免 .co/.cl 等后缀误匹配
-
-### v26.0 (2026-04-10) - 🌏 区域优化版
-- ✅ **区域优质源优先**：ermaozi / peasoft / aiboboxx 等
-
-### v25.0 (2026-04-05) - ⚡ Reality 优先版
-- ✅ **Reality 节点优先排序**
-- ✅ **协议评分加权**
+- ✅ **Clash 分批测速**：避免 Mihomo 崩溃
+- ✅ **异步抓取层**：httpx AsyncClient
 
 ---
 
@@ -253,7 +260,7 @@ git clone https://github.com/litywang/ZRONG.git
 cd ZRONG
 
 # 安装依赖
-pip install requests pyyaml urllib3 httpx httpx[http2]
+pip install requests pyyaml urllib3 httpx httpx[http2] geoip2
 
 # 直接运行
 python crawler.py

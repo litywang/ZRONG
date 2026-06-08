@@ -15,7 +15,7 @@ from utils import (
     NON_FRIENDLY_PENALTY, ASIA_PRIORITY_BONUS,
 )
 from core.validator import is_asia
-from core.scorer import mainland_friendly_score
+from core.scorer import mainland_friendly_score, PROTOCOL_SCORE
 from core.collector import collect_nodes
 
 from core import (

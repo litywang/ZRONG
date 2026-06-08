@@ -68,16 +68,14 @@ def is_pure_ip(host: str) -> bool:
     except (ValueError, TypeError):
         return False
 
-_limiter_instance = None
-
-
 def _get_limiter():
-    """延迟导入 SmartRateLimiter，避免循环依赖"""
-    global _limiter_instance
-    if _limiter_instance is None:
-        from network.geo import SmartRateLimiter
-        _limiter_instance = SmartRateLimiter()
-    return _limiter_instance
+    """延迟导入 limiter，避免循环依赖（与 core/scorer.py 保持一致）"""
+    import sys
+    crawler = sys.modules.get('crawler')
+    if crawler is None:
+        import importlib
+        crawler = importlib.import_module('crawler')
+    return crawler.limiter
 
 
 def get_region(name, server=None, sni=None):

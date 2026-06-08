@@ -35,6 +35,7 @@ from core.history import (
 )
 from network.geo import limiter, _ip_geo_batch
 from network.tcp import tcp_ping as _tcp_ping
+from network.tls import is_reality_friendly
 import asyncio
 
 # v28.40: 导入 sources 包的函数和配置

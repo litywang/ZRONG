@@ -1,5 +1,7 @@
 # core/output.py - format_proxy_to_link
 # v28.41 Phase3 重构
+import urllib
+
 
 def format_proxy_to_link(p):
     """将代理对象转换为协议链接"""

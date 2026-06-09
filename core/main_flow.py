@@ -65,9 +65,13 @@ from sources.config import (
 def main():
     import argparse
     parser = argparse.ArgumentParser(description='ZRONG 代理订阅聚合工具')
-    parser.add_argument('--version', action='version', version='ZRONG v28.91')
-    parser.add_argument('--skip-health-check', action='store_true',
-                       help='跳过健康检查（调试用）')
+    parser.add_argument('--version', action='version', version='ZRONG v28.92')
+    # v28.92: 默认跳过健康检查（GitHub Actions 网络环境限制 TCP 连接）
+    # 可通过环境变量 ENABLE_HEALTH_CHECK=1 或命令行参数 --run-health-check 启用
+    parser.add_argument('--skip-health-check', action='store_true', default=(os.getenv('ENABLE_HEALTH_CHECK', '0') != '1'),
+                       help='跳过健康检查（默认跳过，除非 ENABLE_HEALTH_CHECK=1）')
+    parser.add_argument('--run-health-check', action='store_false', dest='skip_health_check',
+                       help='启用健康检查（默认禁用）')
     args = parser.parse_args()
 
     st = time.time()
@@ -480,11 +484,15 @@ def main():
                 success_rate = rec["success_count"] / max(rec["success_count"] + rec["fail_count"], 1)
                 logging.debug(f"   • 权重{w:.1f} | 成功率{success_rate:.0%} | {url[:60]}...")
 
-        # v28.91: 健康检查（借鉴 discovery-service）
+        # v28.92: 健康检查（借鉴 discovery-service）
+        # 默认禁用（GitHub Actions 网络环境限制），需 ENABLE_HEALTH_CHECK=1 启用
         if not args.skip_health_check:
             logging.info(f"[START] 健康检查，共 {len(cleaned_final)} 个节点...")
             from core.validator import batch_health_check
-            health_results = batch_health_check(cleaned_final, max_workers=50, timeout=5)
+            # v28.92: 使 max_workers 和 timeout 可通过环境变量配置
+            _max_workers = int(os.getenv('HEALTH_CHECK_MAX_WORKERS', '20'))
+            _timeout = int(os.getenv('HEALTH_CHECK_TIMEOUT', '3'))
+            health_results = batch_health_check(cleaned_final, max_workers=_max_workers, timeout=_timeout)
 
             healthy_nodes = []
             unhealthy_count = 0

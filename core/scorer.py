@@ -22,6 +22,7 @@ USE_NEW_SCORING = os.getenv("ZRONG_USE_NEW_SCORING", "0") == "1"
 
 # ===== 从 config/rules.yaml 读取评分规则 =====
 from config import load_rules, get_scoring_weights
+from core.validator import is_asia
 
 _rules = load_rules()
 _scoring_legacy = get_scoring_weights(use_new=False)
@@ -82,7 +83,6 @@ def _main_land_friendly_score_legacy(p):
     rules = _scoring_legacy
 
     # 1. 地理位置加成（权重最大）
-    from core.validator import is_asia
     if is_asia(p):
         score += rules["geo_bonus"]["asia"]
         t = f"{p.get('name', '')} {p.get('server', '')}".lower()
@@ -147,7 +147,7 @@ def _main_land_friendly_score_new(p):
     score = 0
     rules = _scoring_new
 
-    # from core.validator import is_asia  # 已在文件开头导入
+    # is_asia 已在文件开头导入
 
     if is_asia(p):
         t = f"{p.get('name', '')} {p.get('server', '')}".lower()

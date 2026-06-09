@@ -109,48 +109,26 @@ def _geo_score(item):
     return score
 
 def final_sort_key(p):
-    # v28.68: 仅在大陆出口IP检测开启时才使用 mainland_reachable 评分
-    #         默认关闭，mainland_reachable=False 不扣分（避免将未测节点全部压在底部）
-    if ENABLE_MAINLAND_TEST:
-        ml_bonus = MAINLAND_PASS_BONUS if p.get("mainland_reachable", False) else (-30 if p.get("mainland_reachable") is False else 0)
-    else:
-        ml_bonus = 0
-    # v28.23: 排序整合大陆友好性评分 + 源权重
-    asia = 3 if is_asia(p) else 0  # v28.14: 提高亚洲权重（2→3）
+    """v28.90: 排序键 = 亚洲 > 大陆友好分 > 速度 > 源权重 > Reality > 协议 > 历史 > 延迟"""
+    asia = 3 if is_asia(p) else 0
     reality = 1 if is_reality_friendly(p) else 0
-    proto_score = PROTOCOL_SCORE.get(p.get("type", ""), 0) / 10.0  # normalize
-    # v28.23: 大陆友好性综合评分（替代纯 region_bonus）
+    proto_score = PROTOCOL_SCORE.get(p.get("type", ""), 0) / 10.0
     mf_score = mainland_friendly_score(p)
-    # v28.49: 亚洲节点额外加分（提高亚洲排序优先级）
     if asia > 0:
         mf_score += 15
-    # v28.58: 合并大陆测试加分 + 静态评分（静态评分占100%权重，测试通过额外加分）
-    mf_score = mf_score + ml_bonus
-    # v28.54: 使用动态源权重（1-20分），替代静态权重
+    # 大陆测试加分（仅开启时）
+    if ENABLE_MAINLAND_TEST:
+        ml = p.get("mainland_reachable")
+        if ml is True:
+            mf_score += MAINLAND_PASS_BONUS
+        elif ml is False:
+            mf_score -= 30
     src_weight = p.get("_src_weight", 3)
-    # 兼容旧 region_bonus 逻辑（IP geo 额外惩罚不友好地区）
-    region_bonus = 0
-    srv = p.get("server", "")
-    # BUGFIX v28.20: IPv6 安全提取 host
-    if srv.startswith("[") and "]" in srv:
-        host = srv.split("]")[0][1:]
-    elif is_pure_ip(srv) and ":" in srv:
-        host = srv  # 纯 IPv6（如 fe80::1）整体就是 host
-    elif ":" in srv:
-        host = srv.split(":")[0]
-    else:
-        host = srv
-    geo = limiter.get_geo(host)
-    if geo:
-        cc = geo.get("countryCode", "").upper()
-        if cc in NON_FRIENDLY_REGIONS:
-            region_bonus = -NON_FRIENDLY_PENALTY
-    # v28.14: extract latency from name for secondary sort
+    speed = p.get("_speed", 0.0)
+    hist_score = _get_node_history_score(p)
     lat_from_name = 0
     m = re.search(r"\d+", p.get("name", ""))
     if m:
         lat_from_name = int(m.group(0))
-    # v28.53: 融合历史可用性评分（0-20分）
-    hist_score = _get_node_history_score(p)
-    # sort: asia > mainland_friendly > src_weight > reality > proto > region_penalty > hist > latency
-    return (-asia, -mf_score, -src_weight, -reality, -proto_score, -region_bonus, -hist_score, lat_from_name)
+    return (-asia, -mf_score, -speed, -src_weight, -reality, -proto_score, -hist_score, lat_from_name)
+

@@ -309,12 +309,6 @@ class ClashManager:
         except (OSError, subprocess.SubprocessError) as e:
             logging.debug(f"   [ERROR] Clash 启动异常：{e}")
             return False
-        # v28.50: 启动成功时关闭管道避免泄漏
-        if self.process and self.process.stdout:
-            try:
-                self.process.stdout.close()
-            except OSError as e:
-                logging.debug(f"关闭 stdout 管道失败: {e}", exc_info=True)
 
     def stop(self):
         if self.process:
@@ -331,8 +325,7 @@ class ClashManager:
             self.process = None
 
     def test_proxy(self, name, server=None, port=None, retry=True):
-        """v28.7: 多URL测速 + 失败重试
-        v28.57: 第一阶段超时5s→8s（亚洲出口慢），大陆测试从强制淘汰改为评分降级
+        """v28.90: 多URL测速 + 响应体验证 + 速度测量
         """
         result = {"success": False, "latency": 9999.0, "speed": 0.0, "error": "", "mainland_reachable": False}
         try:
@@ -346,12 +339,51 @@ class ClashManager:
                     resp = requests.get(url, proxies=px, timeout=8, allow_redirects=False)
                     lat = (time.time() - start) * 1000
                     if resp.status_code in [200, 204, 301, 302]:
-                        result = {"success": True, "latency": round(lat, 1), "speed": 0.0, "error": "", "mainland_reachable": False}
-                        break
+                        # v28.90: 响应体验证，防止代理返回自己的错误页（状态码200）
+                        body_ok = True
+                        if resp.status_code == 200 and resp.text:
+                            try:
+                                import json as _json
+                                if url.endswith("/json"):
+                                    _data = _json.loads(resp.text)
+                                    if not isinstance(_data, dict) or "ip" not in _data:
+                                        body_ok = False
+                                elif "baidu.com" in url and "baidu" not in resp.text.lower():
+                                    body_ok = False
+                                elif "qq.com" in url and "qq" not in resp.text.lower():
+                                    body_ok = False
+                                elif "taobao.com" in url and "taobao" not in resp.text.lower():
+                                    body_ok = False
+                            except Exception:
+                                body_ok = False
+                        if body_ok:
+                            # v28.90: 实际测量下载速度
+                            try:
+                                _dl_start = time.time()
+                                _dl_resp = requests.get(url, proxies=px, timeout=8)
+                                _dl_bytes = len(_dl_resp.content)
+                                _dl_time = time.time() - _dl_start
+                                _speed = _dl_bytes / _dl_time if _dl_time > 0 else 0
+                                result = {
+                                    "success": True,
+                                    "latency": round(lat, 1),
+                                    "speed": round(_speed, 1),
+                                    "error": "",
+                                    "mainland_reachable": False,
+                                }
+                            except requests.RequestException:
+                                result = {
+                                    "success": True,
+                                    "latency": round(lat, 1),
+                                    "speed": 0.0,
+                                    "error": "",
+                                    "mainland_reachable": False,
+                                }
+                            break
                 except requests.RequestException as e:
                     logging.debug("Test URL failed for proxy %s: %s", name, str(e)[:50])
                     continue
-            # 备用池：前8个全部失败时用（减少完全误杀）
+            # 备用池
             if not result["success"]:
                 for url in TEST_URLS_BACKUP:
                     try:
@@ -359,20 +391,23 @@ class ClashManager:
                         resp = requests.get(url, proxies=px, timeout=8, allow_redirects=False)
                         lat = (time.time() - start) * 1000
                         if resp.status_code in [200, 204, 301, 302]:
-                            result = {"success": True, "latency": round(lat, 1), "speed": 0.0, "error": "", "mainland_reachable": False}
+                            result = {
+                                "success": True,
+                                "latency": round(lat, 1),
+                                "speed": 0.0,
+                                "error": "",
+                                "mainland_reachable": False,
+                            }
                             break
                     except requests.RequestException:
                         continue
-            # v28.66: 出口IP归属检测（替代URL测试，用本地GeoLite2判断是否中国大陆出口）
+            # v28.66: 出口IP归属检测
             if ENABLE_MAINLAND_TEST and result["success"]:
                 ml_ok = False
                 exit_ip = None
-                # v28.66a: 先查缓存（按代理配置去重）
-                # v28.67: server/port 需从外部传入
                 cache_key = f"{server}:{port}" if server and port else name
                 if cache_key in self._exit_ip_cache:
                     ml_ok = self._exit_ip_cache[cache_key]
-                    logging.debug("Exit IP cache hit: %s -> %s", cache_key, ml_ok)
                 else:
                     try:
                         r = requests.get("https://api.ip.sb/ip", proxies=px, timeout=6,
@@ -383,25 +418,17 @@ class ClashManager:
                                 geo = _geoip2_lookup(exit_ip) if _GEOIP2_AVAILABLE else None
                                 if geo and geo.get("country_code") == "CN":
                                     ml_ok = True
-                                    logging.debug("Mainland exit IP: %s (%s)", exit_ip, geo.get("country_name", ""))
-                                else:
-                                    country = geo.get("country_code", "??") if geo else "no-geo"
-                                    logging.debug("Non-mainland exit IP: %s (%s)", exit_ip, country)
                     except requests.RequestException as e:
                         logging.debug("Exit IP check failed: %s", str(e)[:50])
-                    # 写入缓存（按代理 config 去重，同IP端口只查一次）
                     self._exit_ip_cache[cache_key] = ml_ok
                 result["mainland_reachable"] = ml_ok
-                if ml_ok:
-                    logging.debug("Mainland reachable: %s", name)
-                else:
-                    logging.debug("Mainland unreachable: %s", name)
             if not result["success"]:
                 result["error"] = "All test URLs failed"
         except requests.RequestException as e:
             result["error"] = str(e)[:60]
-        # 失败重试一次（减少网络抖动误杀）
+        # 失败重试一次
         if retry and not result["success"]:
             time.sleep(0.5)
             return self.test_proxy(name, server=server, port=port, retry=False)
         return result
+

@@ -290,7 +290,7 @@ def main():
                                 # v28.49: 亚洲节点真实测速延迟放宽（2.0→2.5倍）
                                 if r["success"] and (
                                     r["latency"] < MAX_PROXY_LATENCY
-                                    or (is_asia(p) and r["latency"] < MAX_PROXY_LATENCY * 2.5)
+                                    or (is_asia(p) and r["latency"] < MAX_PROXY_LATENCY * 1.5)
                                 ):
                                     srv = p.get("server", "")
                                     sni_val = p.get("sni", "") or p.get("servername", "")
@@ -309,6 +309,8 @@ def main():
                                     )
                                     # v28.57: 附加真实大陆可达性测试结果，供 final_sort_key 使用
                                     p["mainland_reachable"] = r.get("mainland_reachable", False)
+                                    # v28.90: 保存实测速度，供 final_sort_key 使用
+                                    p["_speed"] = r.get("speed", 0.0)
                                     # v28.68: 移除硬筛大陆不可达节点的逻辑
                                     #         ENABLE_MAINLAND_TEST 默认关闭，TCP Ping+协议握手+Clash测速
                                     #         已能有效判断节点可用性，无需额外大陆出口IP检测

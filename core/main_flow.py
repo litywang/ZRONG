@@ -19,7 +19,7 @@ from utils import (
     NON_FRIENDLY_PENALTY, ASIA_PRIORITY_BONUS,
     get_region,
 )
-from core.validator import is_asia
+from core.validator import is_asia, is_node_disabled, record_health_result, batch_health_check_via_clash, get_health_summary, reset_runtime_health, HEALTH_OK, HEALTH_DEGRADED, HEALTH_DISABLED
 from core.scorer import mainland_friendly_score, PROTOCOL_SCORE
 from core.collector import collect_nodes
 
@@ -65,13 +65,13 @@ from sources.config import (
 def main():
     import argparse
     parser = argparse.ArgumentParser(description='ZRONG 代理订阅聚合工具')
-    parser.add_argument('--version', action='version', version='ZRONG v28.92')
-    # v28.92: 默认跳过健康检查（GitHub Actions 网络环境限制 TCP 连接）
-    # 可通过环境变量 ENABLE_HEALTH_CHECK=1 或命令行参数 --run-health-check 启用
-    parser.add_argument('--skip-health-check', action='store_true', default=(os.getenv('ENABLE_HEALTH_CHECK', '0') != '1'),
-                       help='跳过健康检查（默认跳过，除非 ENABLE_HEALTH_CHECK=1）')
+    parser.add_argument('--version', action='version', version='ZRONG v28.93')
+    # v28.87: 健康检查默认启用（通过 Clash API，无 TCP 限制）
+    # 使用 --skip-health-check 可跳过，ENABLE_HEALTH_CHECK=0 也可禁用
+    parser.add_argument('--skip-health-check', action='store_true', default=(os.getenv('ENABLE_HEALTH_CHECK', '0') == '0'),
+                       help='跳过健康检查')
     parser.add_argument('--run-health-check', action='store_false', dest='skip_health_check',
-                       help='启用健康检查（默认禁用）')
+                       help='启用健康检查（v28.87 默认启用）')
     args = parser.parse_args()
 
     st = time.time()
@@ -268,6 +268,10 @@ def main():
                         break
                     k = f"{item['proxy']['server']}:{item['proxy']['port']}"
                     if k not in tested:
+                        # v28.87: 跳过已被健康检查禁用的节点
+                        if is_node_disabled(item['proxy']):
+                            tested.add(k)
+                            continue
                         batch_items.append(item)
                 if not batch_items:
                     break
@@ -324,10 +328,14 @@ def main():
                                     tested.add(k)  # v28.12: restore
                                     # v28.53: 真实测速通过，更新历史记录
                                     update_node_history(p, success=True)
+                                    # v28.87: 记录健康检查成功
+                                    record_health_result(p, success=True)
                                     logging.info(f"   [OK] {p['name']}")
                                 else:
                                     # v28.53: 真实测速失败，更新历史记录
                                     update_node_history(p, success=False)
+                                    # v28.87: 记录健康检查失败（运行时追踪）
+                                    record_health_result(p, success=False)
                                 if len(final) >= MAX_FINAL_NODES:
                                     batch_enough = True  # BUGFIX: 通知外层 while 退出
                                     break
@@ -484,28 +492,28 @@ def main():
                 success_rate = rec["success_count"] / max(rec["success_count"] + rec["fail_count"], 1)
                 logging.debug(f"   • 权重{w:.1f} | 成功率{success_rate:.0%} | {url[:60]}...")
 
-        # v28.92: 健康检查（借鉴 discovery-service）
-        # 默认禁用（GitHub Actions 网络环境限制），需 ENABLE_HEALTH_CHECK=1 启用
-        if not args.skip_health_check:
-            logging.info(f"[START] 健康检查，共 {len(cleaned_final)} 个节点...")
-            from core.validator import batch_health_check
-            # v28.92: 使 max_workers 和 timeout 可通过环境变量配置
+        # v28.87: 健康检查（通过 Clash Controller API，适配 GitHub Actions 环境）
+        # 借鉴 discovery-service：连续失败3次禁用节点
+        if not args.skip_health_check and proxy_ok:
+            logging.info(f"[START] 健康检查，共 {len(cleaned_final)} 个节点（Clash API 模式）...")
+            from core.validator import batch_health_check_via_clash, get_health_summary
+            from core.config import CLASH_API_PORT
             _max_workers = int(os.getenv('HEALTH_CHECK_MAX_WORKERS', '20'))
-            _timeout = int(os.getenv('HEALTH_CHECK_TIMEOUT', '3'))
-            health_results = batch_health_check(cleaned_final, max_workers=_max_workers, timeout=_timeout)
-
-            healthy_nodes = []
-            unhealthy_count = 0
-            for p in cleaned_final:
-                node_id = f"{p.get('name', '')}@{p.get('server', '')}:{p.get('port', '')}"
-                if health_results.get(node_id, False):
-                    healthy_nodes.append(p)
-                else:
-                    unhealthy_count += 1
-
-            logging.info(f"[OK] 健康检查完成：健康 {len(healthy_nodes)} 个，失效 {unhealthy_count} 个")
+            _timeout = int(os.getenv('HEALTH_CHECK_TIMEOUT', '5'))
+            # 执行健康检查
+            health_results = batch_health_check_via_clash(
+                cleaned_final, clash_api_port=CLASH_API_PORT,
+                timeout=_timeout, max_workers=_max_workers
+            )
+            # 过滤禁用节点，保留 ok 和 degraded 节点
+            healthy_nodes = [p for p in cleaned_final if not is_node_disabled(p)]
+            disabled_count = len(cleaned_final) - len(healthy_nodes)
+            summary = get_health_summary()
+            logging.info(f"[OK] 健康检查完成：ok={summary['ok']} degraded={summary['degraded']} disabled={summary['disabled']} (移除 {disabled_count} 个)")
             cleaned_final = healthy_nodes
             unique_final = healthy_nodes  # 更新 unique_final
+        elif not args.skip_health_check and not proxy_ok:
+            logging.warning("[WARN] Clash 未运行，跳过 Clash API 健康检查")
 
         # v28.52: 大陆路由规则（CN_DIRECT=1 启用）
         _cn_direct = os.getenv("CN_DIRECT", "1") == "1"

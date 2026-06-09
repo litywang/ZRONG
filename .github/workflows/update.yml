@@ -48,11 +48,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run Crawler v28.58
+      - name: Run Crawler v28.87
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
           USE_ASYNC_FETCH: '1'
+
+          # 🏥 v28.87: 启用健康检查（Clash API 模式，无 TCP 限制）
+          ENABLE_HEALTH_CHECK: '1'
+          HEALTH_CHECK_MAX_WORKERS: '20'
+          HEALTH_CHECK_TIMEOUT: '5'
 
           # 🌏 v28.50: 启用新版大陆友好评分
           ZRONG_USE_NEW_SCORING: '1'
@@ -149,7 +154,7 @@ jobs:
           fi
           
           # 最终提交和推送
-          git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M') [v28.58]" || echo "[OK] Nothing new to commit"
+          git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M') [v28.87]" || echo "[OK] Nothing new to commit"
           
           # 使用 token 推送
           git push https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}.git HEAD:main

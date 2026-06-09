@@ -183,8 +183,145 @@ def validate_node(p):
     return True
 
 
+# ===== v28.87: 健康检查状态常量 =====
+HEALTH_OK = "ok"
+HEALTH_DEGRADED = "degraded"
+HEALTH_DISABLED = "disabled"
+HEALTH_CHECK_FAIL_THRESHOLD = 3  # 连续失败次数达到此值后禁用节点
+
+# v28.87: 运行时健康状态跟踪（server:port -> {"consecutive_fails": int, "status": str, "last_check": str}）
+_RUNTIME_HEALTH: dict[str, dict] = {}
+
+
+def get_runtime_health_key(node: dict) -> str:
+    """生成节点运行时健康检查的唯一键"""
+    return f"{node.get('server', '')}:{node.get('port', '')}"
+
+
+def get_node_health_status(node: dict) -> str:
+    """获取节点当前健康状态：ok / degraded / disabled"""
+    key = get_runtime_health_key(node)
+    entry = _RUNTIME_HEALTH.get(key)
+    if not entry:
+        return HEALTH_OK  # 无记录视为健康
+    return entry.get("status", HEALTH_OK)
+
+
+def is_node_disabled(node: dict) -> bool:
+    """判断节点是否已被健康检查禁用"""
+    return get_node_health_status(node) == HEALTH_DISABLED
+
+
+def record_health_result(node: dict, success: bool) -> str:
+    """v28.87: 记录健康检查结果，返回节点最新状态
+
+    借鉴 discovery-service 的机制：
+    - 连续失败 FAIL_THRESHOLD 次后标记为 disabled
+    - 成功一次即重置失败计数
+    - degraded 状态介于 ok 和 disabled 之间（失败1-2次）
+
+    Returns:
+        HEALTH_OK / HEALTH_DEGRADED / HEALTH_DISABLED
+    """
+    from datetime import datetime
+    key = get_runtime_health_key(node)
+    now = datetime.now().isoformat()
+
+    if key not in _RUNTIME_HEALTH:
+        _RUNTIME_HEALTH[key] = {"consecutive_fails": 0, "status": HEALTH_OK, "last_check": now}
+
+    entry = _RUNTIME_HEALTH[key]
+    entry["last_check"] = now
+
+    if success:
+        entry["consecutive_fails"] = 0
+        entry["status"] = HEALTH_OK
+    else:
+        entry["consecutive_fails"] = entry.get("consecutive_fails", 0) + 1
+        if entry["consecutive_fails"] >= HEALTH_CHECK_FAIL_THRESHOLD:
+            entry["status"] = HEALTH_DISABLED
+            logger.info(f"health: {key} DISABLED (consecutive fails: {entry['consecutive_fails']})")
+        elif entry["consecutive_fails"] >= 1:
+            entry["status"] = HEALTH_DEGRADED
+            logger.debug(f"health: {key} degraded (fails: {entry['consecutive_fails']})")
+
+    return entry["status"]
+
+
+def get_health_summary() -> dict:
+    """v28.87: 获取健康检查统计摘要"""
+    ok_count = sum(1 for e in _RUNTIME_HEALTH.values() if e.get("status") == HEALTH_OK)
+    degraded_count = sum(1 for e in _RUNTIME_HEALTH.values() if e.get("status") == HEALTH_DEGRADED)
+    disabled_count = sum(1 for e in _RUNTIME_HEALTH.values() if e.get("status") == HEALTH_DISABLED)
+    return {"ok": ok_count, "degraded": degraded_count, "disabled": disabled_count, "total": len(_RUNTIME_HEALTH)}
+
+
+def reset_runtime_health():
+    """重置运行时健康状态（新一轮测试开始时调用）"""
+    _RUNTIME_HEALTH.clear()
+
+
+def health_check_via_clash(node: dict, clash_api_port: int = 9090, timeout: int = 5) -> bool:
+    """v28.87: 通过 Clash Controller API 进行健康检查
+
+    使用 GET /proxies/{name}/delay 替代 TCP 直连，适配 GitHub Actions 环境。
+    返回 True 表示节点健康，False 表示失效。
+    """
+    import requests
+    name = node.get("name", "")
+    if not name:
+        return False
+    try:
+        url = f"http://127.0.0.1:{clash_api_port}/proxies/{requests.utils.quote(name)}/delay"
+        resp = requests.get(url, params={"timeout": timeout * 1000, "url": "https://www.gstatic.com/generate_204"}, timeout=timeout + 2)
+        if resp.status_code == 200:
+            data = resp.json()
+            delay = data.get("delay", 0)
+            logger.debug(f"health_clash: {name} OK ({delay}ms)")
+            return True
+        else:
+            logger.debug(f"health_clash: {name} FAIL (HTTP {resp.status_code})")
+            return False
+    except (requests.RequestException, ValueError, OSError) as e:
+        logger.debug(f"health_clash: {name} FAIL: {e}")
+        return False
+
+
+def batch_health_check_via_clash(nodes: list[dict], clash_api_port: int = 9090,
+                                 timeout: int = 5, max_workers: int = 20) -> dict[str, str]:
+    """v28.87: 批量通过 Clash API 健康检查，返回 {key: status}
+
+    借鉴 discovery-service 的机制：
+    - 每次检查后更新运行时健康状态
+    - 连续失败3次的节点标记为 disabled
+    - 返回每个节点的健康状态
+    """
+    import concurrent.futures
+
+    def _check(node):
+        key = get_runtime_health_key(node)
+        is_healthy = health_check_via_clash(node, clash_api_port, timeout)
+        status = record_health_result(node, is_healthy)
+        return key, status
+
+    results = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_node = {executor.submit(_check, node): node for node in nodes}
+        for future in concurrent.futures.as_completed(future_to_node):
+            try:
+                key, status = future.result()
+                results[key] = status
+            except (OSError, ValueError, TypeError):
+                node = future_to_node[future]
+                key = get_runtime_health_key(node)
+                status = record_health_result(node, False)
+                results[key] = status
+
+    return results
+
+
 def health_check(node: dict, timeout: int = 5) -> bool:
-    """健康检查：TCP 连接测试（借鉴 discovery-service）
+    """健康检查：TCP 连接测试（兼容旧接口）
 
     返回 True 表示节点健康，False 表示失效。
     """
@@ -215,9 +352,9 @@ def health_check(node: dict, timeout: int = 5) -> bool:
 
 
 def batch_health_check(nodes: list[dict], max_workers: int = 50, timeout: int = 5) -> dict[str, bool]:
-    """批量健康检查，返回 {node_id: is_healthy}
+    """批量健康检查（TCP 直连），返回 {node_id: is_healthy}
 
-    借鉴 discovery-service 的健康检查机制。
+    兼容旧接口。新代码应使用 batch_health_check_via_clash。
     """
     import concurrent.futures
 

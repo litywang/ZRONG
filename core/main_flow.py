@@ -19,7 +19,7 @@ from utils import (
     NON_FRIENDLY_PENALTY, ASIA_PRIORITY_BONUS,
     get_region,
 )
-from core.validator import is_asia, is_node_disabled, record_health_result, batch_health_check_via_clash, get_health_summary, reset_runtime_health, HEALTH_OK, HEALTH_DEGRADED, HEALTH_DISABLED
+from core.validator import is_asia, is_node_disabled, batch_health_check_via_clash, get_health_summary, reset_runtime_health, HEALTH_OK, HEALTH_DEGRADED, HEALTH_DISABLED
 from core.scorer import mainland_friendly_score, PROTOCOL_SCORE
 from core.collector import collect_nodes
 
@@ -328,14 +328,12 @@ def main():
                                     tested.add(k)  # v28.12: restore
                                     # v28.53: 真实测速通过，更新历史记录
                                     update_node_history(p, success=True)
-                                    # v28.87: 记录健康检查成功
-                                    record_health_result(p, success=True)
                                     logging.info(f"   [OK] {p['name']}")
                                 else:
                                     # v28.53: 真实测速失败，更新历史记录
                                     update_node_history(p, success=False)
-                                    # v28.87: 记录健康检查失败（运行时追踪）
-                                    record_health_result(p, success=False)
+                                    # v28.94: 代理测速失败不触发健康检查禁用
+                                    # 代理测速失败可能是 Clash 配置/并发问题，不是节点本身不可达
                                 if len(final) >= MAX_FINAL_NODES:
                                     batch_enough = True  # BUGFIX: 通知外层 while 退出
                                     break

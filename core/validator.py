@@ -181,3 +181,60 @@ def validate_node(p):
     if port_i in NON_PROXY_PORTS:
         return False
     return True
+
+
+def health_check(node: dict, timeout: int = 5) -> bool:
+    """健康检查：TCP 连接测试（借鉴 discovery-service）
+
+    返回 True 表示节点健康，False 表示失效。
+    """
+    import socket
+    import time
+
+    server = node.get("server", "")
+    port = node.get("port", 0)
+    if not server or not port:
+        return False
+
+    try:
+        port_i = int(port)
+    except (ValueError, TypeError):
+        return False
+
+    tcp_start = time.time()
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(timeout)
+            s.connect((server, port_i))
+        tcp_latency = (time.time() - tcp_start) * 1000
+        logger.debug(f"health_check: {server}:{port_i} OK ({tcp_latency:.0f}ms)")
+        return True
+    except (OSError, ValueError, TypeError) as e:
+        logger.debug(f"health_check: {server}:{port_i} FAIL: {e}")
+        return False
+
+
+def batch_health_check(nodes: list[dict], max_workers: int = 50, timeout: int = 5) -> dict[str, bool]:
+    """批量健康检查，返回 {node_id: is_healthy}
+
+    借鉴 discovery-service 的健康检查机制。
+    """
+    import concurrent.futures
+
+    def _check(node):
+        node_id = f"{node.get('name', '')}@{node.get('server', '')}:{node.get('port', '')}"
+        return node_id, health_check(node, timeout)
+
+    results = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_node = {executor.submit(_check, node): node for node in nodes}
+        for future in concurrent.futures.as_completed(future_to_node):
+            try:
+                node_id, is_healthy = future.result()
+                results[node_id] = is_healthy
+            except (OSError, ValueError, TypeError):
+                node = future_to_node[future]
+                node_id = f"{node.get('name', '')}@{node.get('server', '')}:{node.get('port', '')}"
+                results[node_id] = False
+
+    return results

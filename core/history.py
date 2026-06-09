@@ -324,7 +324,7 @@ def get_history_scores():
 
 def _signal_handler(sig, frame):
     logging.debug(f"[EXIT] 捕获信号 {sig}，保存运行数据...")
-    _save_node_history()
-    _save_source_history()
+    save_node_history()
+    save_source_history()
     limiter.save_geo_cache()
     sys.exit(0)

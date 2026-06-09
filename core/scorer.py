@@ -147,7 +147,7 @@ def _main_land_friendly_score_new(p):
     score = 0
     rules = _scoring_new
 
-    from core.validator import is_asia
+    # from core.validator import is_asia  # 已在文件开头导入
 
     if is_asia(p):
         t = f"{p.get('name', '')} {p.get('server', '')}".lower()

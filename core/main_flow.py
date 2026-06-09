@@ -65,7 +65,9 @@ from sources.config import (
 def main():
     import argparse
     parser = argparse.ArgumentParser(description='ZRONG 代理订阅聚合工具')
-    parser.add_argument('--version', action='version', version='ZRONG v28.63')
+    parser.add_argument('--version', action='version', version='ZRONG v28.91')
+    parser.add_argument('--skip-health-check', action='store_true',
+                       help='跳过健康检查（调试用）')
     args = parser.parse_args()
 
     st = time.time()
@@ -477,6 +479,25 @@ def main():
                 w = dynamic_source_weight(url)
                 success_rate = rec["success_count"] / max(rec["success_count"] + rec["fail_count"], 1)
                 logging.debug(f"   • 权重{w:.1f} | 成功率{success_rate:.0%} | {url[:60]}...")
+
+        # v28.91: 健康检查（借鉴 discovery-service）
+        if not args.skip_health_check:
+            logging.info(f"[START] 健康检查，共 {len(cleaned_final)} 个节点...")
+            from core.validator import batch_health_check
+            health_results = batch_health_check(cleaned_final, max_workers=50, timeout=5)
+
+            healthy_nodes = []
+            unhealthy_count = 0
+            for p in cleaned_final:
+                node_id = f"{p.get('name', '')}@{p.get('server', '')}:{p.get('port', '')}"
+                if health_results.get(node_id, False):
+                    healthy_nodes.append(p)
+                else:
+                    unhealthy_count += 1
+
+            logging.info(f"[OK] 健康检查完成：健康 {len(healthy_nodes)} 个，失效 {unhealthy_count} 个")
+            cleaned_final = healthy_nodes
+            unique_final = healthy_nodes  # 更新 unique_final
 
         # v28.52: 大陆路由规则（CN_DIRECT=1 启用）
         _cn_direct = os.getenv("CN_DIRECT", "1") == "1"

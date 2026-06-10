@@ -55,24 +55,27 @@ def create_session():
 
 session = create_session()
 
-# ===== 测速 URL（v28.69 从 crawler.py 迁移）=====
-# 测速URL优先国内服务，未通过国内测速的节点直接淘汰
-# v28.57: 超时5s→8s，亚洲出口节点响应慢，5s太严苛；添加http/https混合降低TLS握手负担
+# ===== 测速 URL（v28.98 从 crawler.py 迁移）=====
+# v28.98: 全面重构测速URL策略
+# 原则：优先轻量204响应（generate_204），无需解析内容；避免需要重定向的HTTP URL
+# 主池：gstatic（Clash自带）+ cloudflare（全球高可用）+ apple（苹果全球节点）
+# 国内池：baidu/qq/taobao（国内大站，HTTPS可靠），仅作参考不强制
 TEST_URLS = [
-    "http://myip.ipip.net/json",
-    "https://myip.ipip.net/json",
-    "http://ip.3322.org",
+    # 主池：轻量无内容验证
+    "https://www.gstatic.com/generate_204",
+    "http://cp.cloudflare.com/generate_204",
+    "https://cp.cloudflare.com/generate_204",
+    "http://captive.apple.com/generation_204",
+    "https://captive.apple.com/generation_204",
+    # 国内池：需TLS握手，验证内容关键字
     "https://www.baidu.com",
     "https://www.qq.com",
     "https://www.taobao.com",
-    "http://cp.cloudflare.com/generate_204",
-    "http://captive.apple.com/generation_204",
 ]
-# 原国际测速地址降级为备用（仅国内地址全部失败时启用）
-# v28.57: 备用池移除了google（含TLS握手延迟），保留gstatic作为最终兜底
+# 备用池：其他全球可用地址
 TEST_URLS_BACKUP = [
-    "https://www.gstatic.com/generate_204",
     "http://www.msftconnecttest.com/connecttest.txt",
+    "https://www.microsoft.com",
 ]
 
 ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "0") == "1"

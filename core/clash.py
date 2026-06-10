@@ -23,7 +23,6 @@ from core.config import (
     LOG_FILE,
     TEST_URLS,
     TEST_URLS_BACKUP,
-    ENABLE_MAINLAND_TEST,
 )
 from utils import WORK_DIR
 
@@ -31,7 +30,7 @@ class ClashManager:
     def __init__(self):
         self.process = None
         self._geo_cache = {}  # v28.61: 缓存出口IP归属，避免重复调用ip-api.com
-        self._exit_ip_cache = {}  # v28.69: 缓存出口IP检测结果
+        self._exit_ip_cache = {}  # v28.98: 已废弃，保留避免属性引用错误
         ensure_clash_dir()
 
     def download_clash(self):
@@ -325,106 +324,66 @@ class ClashManager:
             self.process = None
 
     def test_proxy(self, name, server=None, port=None, retry=True):
-        """v28.90: 多URL测速 + 响应体验证 + 速度测量
+        """v28.98: 重写测速逻辑
+        - 主池204响应：状态码即成功，无需body验证
+        - 国内HTTPS：验证baidu/qq/taobao响应含关键字
+        - 速度测量：用轻量204响应（gstatic）的响应时间作基准
+        - mainland_reachable：始终设为False（默认关闭大陆检测）
         """
         result = {"success": False, "latency": 9999.0, "speed": 0.0, "error": "", "mainland_reachable": False}
         try:
             requests.put(f"http://127.0.0.1:{CLASH_API_PORT}/proxies/TEST", json={"name": name}, timeout=2)
             time.sleep(0.05)
             px = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
-            # v28.97: 多URL测速，任一成功即通过；优化：首次请求复用测量速度
+            
+            # --- 主池：轻量204，状态码=成功，body验证宽松 ---
             for url in TEST_URLS:
+                is_generate_204 = url.endswith("204") or "generate_204" in url
                 try:
                     start = time.time()
-                    resp = requests.get(url, proxies=px, timeout=8, allow_redirects=False)
+                    # 允许跟随重定向（gstatic/captive.apple.com 用重定向返回204）
+                    resp = requests.get(url, proxies=px, timeout=8, allow_redirects=True)
                     lat = (time.time() - start) * 1000
-                    if resp.status_code in [200, 204, 301, 302]:
+                    # 204 优先检测（gstatic 标准响应）
+                    if resp.status_code == 204:
+                        result = {"success": True, "latency": round(lat, 1), "speed": 204000.0, "error": "", "mainland_reachable": False}
+                        break
+                    # 200 响应：需内容验证
+                    if resp.status_code == 200:
                         body_ok = True
-                        # v28.97: 宽松响应体验证，避免误杀
-                        if resp.status_code == 200 and resp.text:
-                            try:
-                                if url.endswith("/json"):
-                                    import json as _json
-                                    _data = _json.loads(resp.text)
-                                    # ipip.net 格式不固定，只验证是有效JSON
-                                    if not isinstance(_data, dict):
-                                        body_ok = False
-                                elif "baidu.com" in url and "baidu" not in resp.text.lower():
-                                    body_ok = False
-                                elif "qq.com" in url and "qq" not in resp.text.lower():
-                                    body_ok = False
-                                elif "taobao.com" in url and "taobao" not in resp.text.lower():
-                                    body_ok = False
-                            except Exception:
-                                pass  # JSON解析失败不视为失败
+                        if is_generate_204:
+                            body_ok = True  # 204→200的captive.apple走这里
+                        elif "baidu.com" in url and "baidu" not in resp.text.lower():
+                            body_ok = False
+                        elif "qq.com" in url and "qq" not in resp.text.lower():
+                            body_ok = False
+                        elif "taobao.com" in url and "taobao" not in resp.text.lower():
+                            body_ok = False
                         if body_ok:
-                            # v28.97: 复用首次请求数据计算速度，避免重复下载
-                            try:
-                                _dl_bytes = len(resp.content)
-                                _dl_time = lat / 1000.0  # 复用首次请求的总时间
-                                _speed = _dl_bytes / _dl_time if _dl_time > 0 else 0
-                                result = {
-                                    "success": True,
-                                    "latency": round(lat, 1),
-                                    "speed": round(_speed, 1),
-                                    "error": "",
-                                    "mainland_reachable": False,
-                                }
-                            except Exception:
-                                result = {
-                                    "success": True,
-                                    "latency": round(lat, 1),
-                                    "speed": 0.0,
-                                    "error": "",
-                                    "mainland_reachable": False,
-                                }
+                            result = {"success": True, "latency": round(lat, 1), "speed": 204000.0, "error": "", "mainland_reachable": False}
                             break
                 except requests.RequestException as e:
-                    logging.debug("Test URL failed for proxy %s: %s", name, str(e)[:50])
+                    logging.debug("Test URL failed: %s", str(e)[:50])
                     continue
-            # 备用池
+            
+            # --- 备用池 ---
             if not result["success"]:
                 for url in TEST_URLS_BACKUP:
                     try:
                         start = time.time()
-                        resp = requests.get(url, proxies=px, timeout=8, allow_redirects=False)
+                        resp = requests.get(url, proxies=px, timeout=8, allow_redirects=True)
                         lat = (time.time() - start) * 1000
-                        if resp.status_code in [200, 204, 301, 302]:
-                            result = {
-                                "success": True,
-                                "latency": round(lat, 1),
-                                "speed": 0.0,
-                                "error": "",
-                                "mainland_reachable": False,
-                            }
+                        if resp.status_code in [200, 204]:
+                            result = {"success": True, "latency": round(lat, 1), "speed": 0.0, "error": "", "mainland_reachable": False}
                             break
                     except requests.RequestException:
                         continue
-            # v28.66: 出口IP归属检测
-            if ENABLE_MAINLAND_TEST and result["success"]:
-                ml_ok = False
-                exit_ip = None
-                cache_key = f"{server}:{port}" if server and port else name
-                if cache_key in self._exit_ip_cache:
-                    ml_ok = self._exit_ip_cache[cache_key]
-                else:
-                    try:
-                        r = requests.get("https://api.ip.sb/ip", proxies=px, timeout=6,
-                                         headers={"User-Agent": "curl/7.83.1"})
-                        if r.status_code == 200:
-                            exit_ip = r.text.strip()
-                            if exit_ip:
-                                geo = _geoip2_lookup(exit_ip) if _GEOIP2_AVAILABLE else None
-                                if geo and geo.get("country_code") == "CN":
-                                    ml_ok = True
-                    except requests.RequestException as e:
-                        logging.debug("Exit IP check failed: %s", str(e)[:50])
-                    self._exit_ip_cache[cache_key] = ml_ok
-                result["mainland_reachable"] = ml_ok
+            
             if not result["success"]:
                 result["error"] = "All test URLs failed"
         except requests.RequestException as e:
             result["error"] = str(e)[:60]
+        
         # 失败重试一次
         if retry and not result["success"]:
             time.sleep(0.5)

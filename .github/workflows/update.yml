@@ -48,16 +48,15 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # v28.97: 运行主程序（测速优化 + batch优化 + 健康检查已启用）
-      - name: Run Crawler v28.97
+      # v28.98: 运行主程序（测速URL重构 + Gist上传 + 稳定通知）
+      - name: Run Crawler v28.98
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
           USE_ASYNC_FETCH: '1'
 
-          # 🏥 v28.97: 启用健康检查（测速优化后Clash负载降低，启用安全）
-          # 8并发 + 10s超时，平衡速度与准确性；连续3次失败禁用节点
-          ENABLE_HEALTH_CHECK: '1'
+          # 🏥 v28.98: 暂时禁用健康检查（Actions环境Clash高并发不稳定，恢复稳定后重新启用）
+          ENABLE_HEALTH_CHECK: '0'
           HEALTH_CHECK_MAX_WORKERS: '8'
           HEALTH_CHECK_TIMEOUT: '10'
 
@@ -104,14 +103,19 @@ jobs:
           echo "区域: $(grep -oE '(HK|TW|JP|SG|KR|MY|TH|VN|ID|PH|MO|MN|KH|LA|US|OT)-[0-9]+' proxies.yaml | cut -d- -f1 | sort | uniq -c | sort -rn)"
           echo "亚洲占比: $(grep -oE '(HK|TW|JP|SG|KR|MY|TH|VN|ID|PH|MO|MN|KH|LA)-[0-9]+' proxies.yaml | wc -l) / $(grep -c 'name:' proxies.yaml)"
 
-      # v28.97: 上传到 GitHub Gist（需在 Repo Secrets 配置 GIST_ID）
+      # v28.98: 上传到 GitHub Gist（需在 Repo Secrets 配置 GIST_ID）
+      # 使用 steps.gist.outputs.gist_url 条件更可靠
       - name: Upload to Gist
-        if: secrets.GIST_ID != ''
         id: gist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GIST_ID: ${{ secrets.GIST_ID }}
         run: |
+          if [ -z "$GIST_ID" ]; then
+            echo "GIST_ID not configured, skipping"
+            echo "gist_url=not_configured" >> $GITHUB_OUTPUT
+            exit 0
+          fi
           set -e
           TIMESTAMP=$(date '+%Y-%m-%d %H:%M')
           PROXY_COUNT=$(grep -c 'name:' proxies.yaml)
@@ -119,7 +123,6 @@ jobs:
           ASIA_PCT=$(awk "BEGIN {printf \"%.0f\", $ASIA_COUNT/$PROXY_COUNT*100}")
           DESC="ZRONG $TIMESTAMP | $PROXY_COUNT节点 | 亚洲$ASIA_COUNT($ASIA_PCT%)"
           echo "=== Gist 上传: $DESC ==="
-          # 将文件内容转为 JSON 字符串
           PROXIES_JSON=$(python3 -c "import json; print(json.dumps(open('proxies.yaml').read()))")
           SUB_JSON=$(python3 -c "import json; print(json.dumps(open('subscription.txt').read()))")
           RESPONSE=$(curl -s -X PATCH \
@@ -183,7 +186,7 @@ jobs:
           fi
           
           # 最终提交和推送
-          git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M') [v28.97]" || echo "[OK] Nothing new to commit"
+          git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M') [v28.98]" || echo "[OK] Nothing new to commit"
           
           # 使用 token 推送
           git push https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}.git HEAD:main
@@ -199,20 +202,21 @@ jobs:
             *.txt
           retention-days: 7
 
-      # v28.97: 成功通知（包含 Gist URL）
+      # v28.98: 成功通知（包含 Gist URL）
       - name: Notify Success
         if: success()
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GIST_ID: ${{ secrets.GIST_ID }}
         run: |
           if [ -n "$BOT_TOKEN" ] && [ -n "$CHAT_ID" ]; then
             NODE_COUNT=$(grep -c 'name:' proxies.yaml 2>/dev/null || echo "0")
             ASIA_COUNT=$(grep -oE '(HK|TW|JP|SG|KR|MY|TH|VN|ID|PH|MO|MN|KH|LA)-[0-9]+' proxies.yaml 2>/dev/null | wc -l || echo "0")
-            MSG="✅ ZRONG v28.97 更新成功！$NODE_COUNT 节点 | 亚洲 $ASIA_COUNT"
-            [ -n "$GIST_ID" ] && MSG="$MSG%n📦 Gist: https://gist.github.com/$GIST_ID"
+            MSG="✅ ZRONG v28.98 更新成功！$NODE_COUNT 节点 | 亚洲 $ASIA_COUNT"
+            if [ -n "$GIST_ID" ]; then
+              MSG="$MSG%0A📦 Gist: https://gist.github.com/$GIST_ID"
+            fi
             curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
               -d "chat_id=$CHAT_ID" \
               -d "text=$MSG" \

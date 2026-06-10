@@ -324,36 +324,26 @@ class ClashManager:
             self.process = None
 
     def test_proxy(self, name, server=None, port=None, retry=True):
-        """v29.01: 真实测速逻辑 - 204延迟+真实速度计算"""
+        """v29.03: 真实测速 - 简化逻辑，只要HTTP请求成功就认为节点合格"""
         result = {"success": False, "latency": 9999.0, "speed": 0.0, "error": "", "mainland_reachable": False}
         try:
             requests.put(f"http://127.0.0.1:{CLASH_API_PORT}/proxies/TEST", json={"name": name}, timeout=2)
             time.sleep(0.05)
             px = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
             
-            # 主池：204延迟+速度估算
+            # 主池：只要HTTP请求成功（200/204）就合格，不做body校验
             for url in TEST_URLS:
-                is_204 = url.endswith("204") or "generate_204" in url
                 try:
                     start = time.time()
                     resp = requests.get(url, proxies=px, timeout=8, allow_redirects=True)
                     elapsed = (time.time() - start) * 1000
                     lat = round(elapsed, 1)
-                    if resp.status_code == 204:
-                        speed_kbs = max(1.0, 1024 / max(elapsed / 1000, 0.01))
+                    if resp.status_code in [200, 204]:
+                        content_len = len(resp.content) if resp.content else 0
+                        # 速度估算：content_len / 下载时间
+                        speed_kbs = content_len / 1024 / max(elapsed / 1000, 0.01) if content_len > 0 else 1.0
                         result = {"success": True, "latency": lat, "speed": round(speed_kbs, 1), "error": "", "mainland_reachable": False}
                         break
-                    if resp.status_code == 200:
-                        content_len = len(resp.content)
-                        speed_kbs = content_len / 1024 / max(elapsed / 1000, 0.01) if content_len > 0 else max(1.0, 1024 / max(elapsed / 1000, 0.01))
-                        body_ok = True
-                        if not is_204 and "baidu.com" in url and "baidu" not in resp.text.lower():
-                            body_ok = False
-                        elif not is_204 and "qq.com" in url and "qq" not in resp.text.lower():
-                            body_ok = False
-                        if body_ok:
-                            result = {"success": True, "latency": lat, "speed": round(speed_kbs, 1), "error": "", "mainland_reachable": False}
-                            break
                 except requests.RequestException as e:
                     logging.debug("Test URL failed: %s", str(e)[:50])
                     continue
@@ -366,8 +356,8 @@ class ClashManager:
                         resp = requests.get(url, proxies=px, timeout=8, allow_redirects=True)
                         elapsed = (time.time() - start) * 1000
                         if resp.status_code in [200, 204]:
-                            content_len = len(resp.content)
-                            speed_kbs = max(1.0, content_len / 1024 / max(elapsed / 1000, 0.01)) if content_len > 0 else 1.0
+                            content_len = len(resp.content) if resp.content else 0
+                            speed_kbs = content_len / 1024 / max(elapsed / 1000, 0.01) if content_len > 0 else 1.0
                             result = {"success": True, "latency": round(elapsed, 1), "speed": round(speed_kbs, 1), "error": "", "mainland_reachable": False}
                             break
                     except requests.RequestException:

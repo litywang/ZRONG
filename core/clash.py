@@ -345,9 +345,9 @@ class ClashManager:
                         result = {"success": True, "latency": lat, "speed": round(speed_kbs, 1), "error": "", "mainland_reachable": False}
                         break
                     else:
-                        logging.debug(f"test_proxy {name}: URL {url} 返回状态码 {resp.status_code}")
+                        logging.info(f"test_proxy {name}: URL {url} 返回状态码 {resp.status_code}")
                 except requests.RequestException as e:
-                    logging.debug(f"test_proxy {name}: URL {url} 失败: {str(e)[:80]}")
+                    logging.info(f"test_proxy {name}: URL {url} 失败: {str(e)[:80]}")
                     continue
             
             # 备用池

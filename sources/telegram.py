@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 def get_telegram_pages(channel: str) -> int:
     """获取 Telegram 频道的总页数（兼容新旧两种 HTML 结构）"""
     try:
-        session = config.session()
+        session = config.session_fn()
         timeout = config.TIMEOUT_fn()
         url = f"https://t.me/s/{channel}"
         content = session.get(url, timeout=timeout).text
@@ -60,9 +60,9 @@ def crawl_telegram_page(url: str, limits: int = 25) -> Dict[str, dict]:
         {url: {"origin": "TELEGRAM"}}
     """
     try:
-        limiter = config.limiter()
-        session = config.session()
-        cfg = config.config()
+        limiter = config.limiter_fn()
+        session = config.session_fn()
+        cfg = config.config_fn()
 
         limiter.wait(url)
         headers = {

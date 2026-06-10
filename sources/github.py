@@ -22,8 +22,8 @@ POTENTIAL_PATHS = [
 def fetch_forks(base: str, session=None) -> List[dict]:
     """获取单个 base repo 的 fork 列表"""
     if session is None:
-        session = config.session()
-    cfg = config.config()
+        session = config.session_fn()
+    cfg = config.config_fn()
 
     url = f"https://api.github.com/repos/{base}/forks?per_page={cfg.get('MAX_FORK_REPOS', 60)}&sort=newest"
     headers = {"Accept": "application/vnd.github.v3+json"}
@@ -61,8 +61,8 @@ def discover_github_forks() -> List[str]:
     """
     logging.debug("[SEARCH] 动态发现 GitHub Fork...")
 
-    session = config.session()
-    cfg = config.config()
+    session = config.session_fn()
+    cfg = config.config_fn()
     base_repos = cfg.get('GITHUB_BASE_REPOS', [])
 
     if not base_repos:

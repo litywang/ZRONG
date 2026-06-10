@@ -1,4 +1,4 @@
-# sources/subscription.py - 订阅源抓取模块
+﻿# sources/subscription.py - 订阅源抓取模块
 # v28.53: 重构，使用 sources.config 替代 sys.modules hack
 
 import os
@@ -39,9 +39,9 @@ def fetch(url: str) -> str:
     import config
     socket.setdefaulttimeout(config.TIMEOUT_fn())
     
-    limiter = config.limiter()
-    client = config.get_http_client()
-    cfg = config.config()
+    limiter = config.limiter_fn()
+    client = config.get_http_client_fn()
+    cfg = config.config_fn()
     headers = random.choice(cfg.get('HEADERS_POOL', [{}]))
     is_github = "github" in url.lower() or "raw.githubusercontent" in url
 
@@ -86,8 +86,8 @@ def fetch(url: str) -> str:
 
 def fetch_and_parse(url: str) -> Tuple[Dict, bool]:
     """同步获取并解析单个 URL 的节点（用于 ThreadPoolExecutor）"""
-    parse_node_fn = config.parse_node()
-    ProxyNode_cls = config.ProxyNode()
+    parse_node_fn = config.parse_node_fn()
+    ProxyNode_cls = config.ProxyNode_fn()
 
     if parse_node_fn is None or ProxyNode_cls is None:
         logging.debug("parse_node or ProxyNode not available")
@@ -190,8 +190,8 @@ async def async_fetch_url(client: httpx.AsyncClient, url: str, mirror_pool: List
 
 async def async_fetch_and_parse(client: httpx.AsyncClient, url: str) -> Tuple[Dict, bool]:
     """异步获取并解析单个 URL 的节点"""
-    parse_node_fn = config.parse_node()
-    ProxyNode_cls = config.ProxyNode()
+    parse_node_fn = config.parse_node_fn()
+    ProxyNode_cls = config.ProxyNode_fn()
 
     if parse_node_fn is None or ProxyNode_cls is None:
         logging.debug("parse_node or ProxyNode not available")
@@ -236,7 +236,7 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
         url_results: {url: (success, node_count, asia_count)}
     """
     sem = asyncio.Semaphore(80)
-    client = config.get_async_http_client()
+    client = config.get_async_http_client_fn()
 
     async def fetch_with_limit(url: str):
         async with sem:
@@ -317,7 +317,7 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
             # 等待取消完成（忽略 CancelledError）
             await asyncio.gather(*pending, return_exceptions=True)
         # 安全关闭 client
-        async_client = config.async_http_client()
+        async_client = config.async_http_client_fn()
         if async_client:
             try:
                 await async_client.aclose()
@@ -336,7 +336,7 @@ async def async_fetch_urls(urls: List[str], mirror_pool: List[str] = None) -> Di
     if mirror_pool is None:
         mirror_pool = config.SUB_MIRRORS_fn()
 
-    client = config.get_async_http_client()
+    client = config.get_async_http_client_fn()
     # v28.50: 创建 task 对象而非传递 coroutine
     tasks = [asyncio.create_task(async_fetch_url(client, url, mirror_pool)) for url in urls]
 
@@ -358,7 +358,7 @@ def sync_close_async_http_client():
     import logging
     from . import config
     
-    async_client = config.async_http_client()
+    async_client = config.async_http_client_fn()
     if not async_client:
         return
     

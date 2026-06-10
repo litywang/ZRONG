@@ -89,44 +89,44 @@ def init_config() -> None:
 
 
 # ==================== 访问器函数 =====================
-def session():
+def session_fn():
     from core.config import session as _s
     return _s()
 
-def get_http_client():
+def get_http_client_fn():
     from network.client import get_http_client as _c
     return _c()
 
-def get_async_http_client():
+def get_async_http_client_fn():
     from network.client import get_async_http_client as _c
     return _c()
 
-def limiter():
+def limiter_fn():
     from network.geo import limiter as _l
     return _l()
 
-def parse_node():
+def parse_node_fn():
     from parsers import parse_node as _p
     return _p()
 
-def ProxyNode():
+def ProxyNode_fn():
     from parsers.proxynode import ProxyNode as _P
     return _P
 
-def config() -> Dict[str, Any]:
+def config_fn() -> Dict[str, Any]:
     """返回配置字典（供调试使用）"""
     _refresh_from_constants()
     return {k: getattr(_const, k, None) for k in dir(_const) if not k.startswith('_')}
 
-def dynamic_source_weight(url: str) -> float:
+def dynamic_source_weight_fn(url: str) -> float:
     from core.history import dynamic_source_weight as _dsw
     return _dsw(url)
 
-def is_asia(node: dict) -> bool:
+def is_asia_fn(node: dict) -> bool:
     from core.validator import is_asia as _ia
     return _ia(node)
 
-def async_http_client():
+def async_http_client_fn():
     from network.client import get_async_http_client as _c
     return _c()
 

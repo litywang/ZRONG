@@ -1,8 +1,8 @@
-# 🚀 ZRONG —— 智能订阅聚合工具 v28
+# 🚀 ZRONG —— 智能订阅聚合工具 v29
 
 > 🌟 **极致 · 稳定 · 精准 · 高效** | GitHub Actions 全自动化节点筛选平台
 > 基于 wzdnzd/aggregator + mahdibland/V2RayAggregator 核心逻辑深度重构
-> **v28 模块化版：分层架构 + 四层验证 + 亚洲优先配额 + 异步采集**
+> **v29 模块化版：分层架构 + 四层验证 + 亚洲优先配额 + 异步采集**
 
 [![GitHub stars](https://img.shields.io/github/stars/litywang/ZRONG?style=flat-square)](https://github.com/litywang/ZRONG/stargazers)
 [![GitHub workflow](https://img.shields.io/github/actions/workflow/status/litywang/ZRONG/update.yml?style=flat-square)](https://github.com/litywang/ZRONG/actions)
@@ -15,13 +15,13 @@
 | 维度 | 功能亮点 | 技术实现 |
 |------|----------|---------|
 | 🔥 **多源采集** | Telegram 频道(30+) + GitHub Fork(60仓库) + 固定订阅源(63+) | 三路并行发现 + 异步采集 |
-| 🌏 **亚洲优先** | 亚洲节点强制≥60%配额，上限75% | 多层加权 + 延迟放宽 + 保底机制 |
+| 🌏 **亚洲优先** | 亚洲节点强制≥45%配额，上限75% | 多层加权 + 延迟放宽 + 保底机制 |
 | 📄 **双格式解析** | TXT 协议链接 + YAML 配置 | 自动识别并行处理 |
 | 🔗 **全协议支持** | 12种协议 | VMess / VLESS / Trojan / SS / SSR / Hysteria2 / Hysteria / TUIC / Snell / HTTP / SOCKS5 / AnyTLS |
 | 🧹 **智能去重** | MD5(协议特征) | 重复率 < 1% |
 | ⚡ **四层验证** | TCP Ping → 协议握手 → Clash测速 → TCP补充 | 分层递进，层层收紧 |
-| 🌏 **IP地理定位** | GeoLite2 本地库 + ip-api.com 批量回退 | 纯IP节点也能正确标记区域 |
-| 🔄 **多URL验证** | gstatic + Cloudflare + Apple + ipip.net | 消除单URL不可达误杀 |
+| 🌏 **IP地理定位** | GeoLite2 本地库 + ML_OK 批量回退 | 纯IP节点也能正确标记区域 |
+| 🔄 **多URL验证** | gstatic + Cloudflare + Apple + captive.apple | 消除单URL不可达误杀 |
 | 🔁 **失败重试** | Clash测速失败自动重试 | 减少网络抖动误杀 |
 | 🚀 **异步采集** | httpx AsyncClient + 域名级限流 | 采集效率大幅提升 |
 | 🧠 **智能历史** | 节点历史可用性追踪 + 源历史动态权重 | 优质源持续加权，劣质源自动降权 |
@@ -35,13 +35,18 @@
 ZRONG/
 ├── crawler.py              # 主入口，加载配置 + 调度 core.main_flow
 ├── core/
-│   ├── main_flow.py        # 主流程：采集→TCP→Clash测速→配额分配→输出
+│   ├── main_flow.py        # 主流程编排（入口函数 main()）
+│   ├── stages/             # 流水线阶段（Phase C 重构）
+│   │   ├── dedup.py        # 同服务器跨协议去重
+│   │   ├── geo_prequery.py # IP 地理预查询
+│   │   ├── tcp_test.py     # TCP 队列构建 / 并发测试 / 排序
+│   │   ├── speed_test.py   # Clash 代理测速 + TCP 补充保底
+│   │   └── output.py       # 配额选择 / clean / 写文件 / Telegram 通知
 │   ├── collector.py        # 节点采集（TG/Fork/订阅源 + 去重 + 权重）
 │   ├── validator.py        # 节点验证与去重（域名/IP/协议）
 │   ├── scorer.py           # 节点评分（大陆友好度 + 协议 + 端口）
 │   ├── filter.py           # 质量过滤 + 最终排序
 │   ├── clash.py            # ClashManager（下载/配置/测速/出口IP检测）
-│   ├── testing.py          # TCP节点测试（丢包/握手/TLS）
 │   ├── history.py          # 历史记录（节点可用性 + 源动态权重）
 │   ├── output.py           # 协议链接格式化（全12种协议）
 │   └── namer.py            # 节点命名（emoji区域 + 延迟 + 评分）
@@ -55,12 +60,14 @@ ZRONG/
 │   ├── telegram.py         # Telegram频道爬虫
 │   ├── github.py           # GitHub Fork发现
 │   ├── subscription.py     # 订阅源抓取（同步/异步）
-│   ├── config.py           # 配置访问层
-│   └── utils.py            # 公用工具函数
+│   └── config.py           # 配置访问层（运行时从 constants 快照）
 ├── config/
+│   ├── constants.py        # 全局常量定义（Phase A 重构，38个 os.getenv）
+│   ├── cn_cidr_data.json   # 中国大陆 CIDR 数据（Phase B 重构，4232条）
 │   └── __init__.py         # 规则配置加载（rules.yaml）
+├── cn_cidr_data.py         # CIDR 数据懒加载（从 JSON 按需构建 IPv4Network）
 └── parsers/
-    └── *.py                # 协议解析器
+    └── *.py                # 协议解析器（12种协议）
 ```
 
 ---
@@ -95,7 +102,7 @@ ZRONG/
 
 ```
 ==================================================
-🚀 ZRONG v28 - 智能订阅聚合
+🚀 ZRONG v29 - 智能订阅聚合
 作者：𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
 ==================================================
 
@@ -163,7 +170,7 @@ ZRONG/
 | `MAX_TCP_TEST_NODES` | 500 | TCP 测试上限 |
 | `MAX_PROXY_TEST_NODES` | 1000 | 代理测试上限（分批） |
 | `MAX_FINAL_NODES` | 150 | 最终输出上限 |
-| `TARGET_ASIA_RATIO` | 0.60 | 亚洲节点目标比例 |
+| `TARGET_ASIA_RATIO` | 0.45 | 亚洲节点目标比例 |
 | `ASIA_MIN_COUNT` | 60 | 亚洲节点保底数量 |
 
 ### 环境变量覆盖
@@ -174,7 +181,7 @@ ZRONG/
 env:
   USE_ASYNC_FETCH: 1
   MAX_FINAL_NODES: 150
-  TARGET_ASIA_RATIO: 0.60
+  TARGET_ASIA_RATIO: 0.45
 ```
 
 ---
@@ -201,7 +208,7 @@ env:
 <details>
 <summary><b>Q: 节点区域全显示 🌐 怎么办？</b></summary>
 
-已内置 GeoLite2 本地数据库，纯 IP 节点也能正确识别区域。回退使用 ip-api.com 批量查询。
+已内置 GeoLite2 本地数据库，纯 IP 节点也能正确识别区域。回退使用 ML_OK 批量查询。
 </details>
 
 <details>
@@ -216,14 +223,20 @@ env:
 
 ## 📜 更新日志
 
+### v29 (2026-06) - 🔧 Phase A/B/C 模块化流水线重构
+- ✅ **Phase A**：crawler.py 常量下沉 → `config/constants.py`（271行→205行），消除全局命名空间
+- ✅ **Phase B**：`cn_cidr_data.py` 硬编码列表 → `config/cn_cidr_data.json` 懒加载（4242行→47行，-99%）
+- ✅ **Phase C**：`main_flow.py` 单块 → `core/stages/` 流水线（dedup/geo_prequery/tcp_test/speed_test/output）
+- ✅ **sources/config.py**：运行时从 `constants` 快照配置，函数式访问器隔离变量名遮蔽问题
+- ✅ **全协议格式化**：12种协议链接格式化
+- ✅ **GeoLite2本地库**：离线IP地理查询，零API依赖
+- ✅ **Asia配额调整**：目标比例 60% → 45%，保底数量不变
+
 ### v28 (2026-06) - 🏗️ 模块化重构版
 - ✅ **代码模块化重构**：core/ + network/ + sources/ + config/ 分层解耦
 - ✅ **四层验证体系**：TCP Ping → 协议握手 → Clash测速 → TCP补充
 - ✅ **智能历史系统**：节点可用性追踪 + 源动态权重
 - ✅ **亚洲优先配额**：强制≥60%，上限75%，保底60个
-- ✅ **GeoLite2本地库**：离线IP地理查询，零API依赖
-- ✅ **全协议格式化**：12种协议链接格式化
-- ✅ **智能质量过滤**：CN域名黑名单 + 非代理端口 + 大陆友好性评分
 - ✅ **ClashManager**：下载/配置/测速/出口IP检测
 - ✅ **网络工具包**：httpx同步/异步客户端 + DNS缓存 + TLS握手
 
@@ -260,7 +273,7 @@ git clone https://github.com/litywang/ZRONG.git
 cd ZRONG
 
 # 安装依赖
-pip install requests pyyaml urllib3 httpx httpx[http2] geoip2
+pip install requests pyyaml urllib3 httpx httpx[http2] geoip2 maxminddb
 
 # 直接运行
 python crawler.py

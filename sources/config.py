@@ -107,7 +107,7 @@ def limiter_fn():
 
 def parse_node_fn():
     from parsers import parse_node as _p
-    return _p()
+    return _p
 
 def ProxyNode_fn():
     from parsers.proxynode import ProxyNode as _P

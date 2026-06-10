@@ -18,42 +18,13 @@ class NodeNamer:
 
     def generate(self, flag, lat=None, score=None, speed=None, tcp=False, 
                  server=None, sni=None, mainland_reachable=None, proto=None):
-        """v29.01: 命名 = emoji区域-编号 | 延迟ms | 协议 | TCP标记
+        """命名 = 国旗+序号-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
         
-        格式: 🇯🇵JP01 | 347ms | VL | ✓  (大陆可达)
-              🇭🇰HK02 | 120ms | TR | TCP (仅TCP通过)
+        格式: 🇸🇬1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+              🇭🇰2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
         """
         code, region = get_region(flag, server=server, sni=sni)
         self.counters[region] = self.counters.get(region, 0) + 1
         num = self.counters[region]
         
-        # 区域编号
-        region_tag = f"{region}{num:02d}"
-        
-        # 延迟
-        lat_str = f"{int(lat)}ms" if lat is not None and lat < 9999 else "timeout"
-        
-        # 协议缩写
-        proto_str = PROTO_SHORT.get(proto or "", proto or "?")
-        
-        # 速度KB/s（仅真实测速有值）
-        speed_str = ""
-        if speed is not None and speed > 0:
-            # speed是KB/s
-            if speed >= 1000:
-                speed_str = f"|{speed/1000:.1f}MB/s"
-            elif speed > 10:
-                speed_str = f"|{speed:.0f}KB/s"
-        
-        # 大陆可达标记
-        ml_str = "|✓" if mainland_reachable else ""
-        
-        # TCP补充标记
-        tcp_str = "|TCP" if tcp else ""
-        
-        # 评分标记（高分节点）
-        score_str = ""
-        if score is not None and score >= 60:
-            score_str = f"|s{int(score)}"
-        
-        return f"{code}{region_tag} | {lat_str} | {proto_str}{speed_str}{ml_str}{tcp_str}{score_str}"
+        return f"{code}{num}-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶"

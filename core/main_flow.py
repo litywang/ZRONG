@@ -1,702 +1,162 @@
+# core/main_flow.py - ZRONG 主流程编排
+# v28.99 Phase C: 重构为流水线阶段调用
+# main() = 编排器，各阶段逻辑下沉到 core/stages/
+
 import time
 import signal
 import os
 import sys
-import json
-import random
-import yaml
 import logging
-import hashlib
-import re
-import base64
-import httpx
-from pathlib import Path
-from datetime import datetime, timezone
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from utils import (
-    WORK_DIR, MAX_RETRIES, HEADERS_POOL, REQUESTS_PER_SECOND,
-    is_pure_ip, ASIA_REGIONS, NON_FRIENDLY_REGIONS,
-    NON_FRIENDLY_PENALTY, ASIA_PRIORITY_BONUS,
-    get_region,
-)
-from core.validator import is_asia, is_node_disabled, batch_health_check_via_clash, get_health_summary, reset_runtime_health, HEALTH_OK, HEALTH_DEGRADED, HEALTH_DISABLED
-from core.scorer import mainland_friendly_score, PROTOCOL_SCORE
-from core.collector import collect_nodes
-
-from core import (
-    ClashManager, NodeNamer, format_proxy_to_link,
-    check_network_baseline, ensure_clash_dir, create_session, tcp_ping,
-    filter_quality,
-    _signal_handler,
-)
-from core.testing import test_tcp_node, test_one
-from core.filter import _geo_score, final_sort_key
-from core.history import (
-    save_node_history, save_source_history,
-    load_node_history, load_source_history,
-    record_history, history_stability_score,
-    dynamic_source_weight, update_source_history,
-    update_node_history,
-    # v28.76: 补上下划线全局变量（重构时遗漏）
-    _NODE_HISTORY, _SOURCE_HISTORY,
-    _NODE_HISTORY_LOCK, _SOURCE_HISTORY_LOCK,
-    _HISTORY_SCORES, _HISTORY_SCORES_LOCK,
-)
-from network.geo import limiter, _ip_geo_batch
-from network.tcp import tcp_ping as _tcp_ping
-from network.tls import is_reality_friendly
 import asyncio
 import subprocess
+from pathlib import Path
 
-# v28.40: 导入 sources 包的函数和配置
-from sources import (
-    crawl_telegram_channels, strip_url, discover_github_forks,
-    fetch_and_parse, async_fetch_nodes, sync_close_async_http_client,
+from utils import is_pure_ip
+from core.validator import (
+    is_asia, is_node_disabled, batch_health_check_via_clash,
+    get_health_summary,
 )
-# v28.97: 补充缺失的 CLASH_API_PORT 常量（原 v28.96 健康检查引入但未导入）
+from core.collector import collect_nodes
+from core import ClashManager, _signal_handler, create_session
+from core.stages import (
+    deduplicate_by_server_port, prequery_ip_geos,
+    build_tcp_queue, run_tcp_test, sort_tcp_results,
+    run_speed_test, supplement_tcp,
+    apply_quota, write_output, send_telegram_notify,
+)
+from core.history import (
+    load_node_history, load_source_history,
+    save_node_history, save_source_history,
+    update_node_history,
+)
+from sources import sync_close_async_http_client
+from sources.config import init_config
+from core.testing import test_tcp_node
+
 CLASH_API_PORT = 9090
-
-from sources.config import (
-    TELEGRAM_CHANNELS, CANDIDATE_URLS, MAX_FETCH_NODES, FETCH_WORKERS,
-    MAX_TCP_TEST_NODES, MAX_LATENCY, MAX_PROXY_TEST_NODES,
-    MAX_FINAL_NODES, MAX_PROXY_LATENCY, TEST_URL,
-    TARGET_ASIA_RATIO, ASIA_TCP_RELAX, ASIA_MIN_COUNT,
-    BOT_TOKEN, CHAT_ID, REPO_NAME,
-)
 
 
 def main():
     import argparse
     parser = argparse.ArgumentParser(description='ZRONG 代理订阅聚合工具')
-    parser.add_argument('--version', action='version', version='ZRONG v28.93')
-    # v28.96: 健康检查默认关闭（Clash API 在 Actions 高并发环境下容易超时）
-    # 使用 --run-health-check 启用，或环境变量 ENABLE_HEALTH_CHECK=1
-    parser.add_argument('--skip-health-check', action='store_true', default=(os.getenv('ENABLE_HEALTH_CHECK', '0') != '1'),
-                       help='跳过健康检查（默认跳过）')
+    parser.add_argument('--version', action='version', version='ZRONG v28.99')
+    parser.add_argument('--skip-health-check', action='store_true',
+                        default=(os.getenv('ENABLE_HEALTH_CHECK', '0') != '1'),
+                        help='跳过健康检查（默认跳过）')
     parser.add_argument('--run-health-check', action='store_false', dest='skip_health_check',
-                       help='启用健康检查（v28.87 默认禁用，需显式开启）')
+                        help='启用健康检查')
     args = parser.parse_args()
-
     st = time.time()
 
-    # v28.53: 初始化 sources 配置访问层（必须在其他 sources 函数调用前）
-    import sources.config
-    sources.config.init_config()
-
-    # v28.53: 加载节点历史记录
+    # ── 初始化 ──────────────────────────────────────────────────────────
+    init_config()
     load_node_history()
-    # v28.54: 加载源历史记录
     load_source_history()
-
-    # 注册信号处理（优化：自动保存数据）
-
     signal.signal(signal.SIGINT, _signal_handler)
     signal.signal(signal.SIGTERM, _signal_handler)
-    logging.debug("[OK] 信号处理已注册（自动保存数据）")
 
-    # v28.22: CN CIDR 数据有效期校验（gen_cn_cidr.py 每次运行会重新生成 cn_cidr_data.py，所以不能在那里加函数）
+    # CN CIDR 有效期检查
     try:
         _cidr_file = Path(__file__).parent / "cn_cidr_data.py"
         if _cidr_file.exists():
-            _cidr_age_days = (time.time() - _cidr_file.stat().st_mtime) / 86400
-            if _cidr_age_days > 30:
-                logging.warning("[WARN] CN_CIDR 数据已过期 (%.0f 天)，建议运行 gen_cn_cidr.py 更新", _cidr_age_days)
+            age = (time.time() - _cidr_file.stat().st_mtime) / 86400
+            if age > 30:
+                logging.warning(f"[WARN] CN_CIDR 数据已过期 ({age:.0f} 天)，建议运行 gen_cn_cidr.py")
     except (OSError, ValueError):
-        logging.debug("Exception occurred", exc_info=True)
-        # 校验失败不影响主流程
+        pass
 
     clash = ClashManager()
-    namer = NodeNamer()
-    proxy_ok = False
+    session = create_session()
+    USE_ASYNC = os.getenv("USE_ASYNC_FETCH", "0") == "1"
 
-    # v29: 异步抓取模式（可选启用）
-    USE_ASYNC_FETCH = os.getenv("USE_ASYNC_FETCH", "0") == "1"
+    logging.info("=" * 50)
+    logging.info("[START] 聚合订阅爬虫 v28.99 - Phase C 重构版")
+    logging.info(f"异步抓取: {'[OK] 启用' if USE_ASYNC else '[FAIL] 禁用'}")
+    logging.info("=" * 50)
 
-    try:
-        session = create_session()
-        logging.info("=" * 50)
-        logging.info("[START] 聚合订阅爬虫 v28.39 - 大陆优化版")
-        logging.info("作者：Anftlity | Version: 28.33")
-        logging.info(f"异步抓取: {'[OK] 启用' if USE_ASYNC_FETCH else '[FAIL] 禁用（同步模式）'}")
-        logging.info("=" * 50)
-
-        # ===== 采集节点（已提取到 core/collector.py）=====
-        nodes, stats = collect_nodes(use_async=USE_ASYNC_FETCH)
-
-        # 输出采集统计
-        logging.info(
-        f"[STAT] 采集统计: TG={stats['tg_count']}, "
-        f"Fork={stats['fork_count']}, "
-        f"固定={stats['fixed_count']}, "
+    # ── 阶段1: 采集节点 ───────────────────────────────────────────────
+    nodes, stats = collect_nodes(use_async=USE_ASYNC)
+    logging.info(
+        f"[STAT] 采集: TG={stats['tg_count']}, "
+        f"Fork={stats['fork_count']}, 固定={stats['fixed_count']}, "
         f"总URL={stats['total_urls']}, "
-        f"YAML={stats['yaml_count']}, TXT={stats['txt_count']}, "
         f"过滤={stats['nodes_before_filter']}→{stats['nodes_after_filter']}"
-        )
+    )
+    if not nodes:
+        logging.warning("[FAIL] 无有效节点!")
+        return
 
-        if not nodes:
-            logging.warning("[FAIL] 无有效节点!")
-            return
+    # ── 阶段2: 同服务器跨协议去重 ────────────────────────────────────
+    nodes = deduplicate_by_server_port(nodes)
+    all_nodes = list(nodes.values())
 
-        # v28.58: 同服务器跨协议优选去重
-        # 同一服务器同一端口有多个协议节点时，只保留大陆友好度评分最高的那个
-        before_dedup_server = len(nodes)
-        srvport_best = {}
-        for h, p in nodes.items():
-            srv = p.get("server", "").lower()
-            port = str(p.get("port", 0))
-            if srv.startswith("[") and "]" in srv:
-                host = srv.split("]")[0][1:]
-            elif ":" in srv and is_pure_ip(srv.split(":")[0]):
-                host = srv.rsplit(":", 1)[0]
-            else:
-                host = srv.split(":")[0] if ":" in srv else srv
-            key = f"{host}:{port}"
-            mf = mainland_friendly_score(p)
-            if key not in srvport_best or mf > srvport_best[key][1]:
-                srvport_best[key] = (h, mf)
-        nodes = {h: nodes[h] for h, _ in srvport_best.values()}
-        after_dedup_server = len(nodes)
-        if before_dedup_server > after_dedup_server:
-            logging.info(f"[OK]同服务器跨协议去重：{before_dedup_server} → {after_dedup_server} 个（保留每IP:Port最优协议）")
+    # ── 阶段3: IP 地理预查询 ─────────────────────────────────────────
+    prequery_ip_geos(all_nodes)
 
-        # 5.6 预查询 IP 地理位置（批量，用于节点区域识别）
-        logging.info("[GEO] 预查询 IP 地理位置...")
-        all_servers = set()
-        for p in nodes.values():
-            srv = p.get("server", "")
-            if srv.startswith("[") and "]" in srv:
-                host = srv.split("]")[0][1:]
-            elif is_pure_ip(srv) and ":" in srv:
-                host = srv
-            elif ":" in srv:
-                host = srv.split(":")[0]
-            else:
-                host = srv
-            if is_pure_ip(host):
-                all_servers.add(host)
-        _ip_geo_batch(list(all_servers)[:500])
+    # ── 阶段4: TCP 延迟测试 ─────────────────────────────────────────
+    logging.info("[SPEED] 第一层：TCP 延迟测试...")
+    nlist = build_tcp_queue(all_nodes)
+    nres = run_tcp_test(nlist)
+    nres = sort_tcp_results(nres)
 
-        # 6. TCP 测试（提高并发）
-        logging.info("[SPEED] 第一层：TCP 延迟测试...")
-        # v28.49: TCP测试队列优化——亚洲节点优先测试，提高亚洲测试比例
-        all_nodes_list = list(nodes.values())
-        asia_nodes_list = [n for n in all_nodes_list if is_asia(n)]
-        non_asia_nodes_list = [n for n in all_nodes_list if not is_asia(n)]
-        # v29: 亚洲节点优先，分配85%测试额度给亚洲（原为80%）
-        asia_tcp_ratio = 0.85
-        asia_quota = min(len(asia_nodes_list), int(MAX_TCP_TEST_NODES * asia_tcp_ratio))
-        non_asia_quota = min(len(non_asia_nodes_list), MAX_TCP_TEST_NODES - asia_quota)
-        # v29: 亚洲节点保底——至少测试150个亚洲节点（如果存在）
-        asia_min_test = min(150, len(asia_nodes_list))
-        if asia_quota < asia_min_test:
-            asia_quota = asia_min_test
-            non_asia_quota = min(len(non_asia_nodes_list), MAX_TCP_TEST_NODES - asia_quota)
+    # ── 阶段5: 真实代理测速 ──────────────────────────────────────────
+    logging.info("[START] 真实代理测速（分批）...")
+    final = run_speed_test(nres, clash)
 
-        # v28.58: 亚洲节点按大陆友好度评分排序，高分节点优先进入TCP测试队列
-        # 这样确保有限的TCP测试额度优先分配给更可能大陆友好的节点
-        try:
-            asia_nodes_list.sort(key=lambda n: mainland_friendly_score(n), reverse=True)
-        except (ValueError, KeyError, TypeError):
-            logging.debug("Asia nodes sort by mf_score failed, using original order")
+    # ── 阶段6: TCP 补充 ─────────────────────────────────────────────
+    tested = set()
+    final = supplement_tcp(final, nres, tested)
 
-        nlist = asia_nodes_list[:asia_quota] + non_asia_nodes_list[:non_asia_quota]
-        logging.info(f"   [STAT] TCP测试队列：{len(asia_nodes_list[:asia_quota])} 亚洲"
-              f" + {len(non_asia_nodes_list[:non_asia_quota])} 非亚洲 = {len(nlist)} 总计")
-        nres = []
-
-
-
-        # 提高并发数用于 TCP 测试（大幅提高）
-        tcp_workers = min(int(os.getenv("TCP_WORKERS", "200")), 500)  # v28.22: 可配置，上限500
-        with ThreadPoolExecutor(max_workers=tcp_workers) as ex:
-            futures = {ex.submit(test_tcp_node, p): p for p in nlist}
-            completed = 0
-            for future in as_completed(futures):
-                try:
-                    result = future.result(timeout=2)  # 缩短超时
-                    if result["latency"] < MAX_LATENCY:
-                        nres.append(result)
-                        # v28.53: TCP测试通过，更新历史记录
-                        update_node_history(result["proxy"], success=True)
-                    else:
-                        # v28.53: TCP测试失败，更新历史记录
-                        update_node_history(result["proxy"], success=False)
-                    completed += 1
-                    if completed % 50 == 0:
-                        logging.debug(f"   进度：{completed}/{len(nlist)} | 合格：{len(nres)}")
-                except (OSError, ValueError, TypeError):
-                    logging.debug("Proxy test error for node")
-
-        # v28.8: 利用 IP 地理位置优化排序（增强大陆友好性）
-
-
-
-        # v28.49: 增强排序逻辑，大幅优先亚洲节点
-        nres.sort(key=lambda x: (
-            -_geo_score(x),  # IP 地理位置加权（亚洲加分，非友好区域扣分）
-            -x["is_asia"],
-            -(1 if is_reality_friendly(x["proxy"]) else 0),  # Reality节点优先
-            -PROTOCOL_SCORE.get(x["proxy"].get("type", ""), 0) / 10.0,  # 协议评分加权
-            x["latency"]
-        ))
-        # v29: 如果亚洲节点不足80%，调整排序策略强制提升（原为75%）
-        asia_count = sum(1 for n in nres if n["is_asia"])
-        if asia_count > 0 and asia_count < len(nres) * 0.80:
-            # 重新排序：亚洲节点全部置顶，非亚洲按延迟排序
-            asia_nodes = [n for n in nres if n["is_asia"]]
-            non_asia_nodes = [n for n in nres if not n["is_asia"]]
-            nres = asia_nodes + non_asia_nodes
-            logging.info("   强制亚洲置顶：{} 亚洲 + {} 非亚洲".format(len(asia_nodes), len(non_asia_nodes)))
-        # v28.14: 重新计算亚洲数量（排序后可能已调整）
-        asia_count = sum(1 for n in nres if n["is_asia"])
-        tcp_asia_pct = round(asia_count * 100 / max(len(nres), 1), 1)
-        logging.debug(f"[OK] 第一层合格：{len(nres)} 个（亚洲：{asia_count}，占比：{tcp_asia_pct}%）\n")
-
-        # 7. 真实测速 + TCP 保底（保留）
-        logging.info("[START] 真实代理测速（分批）...")
-        final = []
-        tested = set()
-        proxy_ok = False
-        nres_untested = nres[:MAX_TCP_TEST_NODES]
-        batch_size = MAX_PROXY_TEST_NODES
-        batch_id = 0
-
-        if len(nres) > 0:
-            batch_enough = False  # BUGFIX: 标志位，用于内层 break 跳出后通知外层 while
-            # v28.97: 优化：从 nres_untested 提取 untested 项一次（避免每批遍历全量列表）
-            untested_items = None
-            while len(final) < MAX_FINAL_NODES and not batch_enough:
-                batch_id += 1
-                if untested_items is None:
-                    # 首批：从 nres_untested 提取未测试、未禁用的节点
-                    untested_items = [
-                        item for item in nres_untested
-                        if f"{item['proxy']['server']}:{item['proxy']['port']}" not in tested
-                        and not is_node_disabled(item['proxy'])
-                    ]
-                batch_items = untested_items[:batch_size]
-                untested_items = untested_items[batch_size:]
-                if not batch_items:
-                    break
-
-                tprox = [item["proxy"] for item in batch_items]
-                logging.info(f"[PACKAGE] 第{batch_id}批：{len(tprox)} 个节点...")
-
-                if not clash.create_config(tprox) or not clash.start():
-                    logging.warning("   [FAIL] Clash 启动失败，跳过本批")
-                    clash.stop()
-                    break
-
-                proxy_ok = True
-
-
-
-                try:
-                    with ThreadPoolExecutor(max_workers=40) as tex:  # v28.7: 20→40 并发（Clash API 异步，不需要保守）
-                        test_futures = {tex.submit(test_one, item, clash, namer): item for item in batch_items}
-                        done_count = 0
-                        for future in as_completed(test_futures):
-                            try:
-                                item, p, r = future.result(timeout=8)
-                                done_count += 1
-                                k = f"{p['server']}:{p['port']}"
-                                # v28.49: 亚洲节点真实测速延迟放宽（2.0→2.5倍）
-                                if r["success"] and (
-                                    r["latency"] < MAX_PROXY_LATENCY
-                                    or (is_asia(p) and r["latency"] < MAX_PROXY_LATENCY * 1.5)
-                                ):
-                                    srv = p.get("server", "")
-                                    sni_val = p.get("sni", "") or p.get("servername", "")
-                                    ws_opts = p.get("ws-opts", {})
-                                    ws_host = (
-                                        ws_opts.get("headers", {}).get("Host", "")
-                                        if isinstance(ws_opts, dict) else ""
-                                    )
-                                    if ws_host:
-                                        sni_val = ws_host
-                                    fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
-                                    # v29.01: 正确传递 mainland_friendly_score 为 score, r["speed"] 为 speed
-                                    mf_score = mainland_friendly_score(p)
-                                    p["name"] = namer.generate(
-                                        fl, lat=int(r["latency"]), score=mf_score, speed=r.get("speed", 0), tcp=False,
-                                        server=srv, sni=sni_val,
-                                        mainland_reachable=r.get("mainland_reachable", False),
-                                        proto=p.get("type", "")
-                                    )
-                                    # v28.57: 附加真实大陆可达性测试结果，供 final_sort_key 使用
-                                    p["mainland_reachable"] = r.get("mainland_reachable", False)
-                                    # v28.90: 保存实测速度，供 final_sort_key 使用
-                                    p["_speed"] = r.get("speed", 0.0)
-                                    # v28.68: 移除硬筛大陆不可达节点的逻辑
-                                    #         ENABLE_MAINLAND_TEST 默认关闭，TCP Ping+协议握手+Clash测速
-                                    #         已能有效判断节点可用性，无需额外大陆出口IP检测
-                                    final.append(p)
-                                    tested.add(k)  # v28.12: restore
-                                    # v28.53: 真实测速通过，更新历史记录
-                                    update_node_history(p, success=True)
-                                    logging.info(f"   [OK] {p['name']}")
-                                else:
-                                    # v28.53: 真实测速失败，更新历史记录
-                                    update_node_history(p, success=False)
-                                    # v28.94: 代理测速失败不触发健康检查禁用
-                                    # 代理测速失败可能是 Clash 配置/并发问题，不是节点本身不可达
-                                if len(final) >= MAX_FINAL_NODES:
-                                    batch_enough = True  # BUGFIX: 通知外层 while 退出
-                                    break
-                                if done_count % 20 == 0:
-                                    logging.info(f"   进度：{done_count}/{len(batch_items)} | 合格：{len(final)}")
-                            except (OSError, ValueError, TypeError):
-                                logging.debug("Batch proxy test error")
-                    logging.debug(f"\n   第{batch_id}批完成：累计合格 {len(final)} 个\n")
-                except (OSError, subprocess.SubprocessError, ValueError) as e:
-                    logging.debug(f"   [FAIL] Clash 崩溃: {e}")
-                    clash.stop()
-                    break
-
-            # TCP 补充
-            if len(final) < MAX_FINAL_NODES:
-                logging.warning(f"\n[WARN] 测速合格 {len(final)} 个/{MAX_FINAL_NODES} 目标，使用 TCP 补充...")
-                for item in nres:
-                    if len(final) >= MAX_FINAL_NODES:
-                        break
-                    p = item["proxy"]
-                    k = f"{p['server']}:{p['port']}"
-                    if k in tested:
-                        continue
-                    # v28.47: 亚洲TCP补充延迟进一步放宽
-                    if item["is_asia"] and item["latency"] < ASIA_TCP_RELAX * 1.5:
-                        tested.add(k)  # BUGFIX: 标记避免重复检测
-                        srv = p.get("server", "")
-                        sni_val = p.get("sni", "") or p.get("servername", "")
-                        ws_opts = p.get("ws-opts", {})
-                        ws_host = (
-                            ws_opts.get("headers", {}).get("Host", "")
-                            if isinstance(ws_opts, dict) else ""
-                        )
-                        if ws_host:
-                            sni_val = ws_host
-                        fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
-                        mf_score_tcp1 = mainland_friendly_score(p)
-                        p["name"] = namer.generate(
-                            fl, lat=int(item["latency"]), score=mf_score_tcp1, tcp=True, server=srv, sni=sni_val,
-                            mainland_reachable=False,
-                            proto=p.get("type", "")
-                        )
-                        p["mainland_reachable"] = False  # v28.59: TCP节点标记大陆不可达
-                        final.append(p)
-                        logging.info(f"   [TCP] {p['name']}")
-                    elif item["latency"] < 450:
-                        # v29: 非亚洲TCP补充延迟进一步收紧（500→450）
-                        tested.add(k)  # BUGFIX: 标记避免重复检测
-                        srv = p.get("server", "")
-                        sni_val = p.get("sni", "") or p.get("servername", "")
-                        ws_opts = p.get("ws-opts", {})
-                        ws_host = (
-                            ws_opts.get("headers", {}).get("Host", "")
-                            if isinstance(ws_opts, dict) else ""
-                        )
-                        if ws_host:
-                            sni_val = ws_host
-                        fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
-                        mf_score_tcp2 = mainland_friendly_score(p)
-                        p["name"] = namer.generate(
-                            fl, lat=int(item["latency"]), score=mf_score_tcp2, tcp=True, server=srv, sni=sni_val,
-                            mainland_reachable=False,
-                            proto=p.get("type", "")
-                        )
-                        p["mainland_reachable"] = False  # v28.59: TCP节点标记大陆不可达
-                        final.append(p)
-                        logging.info(f"   [TCP] {p['name']}")
-                    else:
-                        tested.add(k)
-
-        final = final[:MAX_FINAL_NODES]
-
-        # v28.87: 健康检查（在 Clash 停止前执行，利用 Clash Controller API）
-        # 借鉴 discovery-service：连续失败3次禁用节点
-        if not args.skip_health_check and proxy_ok:
-            logging.info(f"[START] 健康检查，共 {len(final)} 个节点（Clash API 模式）...")
-            _max_workers = int(os.getenv('HEALTH_CHECK_MAX_WORKERS', '8'))
-            _timeout = int(os.getenv('HEALTH_CHECK_TIMEOUT', '8'))
-            health_results = batch_health_check_via_clash(
-                final, clash_api_port=CLASH_API_PORT,
-                timeout=_timeout, max_workers=_max_workers
-            )
-            before_health = len(final)
-            final = [p for p in final if not is_node_disabled(p)]
-            disabled_count = before_health - len(final)
-            summary = get_health_summary()
-            logging.info(f"[OK] 健康检查完成：ok={summary['ok']} degraded={summary['degraded']} disabled={summary['disabled']} (移除 {disabled_count} 个)")
-        elif not args.skip_health_check and not proxy_ok:
-            logging.warning("[WARN] Clash 未运行，跳过 Clash API 健康检查")
-
-        # v28.57: 最终排序整合真实大陆可达性测试结果
-
-
-        # v28.49: 配额制节点选择——提高亚洲比例
-        # 分组排序后再按配额合并，柔性配额：保底+上限
-        asia_final = sorted(
-            [p for p in final if is_asia(p)],
-            key=final_sort_key
-        )
-        non_asia_final = sorted(
-            [p for p in final if not is_asia(p)],
-            key=final_sort_key
-        )
-
-        # v29.1: 限制 [WEB]NET 节点数量，防止 CDN 伪装节点挤占真实节点名额
-        from core.filter import MAX_WEB_NET_NODES
-        web_net_nodes = [p for p in non_asia_final if "NET" in p.get("name", "")]
-        other_non_asia = [p for p in non_asia_final if "NET" not in p.get("name", "")]
-        if len(web_net_nodes) > MAX_WEB_NET_NODES:
-            web_net_nodes = web_net_nodes[:MAX_WEB_NET_NODES]
-            logging.info(f"   [v29.1] [WEB]NET 节点截断为 {MAX_WEB_NET_NODES} 个")
-        non_asia_final = other_non_asia + web_net_nodes
-
-        target_asia = int(MAX_FINAL_NODES * TARGET_ASIA_RATIO)  # 柔性目标
-        max_asia = int(MAX_FINAL_NODES * 0.75)  # v28.49: 上限75%
-        min_asia = min(ASIA_MIN_COUNT, MAX_FINAL_NODES)  # 保底数量
-        target_non_asia = MAX_FINAL_NODES - target_asia
-
-        # 柔性配额：保底 ≤ 实际 ≤ 上限
-        if len(asia_final) < min_asia:
-            # 亚洲极少，全部保留，非亚洲补足
-            actual_asia = len(asia_final)
-            actual_non_asia = min(len(non_asia_final), MAX_FINAL_NODES - actual_asia)
-            final = asia_final + non_asia_final[:actual_non_asia]
-            logging.debug(f"   [WARN] 亚洲节点不足保底{min_asia}个，全部保留{actual_asia}个"
-                  f" + 非亚洲{actual_non_asia}个")
-        elif len(asia_final) <= target_asia:
-            # 亚洲在保底~目标之间，全部保留高质量亚洲
-            actual_non_asia = min(len(non_asia_final), MAX_FINAL_NODES - len(asia_final))
-            final = asia_final + non_asia_final[:actual_non_asia]
-            logging.debug(f"   [OK] 亚洲{len(asia_final)}个(柔性区间) + 非亚洲{actual_non_asia}个")
-        elif len(asia_final) <= max_asia:
-            # 亚洲在目标~上限之间，按目标配额
-            final = asia_final[:target_asia] + non_asia_final[:target_non_asia]
-            logging.debug(f"   [OK] 亚洲配额{target_asia}个 + 非亚洲配额{target_non_asia}个")
-        else:
-            # 亚洲过多，截到上限，非亚洲用剩余
-            actual_non_asia = min(len(non_asia_final), MAX_FINAL_NODES - max_asia)
-            final = asia_final[:max_asia] + non_asia_final[:actual_non_asia]
-            logging.debug(f"   [OK] 亚洲截断{max_asia}个(上限) + 非亚洲{actual_non_asia}个")
-
-        logging.debug(f"\n[OK] 最终：{len(final)} 个")
-        logging.debug(f"[STAT] 真实测速：{'[OK]' if proxy_ok else '[FAIL]'}\n")
-
-        # 8. 输出配置（保留）
-        logging.debug("[NOTE] 生成配置...\n")
-        final_names = {}
-        unique_final = []
-        for p in final:
-            original_name = p["name"]
-            count = final_names.get(original_name, 0)
-            if count > 0:
-                p["name"] = f"{original_name}-{count}"
-            final_names[original_name] = count + 1
-            unique_final.append(p)
-
-        # BUGFIX v28.24: 输出前清洗内部字段，防止 _src_weight 等字段写入 YAML
-        CLASH_FIELDS = {
-            'name','type','server','port','udp','tfo','mptcp',
-            'skip-cert-verify','sni','servername','tls','alpn','ca','cert','key',
-            'client-fingerprint','obfs','obfs-password',
-            'network','ws-opts','grpc-opts','h2-opts','http-opts',
-            'reality-opts','flow','pinned-sha256','dialer-proxy',
-            'cipher','password','plugin','plugin-opts',
-            'uuid','alterId','aid',
-            'protocol','protocol-param','obfs','obfs-param',
-            'auth-str','up','down',
-            'congestion-controller',
-        }
-        cleaned_final = []
-        for p in unique_final:
-            cleaned = {k: v for k, v in p.items() if not k.startswith('_') and k in CLASH_FIELDS}
-            cleaned_final.append(cleaned)
-
-        # v28.54: 输出源权重统计
-        if _SOURCE_HISTORY:
-            logging.debug("\n[STAT] 源权重统计（Top 10）:")
-            sorted_sources = sorted(
-                _SOURCE_HISTORY.items(),
-                key=lambda x: dynamic_source_weight(x[0]),
-                reverse=True
-            )[:10]
-            for url, rec in sorted_sources:
-                w = dynamic_source_weight(url)
-                success_rate = rec["success_count"] / max(rec["success_count"] + rec["fail_count"], 1)
-                logging.debug(f"   • 权重{w:.1f} | 成功率{success_rate:.0%} | {url[:60]}...")
-
-        # v28.52: 大陆路由规则（CN_DIRECT=1 启用）
-        _cn_direct = os.getenv("CN_DIRECT", "1") == "1"
-        _rules = []
-        if _cn_direct:
-            # 中国大陆域名后缀直连
-            _cn_domains = [
-                "cn", "com.cn", "net.cn", "org.cn", "gov.cn", "edu.cn",
-                "taobao.com", "tmall.com", "jd.com", "baidu.com", "bilibili.com",
-                "qq.com", "weibo.com", "alipay.com", "alicdn.com", "aliyun.com",
-                "weixin.qq.com", "163.com", "126.com", "sina.com.cn", "sohu.com",
-                "youku.com", "douyin.com", "xiaohongshu.com", "zhihu.com",
-                "cnblogs.com", "csdn.net", "jianshu.com", "oschina.net",
-                "gitee.com", "coding.net", "tencent.com", "tencentcloud.com",
-                "alibaba.com", "alibaba-inc.com", "antgroup.com", "ele.me",
-                "meituan.com", "dianping.com", "58.com", "ganji.com",
-                "autohome.com.cn", "xcar.com.cn", "pcauto.com.cn",
-                "ithome.com", "sspai.com", "geekpark.net", "36kr.com",
-                "chinaunicom.com", "10010.com", "189.cn", "10086.cn",
-                "bankcomm.com", "icbc.com.cn", "ccb.com", "boc.cn",
-                "aliyuncs.com", "qcloud.com", "qiniu.com", "upaiyun.com",
-            ]
-            for _domain in _cn_domains:
-                _rules.append(f"DOMAIN-SUFFIX,{_domain},DIRECT")
-            # GeoIP 中国大陆直连
-            _rules.append("GEOIP,CN,DIRECT")
-            # 局域网直连
-            _rules.append("IP-CIDR,127.0.0.0/8,DIRECT")
-            _rules.append("IP-CIDR,172.16.0.0/12,DIRECT")
-            _rules.append("IP-CIDR,192.168.0.0/16,DIRECT")
-            _rules.append("IP-CIDR,10.0.0.0/8,DIRECT")
-            _rules.append("IP-CIDR,100.64.0.0/10,DIRECT")
-            _rules.append("IP-CIDR,169.254.0.0/16,DIRECT")
-            _rules.append("IP-CIDR,224.0.0.0/4,DIRECT")
-            _rules.append("IP-CIDR,240.0.0.0/4,DIRECT")
-            _rules.append("IP-CIDR,255.255.255.255/32,DIRECT")
-            # 常见国内DNS直连
-            _rules.append("DOMAIN-SUFFIX,dns.alidns.com,DIRECT")
-            _rules.append("DOMAIN-SUFFIX,doh.pub,DIRECT")
-            _rules.append("DOMAIN-SUFFIX,dns.pub,DIRECT")
-        # 兜底：其余走代理
-        _rules.append("MATCH,[GEO] Select")
-
-        cfg = {"proxies": cleaned_final,
-               "proxy-groups": [{"name": "[START] Auto",
-                                 "type": "url-test",
-                                 "proxies": [p["name"] for p in cleaned_final],
-                                 "url": TEST_URL,
-                                 "interval": 300,
-                                 "tolerance": 50},
-                                {"name": "[GEO] Select",
-                                 "type": "select",
-                                 "proxies": ["[START] Auto"] + [p["name"] for p in cleaned_final]}],
-               "rules": _rules}
-        with open("proxies.yaml", "w", encoding="utf-8") as f:
-            yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False, Dumper=yaml.SafeDumper)
-
-        # BUGFIX: 标准订阅格式 = 整块 base64 编码（大部分客户端要求此格式）
-        plain_lines = '\n'.join(link for p in unique_final if (link := format_proxy_to_link(p)) is not None)  # v28.22: 过滤None
-        b64_content = base64.b64encode(plain_lines.encode('utf-8')).decode('utf-8')
-        with open("subscription.txt", "w", encoding="utf-8") as f:
-            f.write(b64_content)
-
-        # 统计
-        tt = time.time() - st
-        asia_ct = sum(1 for p in unique_final if is_asia(p))
-        # v28.39: 从节点名称提取延迟用于统计
-        min_lat = 9999
-        for p in unique_final[:20]:
-            m = re.search(r"(\d+)", p.get("name", ""))
-            if m:
-                lat = int(m.group(1))
-                if 0 < lat < min_lat:
-                    min_lat = lat
-        if min_lat == 9999:
-            min_lat = 0
-
-        logging.debug("\n" + "=" * 180)
-        logging.debug("[STAT] 统计结果")
-        logging.debug("=" * 180)
-        logging.debug(f"• Fork 来源：{stats['fork_count']}")
-        logging.debug(f"• Telegram: {stats['tg_count']} | 固定：{stats['fixed_count']} | 总：{stats['total_urls']}")
-        logging.debug(f"• 原始：{len(nodes)} | TCP: {len(nres)} | 最终：{len(unique_final)}")
-        # v28.13: 修复亚洲占比计算（避免除零，使用更精确的计算）
-        asia_pct = round(asia_ct * 100 / max(len(unique_final), 1), 1)
-        logging.debug(f"• 亚洲：{asia_ct} 个 ({asia_pct}%)")
-        logging.debug(f"• 最低延迟：{min_lat:.1f} ms")
-        logging.debug(f"• 耗时：{tt:.1f} 秒")
-        logging.debug("=" * 180 + "\n")
-
-        # 9. Telegram 推送（保留）
-        if BOT_TOKEN and CHAT_ID and REPO_NAME:
-            try:
-                ts = int(time.time())
-                yaml_raw_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/proxies.yaml?t={ts}"
-                txt_raw_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/subscription.txt?t={ts}"
-                repo_path = f"https://github.com/{REPO_NAME}/blob/main/"
-                yaml_html_url = f"{repo_path}proxies.yaml"
-                txt_html_url = f"{repo_path}subscription.txt"
-
-                start_icon = "[START]"
-                end_icon = "[CELEBRATE]"
-                update_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-                msg = f"""{start_icon}<b>节点更新完成</b>{end_icon}
-
-[STAT] <b>统计数据:</b>
-• Telegram: {stats['tg_count']} | 固定：{stats['fixed_count']} | 总订阅：{stats['total_urls']}
-• Fork 来源：{stats['fork_count']}
-• 原始：{len(nodes)} | TCP: {len(nres)} | 最终：<code>{len(unique_final)}</code> 个
-• 亚洲：{asia_ct} 个 ({asia_pct}%)
-• 最低延迟：{min_lat:.1f} ms
-• 平均耗时：{tt:.1f} 秒
-━━━━━━━━━━━━━━━━━━━━━━━
-
-[SAVE] <b>直链下载:</b>
-YAML: <code>{yaml_raw_url}</code>
-TXT: <code>{txt_raw_url}</code>
-
-[WEB] <b>网页查看:</b>
-YAML: <a href="{yaml_html_url}">{yaml_html_url}</a>
-TXT: <a href="{txt_html_url}">{txt_html_url}</a>
-
-━━━━━━━━━━━━━━━━━━━━━━━
-
-[WEB] <b>支持协议:</b> VMess | VLESS | Trojan | SS | Hysteria2 | Hysteria | TUIC | WireGuard
-[PERSON]‍[PC] <b>作者:</b> Anftlity
-
-<b>更新时间:</b> {update_time}"""
-                requests.post(
-                    f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-                    json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"},
-                    timeout=10
-                )
-                logging.debug("[OK] Telegram通知已发送")
-            except (requests.RequestException, OSError, ValueError) as e:
-                logging.debug(f"[WARN] Telegram推送失败：{e}")
-        logging.debug("[CELEBRATE] 任务完成！")
-
-    except (OSError, ValueError, TypeError, KeyboardInterrupt) as e:
-        logging.debug(f"\n[FAIL] 程序异常：{e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-    finally:
+    if not final:
+        logging.warning("[FAIL] 无合格节点!")
         clash.stop()
-        # v28.55: 程序退出时关闭异步HTTP客户端
-        try:
-            sync_close_async_http_client()
-            logging.debug("[OK] 异步HTTP客户端已关闭")
-        except (OSError, RuntimeError, asyncio.TimeoutError):
-            logging.debug("关闭异步HTTP客户端失败", exc_info=True)
-        # ISSUE-3-05: 关闭 requests session，避免资源泄漏
-        try:
-            if session:
-                session.close()
-            logging.debug("[OK] Requests session 已关闭")
-        except (OSError, ValueError):
-            logging.debug("Exception occurred", exc_info=True)
-        # v28.17: 程序退出时保存IP地理缓存
-        try:
-            limiter.save_geo_cache()
-        except (OSError, ValueError):
-            logging.debug("Exception occurred", exc_info=True)
-        # v28.53: 程序退出时保存节点历史记录
-        try:
-            save_node_history()
-        except (OSError, ValueError):
-            logging.debug("Exception occurred", exc_info=True)
-        # v28.54: 程序退出时保存源历史记录
-        try:
-            save_source_history()
-        except (OSError, ValueError):
-            logging.debug("Exception occurred", exc_info=True)
+        return
+
+    final = final[:150]  # MAX_FINAL_NODES 上限
+
+    # ── 阶段7: 健康检查（可选）───────────────────────────────────────
+    proxy_ok = True
+    if not args.skip_health_check:
+        if proxy_ok and final:
+            logging.info(f"[START] 健康检查 {len(final)} 个节点...")
+            h_results = batch_health_check_via_clash(
+                final, clash_api_port=CLASH_API_PORT,
+                timeout=int(os.getenv('HEALTH_CHECK_TIMEOUT', '8')),
+                max_workers=int(os.getenv('HEALTH_CHECK_MAX_WORKERS', '8'))
+            )
+            before = len(final)
+            final = [p for p in final if not is_node_disabled(p)]
+            summary = get_health_summary()
+            logging.info(f"[OK] 健康检查: ok={summary['ok']} degraded={summary['degraded']} "
+                         f"disabled={summary['disabled']} (移除 {before - len(final)} 个)")
+        else:
+            logging.warning("[WARN] Clash 未运行，跳过健康检查")
+
+    # ── 阶段8: 配额选择 + 排序 ───────────────────────────────────────
+    final = apply_quota(final)
+    logging.debug(f"\n[OK] 最终：{len(final)} 个")
+
+    # ── 阶段9: 输出 + 推送 ───────────────────────────────────────────
+    elapsed = time.time() - st
+    write_output(final, nres, stats, elapsed)
+    send_telegram_notify(final, nres, stats, elapsed)
+
+    logging.debug("[CELEBRATE] 任务完成！")
+
+    # ── 清理 ────────────────────────────────────────────────────────
+    clash.stop()
+    try:
+        sync_close_async_http_client()
+    except Exception:
+        pass
+    try:
+        session.close()
+    except Exception:
+        pass
+    try:
+        from network.geo import limiter
+        limiter.save_geo_cache()
+    except Exception:
+        pass
+    save_node_history()
+    save_source_history()

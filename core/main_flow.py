@@ -69,12 +69,12 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description='ZRONG 代理订阅聚合工具')
     parser.add_argument('--version', action='version', version='ZRONG v28.93')
-    # v28.87: 健康检查默认启用（通过 Clash API，无 TCP 限制）
-    # 使用 --skip-health-check 可跳过，ENABLE_HEALTH_CHECK=0 也可禁用
-    parser.add_argument('--skip-health-check', action='store_true', default=(os.getenv('ENABLE_HEALTH_CHECK', '0') == '0'),
-                       help='跳过健康检查')
+    # v28.96: 健康检查默认关闭（Clash API 在 Actions 高并发环境下容易超时）
+    # 使用 --run-health-check 启用，或环境变量 ENABLE_HEALTH_CHECK=1
+    parser.add_argument('--skip-health-check', action='store_true', default=(os.getenv('ENABLE_HEALTH_CHECK', '0') != '1'),
+                       help='跳过健康检查（默认跳过）')
     parser.add_argument('--run-health-check', action='store_false', dest='skip_health_check',
-                       help='启用健康检查（v28.87 默认启用）')
+                       help='启用健康检查（v28.87 默认禁用，需显式开启）')
     args = parser.parse_args()
 
     st = time.time()
@@ -263,19 +263,19 @@ def main():
 
         if len(nres) > 0:
             batch_enough = False  # BUGFIX: 标志位，用于内层 break 跳出后通知外层 while
-            while len(final) < MAX_FINAL_NODES and nres_untested and not batch_enough:
+            # v28.97: 优化：从 nres_untested 提取 untested 项一次（避免每批遍历全量列表）
+            untested_items = None
+            while len(final) < MAX_FINAL_NODES and not batch_enough:
                 batch_id += 1
-                batch_items = []
-                for item in nres_untested:
-                    if len(batch_items) >= batch_size:
-                        break
-                    k = f"{item['proxy']['server']}:{item['proxy']['port']}"
-                    if k not in tested:
-                        # v28.87: 跳过已被健康检查禁用的节点
-                        if is_node_disabled(item['proxy']):
-                            tested.add(k)
-                            continue
-                        batch_items.append(item)
+                if untested_items is None:
+                    # 首批：从 nres_untested 提取未测试、未禁用的节点
+                    untested_items = [
+                        item for item in nres_untested
+                        if f"{item['proxy']['server']}:{item['proxy']['port']}" not in tested
+                        and not is_node_disabled(item['proxy'])
+                    ]
+                batch_items = untested_items[:batch_size]
+                untested_items = untested_items[batch_size:]
                 if not batch_items:
                     break
 
@@ -409,8 +409,8 @@ def main():
         # 借鉴 discovery-service：连续失败3次禁用节点
         if not args.skip_health_check and proxy_ok:
             logging.info(f"[START] 健康检查，共 {len(final)} 个节点（Clash API 模式）...")
-            _max_workers = int(os.getenv('HEALTH_CHECK_MAX_WORKERS', '20'))
-            _timeout = int(os.getenv('HEALTH_CHECK_TIMEOUT', '5'))
+            _max_workers = int(os.getenv('HEALTH_CHECK_MAX_WORKERS', '8'))
+            _timeout = int(os.getenv('HEALTH_CHECK_TIMEOUT', '8'))
             health_results = batch_health_check_via_clash(
                 final, clash_api_port=CLASH_API_PORT,
                 timeout=_timeout, max_workers=_max_workers

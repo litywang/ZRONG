@@ -332,21 +332,22 @@ class ClashManager:
             requests.put(f"http://127.0.0.1:{CLASH_API_PORT}/proxies/TEST", json={"name": name}, timeout=2)
             time.sleep(0.05)
             px = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
-            # 多 URL 测速：任一成功即通过
+            # v28.97: 多URL测速，任一成功即通过；优化：首次请求复用测量速度
             for url in TEST_URLS:
                 try:
                     start = time.time()
                     resp = requests.get(url, proxies=px, timeout=8, allow_redirects=False)
                     lat = (time.time() - start) * 1000
                     if resp.status_code in [200, 204, 301, 302]:
-                        # v28.90: 响应体验证，防止代理返回自己的错误页（状态码200）
                         body_ok = True
+                        # v28.97: 宽松响应体验证，避免误杀
                         if resp.status_code == 200 and resp.text:
                             try:
-                                import json as _json
                                 if url.endswith("/json"):
+                                    import json as _json
                                     _data = _json.loads(resp.text)
-                                    if not isinstance(_data, dict) or "ip" not in _data:
+                                    # ipip.net 格式不固定，只验证是有效JSON
+                                    if not isinstance(_data, dict):
                                         body_ok = False
                                 elif "baidu.com" in url and "baidu" not in resp.text.lower():
                                     body_ok = False
@@ -355,14 +356,12 @@ class ClashManager:
                                 elif "taobao.com" in url and "taobao" not in resp.text.lower():
                                     body_ok = False
                             except Exception:
-                                body_ok = False
+                                pass  # JSON解析失败不视为失败
                         if body_ok:
-                            # v28.90: 实际测量下载速度
+                            # v28.97: 复用首次请求数据计算速度，避免重复下载
                             try:
-                                _dl_start = time.time()
-                                _dl_resp = requests.get(url, proxies=px, timeout=8)
-                                _dl_bytes = len(_dl_resp.content)
-                                _dl_time = time.time() - _dl_start
+                                _dl_bytes = len(resp.content)
+                                _dl_time = lat / 1000.0  # 复用首次请求的总时间
                                 _speed = _dl_bytes / _dl_time if _dl_time > 0 else 0
                                 result = {
                                     "success": True,
@@ -371,7 +370,7 @@ class ClashManager:
                                     "error": "",
                                     "mainland_reachable": False,
                                 }
-                            except requests.RequestException:
+                            except Exception:
                                 result = {
                                     "success": True,
                                     "latency": round(lat, 1),

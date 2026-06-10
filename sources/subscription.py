@@ -17,7 +17,7 @@ import yaml
 from . import config
 from .utils import (
     clean_url, is_valid_url, check_subscription_quality,
-    strip_url, check_url_fast, check_url,
+    strip_url,
     is_base64, decode_b64,
     is_yaml_content, parse_yaml_proxies,
     source_weight,

@@ -68,6 +68,7 @@ def main():
     clash = ClashManager()
     session = create_session()
     USE_ASYNC = os.getenv("USE_ASYNC_FETCH", "0") == "1"
+    proxy_ok = False  # Clash 启动成功才为 True，用于健康检查前置条件
 
     logging.info("=" * 50)
     logging.info("[START] 聚合订阅爬虫 v28.99 - Phase C 重构版")
@@ -101,11 +102,11 @@ def main():
 
     # ── 阶段5: 真实代理测速 ──────────────────────────────────────────
     logging.info("[START] 真实代理测速（分批）...")
-    final = run_speed_test(nres, clash)
+    final, proxy_ok = run_speed_test(nres, clash)
 
     # ── 阶段6: TCP 补充 ─────────────────────────────────────────────
     tested = set()
-    final = supplement_tcp(final, nres, tested)
+    final, _ = supplement_tcp(final, nres, tested, proxy_ok)
 
     if not final:
         logging.warning("[FAIL] 无合格节点!")
@@ -115,7 +116,6 @@ def main():
     final = final[:150]  # MAX_FINAL_NODES 上限
 
     # ── 阶段7: 健康检查（可选）───────────────────────────────────────
-    proxy_ok = True
     if not args.skip_health_check:
         if proxy_ok and final:
             logging.info(f"[START] 健康检查 {len(final)} 个节点...")

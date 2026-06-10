@@ -47,13 +47,14 @@ def _name_node(p: dict, item: dict, namer: NodeNamer, tcp: bool = False) -> None
         p["_speed"] = item.get("speed", 0.0)
 
 
-def run_speed_test(nres: list, clash: ClashManager) -> list:
-    """通过 Clash 代理执行真实测速，返回合格节点列表"""
+def run_speed_test(nres: list, clash: ClashManager) -> tuple:
+    """通过 Clash 代理执行真实测速，返回 (final_list, proxy_ok)"""
     final = []
     tested = set()
+    proxy_ok = False
 
     if not nres:
-        return final
+        return final, proxy_ok
 
     batch_enough = False
     untested_items = None
@@ -119,13 +120,14 @@ def run_speed_test(nres: list, clash: ClashManager) -> list:
             clash.stop()
             break
 
-    return final
+    proxy_ok = True
+    return final, proxy_ok
 
 
-def supplement_tcp(final: list, nres: list, tested: set) -> list:
+def supplement_tcp(final: list, nres: list, tested: set, proxy_ok: bool) -> tuple:
     """TCP 延迟保底补充：测速合格不足时补充 TCP 低延迟节点"""
     if len(final) >= MAX_FINAL_NODES:
-        return final
+        return final, proxy_ok
 
     logging.warning(f"\n[WARN] 测速合格 {len(final)} 个/{MAX_FINAL_NODES} 目标，使用 TCP 补充...")
     namer = NodeNamer()
@@ -150,4 +152,4 @@ def supplement_tcp(final: list, nres: list, tested: set) -> list:
         else:
             tested.add(k)
 
-    return final[:MAX_FINAL_NODES]
+    return final[:MAX_FINAL_NODES], proxy_ok

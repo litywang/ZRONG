@@ -64,15 +64,6 @@ def strip_url(u: str) -> str:
     return ""
 
 
-def check_url_fast(u: str) -> bool:
-    """跳过 HEAD 验证，直接返回 True（零验证直拉策略）"""
-    return True
-
-
-def check_url(u: str) -> bool:
-    """跳过 HEAD 验证（零验证直拉策略，统一入口）"""
-    return True
-
 
 # ===== 编码/解码工具 =====
 

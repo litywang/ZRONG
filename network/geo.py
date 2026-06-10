@@ -128,9 +128,9 @@ def _ip_geo_batch(ips):
         if local_hits == len(to_query):
             return
         to_query = [ip for ip in to_query if limiter.get_geo(ip) is None]
-    BATCH = 100
-    for i in range(0, len(to_query), BATCH):
-        batch = to_query[i:i + BATCH]
+    BATCH_SIZE = 100
+    for i in range(0, len(to_query), BATCH_SIZE):
+        batch = to_query[i:i + BATCH_SIZE]
         last_err = None
         for attempt in range(3):
             try:
@@ -147,7 +147,7 @@ def _ip_geo_batch(ips):
                 elif r.status_code in (429, 503):
                     time.sleep(2 ** attempt)
                     continue
-            except (Exception,) as e:
+            except Exception as e:
                 last_err = e
                 time.sleep(1.5 ** attempt)
         else:

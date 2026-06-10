@@ -126,6 +126,18 @@ def is_asia_fn(node: dict) -> bool:
     from core.validator import is_asia as _ia
     return _ia(node)
 
+
+def dynamic_source_weight_cls():
+    """返回函数本身（不是调用结果），供 subscription.py 使用"""
+    from core.history import dynamic_source_weight as _dsw
+    return _dsw
+
+
+def is_asia_cls():
+    """返回函数本身（不是调用结果），供 subscription.py 使用"""
+    from core.validator import is_asia as _ia
+    return _ia
+
 def async_http_client_fn():
     from network.client import get_async_http_client as _c
     return _c()

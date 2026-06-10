@@ -48,7 +48,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # v28.98: 运行主程序（测速URL重构 + Gist上传 + 稳定通知）
+      # v29.1: 延迟收紧 + NET节点限制 + 亚洲保底提升
       - name: Run Crawler v28.98
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
@@ -70,11 +70,11 @@ jobs:
           MAX_FINAL_NODES: 150
           TARGET_ASIA_RATIO: '0.50'
           ASIA_PRIORITY_BONUS: '35'
-          ASIA_MIN_COUNT: '45'
+          ASIA_MIN_COUNT: '55'
 
-          # ⚡ 四层验证阈值（v29收紧，提高节点质量）
-          MAX_LATENCY: 3800
-          MAX_PROXY_LATENCY: 4500
+          # ⚡ 四层验证阈值（v29.1进一步收紧）
+          MAX_LATENCY: 2500
+          MAX_PROXY_LATENCY: 3000
           MIN_PROXY_SPEED: '30'
           PROTO_HANDSHAKE_TIMEOUT: '10'
           SPEED_TEST_MIN_SUCCESS: '1'
@@ -89,6 +89,9 @@ jobs:
           MAX_TCP_TEST_NODES: 350
           MAX_PROXY_TEST_NODES: 250
           MAX_FETCH_NODES: 3000
+          # 🏷 v29.1: CDN伪装节点数量限制
+          MAX_WEB_NET_NODES: '15'
+
           MAX_FORK_REPOS: 40
           MAX_WORKERS: '40'
           FETCH_WORKERS: '80'

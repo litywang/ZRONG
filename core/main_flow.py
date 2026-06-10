@@ -444,6 +444,15 @@ def main():
             key=final_sort_key
         )
 
+        # v29.1: 限制 [WEB]NET 节点数量，防止 CDN 伪装节点挤占真实节点名额
+        from core.filter import MAX_WEB_NET_NODES
+        web_net_nodes = [p for p in non_asia_final if "NET" in p.get("name", "")]
+        other_non_asia = [p for p in non_asia_final if "NET" not in p.get("name", "")]
+        if len(web_net_nodes) > MAX_WEB_NET_NODES:
+            web_net_nodes = web_net_nodes[:MAX_WEB_NET_NODES]
+            logging.info(f"   [v29.1] [WEB]NET 节点截断为 {MAX_WEB_NET_NODES} 个")
+        non_asia_final = other_non_asia + web_net_nodes
+
         target_asia = int(MAX_FINAL_NODES * TARGET_ASIA_RATIO)  # 柔性目标
         max_asia = int(MAX_FINAL_NODES * 0.75)  # v28.49: 上限75%
         min_asia = min(ASIA_MIN_COUNT, MAX_FINAL_NODES)  # 保底数量

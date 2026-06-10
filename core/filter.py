@@ -16,6 +16,9 @@ from utils import is_pure_ip
 ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "0") == "1"
 MAINLAND_PASS_BONUS = int(os.getenv("MAINLAND_PASS_BONUS", "20"))
 
+# v29.1: 限制无法识别地区的 CDN 伪装节点数量
+MAX_WEB_NET_NODES = int(os.getenv("MAX_WEB_NET_NODES", "15"))
+
 
 def filter_quality(p):
     """【v28.58】节点质量过滤，含 CN IP/域名黑名单 + 非代理端口过滤 + 大陆友好性评分"""

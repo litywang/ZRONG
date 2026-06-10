@@ -1,16 +1,16 @@
 # sources/config.py - ZRONG 配置统一访问层
-# v28.99 Phase A: 替换 sys.modules hack，直接从 config.constants 读取
+# v28.99 Phase A fix: 替换 sys.modules hack，直接从 config.constants 读取
 # 解决运行时循环导入问题，sources 模块不再依赖 crawler.py
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 import logging
 
 # 直接从 constants 读取运行时值（crawler.py 加载 sources.yaml 后会更新这些变量）
 from config import constants as _const
 
-# ==================== 全局配置访问器（兼容旧代码）====================
-# v28.67: 保留模块级变量赋值，main() 调用 init_config() 后更新
-# v28.99: 改为直接从 constants 读取，不再依赖 crawler 运行时导入
+# ==================== 模块级变量（同步自 constants）====================
+# v28.67: 保留模块级变量赋值，init_config() 后更新
+# v28.99: init_config() → _refresh_from_constants()
 TELEGRAM_CHANNELS: List = []
 CANDIDATE_URLS: List = []
 MAX_FETCH_NODES: int = 5000
@@ -88,51 +88,59 @@ def init_config() -> None:
     )
 
 
-# ==================== 访问器函数（向后兼容）====================
+# ==================== 访问器函数 =====================
 def session():
     from core.config import session as _s
     return _s()
-
 
 def get_http_client():
     from network.client import get_http_client as _c
     return _c()
 
-
 def get_async_http_client():
     from network.client import get_async_http_client as _c
     return _c()
-
 
 def limiter():
     from network.geo import limiter as _l
     return _l()
 
-
 def parse_node():
     from parsers import parse_node as _p
     return _p()
 
-
 def ProxyNode():
     from parsers.proxynode import ProxyNode as _P
     return _P
-
 
 def config() -> Dict[str, Any]:
     """返回配置字典（供调试使用）"""
     _refresh_from_constants()
     return {k: getattr(_const, k, None) for k in dir(_const) if not k.startswith('_')}
 
+def dynamic_source_weight(url: str) -> float:
+    from core.history import dynamic_source_weight as _dsw
+    return _dsw(url)
 
-# v28.67: 函数式访问器（可被其他模块调用）
+def is_asia(node: dict) -> bool:
+    from core.validator import is_asia as _ia
+    return _ia(node)
+
+def async_http_client():
+    from network.client import get_async_http_client as _c
+    return _c()
+
+
+# ==================== 函数式访问器（_fn 后缀，subscription/telegram 依赖）====================
+# 规则：变量名与函数名不可同名（Python 模块级变量遮蔽函数），
+# 所以所有函数统一加 _fn 后缀，避免 subscription.py / telegram.py 调用时报 TypeError
 def GITHUB_TOKEN_fn() -> str:
     return _const.GITHUB_TOKEN
 
 def MAX_WORKERS_fn() -> int:
     return _const.MAX_WORKERS
 
-def SUB_MIRRORS_fn() -> List[str]:
+def SUB_MIRRORS_fn() -> List:
     return _const.SUB_MIRRORS
 
 def HEADERS_POOL_fn() -> List[Dict]:
@@ -186,55 +194,8 @@ def CHAT_ID_fn() -> str:
 def REPO_NAME_fn() -> str:
     return _const.REPO_NAME
 
-def dynamic_source_weight(url: str) -> float:
-    from core.history import dynamic_source_weight as _dsw
-    return _dsw(url)
-
-def is_asia(node: dict) -> bool:
-    from core.validator import is_asia as _ia
-    return _ia(node)
-
-def TIMEOUT_fn() -> int:
-    return _const.TIMEOUT
-
-def USER_AGENT_POOL_fn() -> List[str]:
-    return _const.USER_AGENT_POOL
-
-def async_http_client():
-    from network.client import get_async_http_client as _c
-    return _c()
-
-
-# ==================== 函数式访问器（subscription.py 依赖）====================
-# subscription.py 中使用 config.SUB_MIRRORS() / config.HEADERS_POOL() 等函数调用
-# 提供这些别名以保持向后兼容
-def SUB_MIRRORS_fn() -> List:
-    return _const.SUB_MIRRORS
-
-def HEADERS_POOL_fn() -> List[Dict]:
-    return _const.HEADERS_POOL
-
-def TIMEOUT_fn() -> int:
-    return _const.TIMEOUT
-
-def USER_AGENT_POOL() -> List[str]:
-    return _const.USER_AGENT_POOL
-
-def GITHUB_TOKEN() -> str:
-    return _const.GITHUB_TOKEN
-
-def MAX_WORKERS() -> int:
-    return _const.MAX_WORKERS
-
-def MAX_FORK_REPOS() -> int:
-    return _const.MAX_FORK_REPOS
-
-def MAX_FORK_URLS() -> int:
-    return _const.MAX_FORK_URLS
-
-def MAX_CONCURRENT_FETCH() -> int:
+def MAX_CONCURRENT_FETCH_fn() -> int:
     return _const.MAX_CONCURRENT_FETCH
 
-def MAX_CONCURRENT_TCP() -> int:
+def MAX_CONCURRENT_TCP_fn() -> int:
     return _const.MAX_CONCURRENT_TCP
-

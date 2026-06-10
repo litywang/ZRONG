@@ -19,7 +19,7 @@ def get_telegram_pages(channel: str) -> int:
     """获取 Telegram 频道的总页数（兼容新旧两种 HTML 结构）"""
     try:
         session = config.session()
-        timeout = config.TIMEOUT()
+        timeout = config.TIMEOUT_fn()
         url = f"https://t.me/s/{channel}"
         content = session.get(url, timeout=timeout).text
 
@@ -171,7 +171,7 @@ def crawl_telegram_channels(channels: List[str], pages: int = 2, limits: int = 2
         {url: {"origin": "TELEGRAM"}}
     """
     all_subscribes = {}
-    max_workers = config.MAX_WORKERS()
+    max_workers = config.MAX_WORKERS_fn()
 
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
         futures = {ex.submit(crawl_single_channel, ch, pages, limits): ch for ch in channels}

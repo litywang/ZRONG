@@ -180,7 +180,7 @@ from sources import (
     async_fetch_url, async_fetch_urls,
     check_subscription_quality, is_valid_url, clean_url,
     is_base64, decode_b64, is_yaml_content, parse_yaml_proxies,
-    strip_url, check_url, check_url_fast,
+    strip_url,
 )
 
 # ==================== CN IP 数据 ====================

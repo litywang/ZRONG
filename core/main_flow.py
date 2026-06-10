@@ -182,12 +182,12 @@ def main():
         all_nodes_list = list(nodes.values())
         asia_nodes_list = [n for n in all_nodes_list if is_asia(n)]
         non_asia_nodes_list = [n for n in all_nodes_list if not is_asia(n)]
-        # v28.49: 亚洲节点优先，分配80%测试额度给亚洲（原为70%）
-        asia_tcp_ratio = 0.80
+        # v29: 亚洲节点优先，分配85%测试额度给亚洲（原为80%）
+        asia_tcp_ratio = 0.85
         asia_quota = min(len(asia_nodes_list), int(MAX_TCP_TEST_NODES * asia_tcp_ratio))
         non_asia_quota = min(len(non_asia_nodes_list), MAX_TCP_TEST_NODES - asia_quota)
-        # v28.49: 亚洲节点保底——至少测试120个亚洲节点（如果存在）
-        asia_min_test = min(120, len(asia_nodes_list))
+        # v29: 亚洲节点保底——至少测试150个亚洲节点（如果存在）
+        asia_min_test = min(150, len(asia_nodes_list))
         if asia_quota < asia_min_test:
             asia_quota = asia_min_test
             non_asia_quota = min(len(non_asia_nodes_list), MAX_TCP_TEST_NODES - asia_quota)
@@ -239,9 +239,9 @@ def main():
             -PROTOCOL_SCORE.get(x["proxy"].get("type", ""), 0) / 10.0,  # 协议评分加权
             x["latency"]
         ))
-        # v28.49: 如果亚洲节点不足75%，调整排序策略强制提升（原为70%）
+        # v29: 如果亚洲节点不足80%，调整排序策略强制提升（原为75%）
         asia_count = sum(1 for n in nres if n["is_asia"])
-        if asia_count > 0 and asia_count < len(nres) * 0.75:
+        if asia_count > 0 and asia_count < len(nres) * 0.80:
             # 重新排序：亚洲节点全部置顶，非亚洲按延迟排序
             asia_nodes = [n for n in nres if n["is_asia"]]
             non_asia_nodes = [n for n in nres if not n["is_asia"]]
@@ -385,8 +385,8 @@ def main():
                         p["mainland_reachable"] = False  # v28.59: TCP节点标记大陆不可达
                         final.append(p)
                         logging.info(f"   [TCP] {p['name']}")
-                    elif item["latency"] < 500:
-                        # v29.01: 非亚洲TCP补充延迟收紧（800→500）
+                    elif item["latency"] < 450:
+                        # v29: 非亚洲TCP补充延迟进一步收紧（500→450）
                         tested.add(k)  # BUGFIX: 标记避免重复检测
                         srv = p.get("server", "")
                         sni_val = p.get("sni", "") or p.get("servername", "")

@@ -288,7 +288,7 @@ def health_check_via_clash(node: dict, clash_api_port: int = 9090, timeout: int 
 
 
 def batch_health_check_via_clash(nodes: list[dict], clash_api_port: int = 9090,
-                                 timeout: int = 5, max_workers: int = 20) -> dict[str, str]:
+                                 timeout: int = 5, max_workers: int = 10) -> dict[str, str]:
     """v28.87: 批量通过 Clash API 健康检查，返回 {key: status}
 
     借鉴 discovery-service 的机制：

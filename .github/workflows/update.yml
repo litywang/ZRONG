@@ -48,16 +48,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run Crawler v28.87
+      # v28.97: 运行主程序（测速优化 + batch优化 + 健康检查已启用）
+      - name: Run Crawler v28.97
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
           USE_ASYNC_FETCH: '1'
 
-          # 🏥 v28.87: 启用健康检查（Clash API 模式，无 TCP 限制）
+          # 🏥 v28.97: 启用健康检查（测速优化后Clash负载降低，启用安全）
+          # 8并发 + 10s超时，平衡速度与准确性；连续3次失败禁用节点
           ENABLE_HEALTH_CHECK: '1'
-          HEALTH_CHECK_MAX_WORKERS: '20'
-          HEALTH_CHECK_TIMEOUT: '5'
+          HEALTH_CHECK_MAX_WORKERS: '8'
+          HEALTH_CHECK_TIMEOUT: '10'
 
           # 🌏 v28.50: 启用新版大陆友好评分
           ZRONG_USE_NEW_SCORING: '1'
@@ -101,6 +103,33 @@ jobs:
           echo "节点数: $(grep -c 'name:' proxies.yaml) 个"
           echo "区域: $(grep -oE '(HK|TW|JP|SG|KR|MY|TH|VN|ID|PH|MO|MN|KH|LA|US|OT)-[0-9]+' proxies.yaml | cut -d- -f1 | sort | uniq -c | sort -rn)"
           echo "亚洲占比: $(grep -oE '(HK|TW|JP|SG|KR|MY|TH|VN|ID|PH|MO|MN|KH|LA)-[0-9]+' proxies.yaml | wc -l) / $(grep -c 'name:' proxies.yaml)"
+
+      # v28.97: 上传到 GitHub Gist（需在 Repo Secrets 配置 GIST_ID）
+      - name: Upload to Gist
+        if: secrets.GIST_ID != ''
+        id: gist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
+        run: |
+          set -e
+          TIMESTAMP=$(date '+%Y-%m-%d %H:%M')
+          PROXY_COUNT=$(grep -c 'name:' proxies.yaml)
+          ASIA_COUNT=$(grep -oE '(HK|TW|JP|SG|KR|MY|TH|VN|ID|PH|MO|MN|KH|LA)-[0-9]+' proxies.yaml | wc -l)
+          ASIA_PCT=$(awk "BEGIN {printf \"%.0f\", $ASIA_COUNT/$PROXY_COUNT*100}")
+          DESC="ZRONG $TIMESTAMP | $PROXY_COUNT节点 | 亚洲$ASIA_COUNT($ASIA_PCT%)"
+          echo "=== Gist 上传: $DESC ==="
+          # 将文件内容转为 JSON 字符串
+          PROXIES_JSON=$(python3 -c "import json; print(json.dumps(open('proxies.yaml').read()))")
+          SUB_JSON=$(python3 -c "import json; print(json.dumps(open('subscription.txt').read()))")
+          RESPONSE=$(curl -s -X PATCH \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/gists/$GIST_ID" \
+            -d "{\"description\": \"$DESC\", \"files\": {\"proxies.yaml\": {\"content\": $PROXIES_JSON}, \"subscription.txt\": {\"content\": $SUB_JSON}}}")
+          GIST_URL=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('html_url','ERROR'))" 2>/dev/null)
+          echo "gist_url=$GIST_URL"
+          echo "gist_url=$GIST_URL" >> $GITHUB_OUTPUT
 
       - name: Commit and Push
         env:
@@ -154,7 +183,7 @@ jobs:
           fi
           
           # 最终提交和推送
-          git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M') [v28.87]" || echo "[OK] Nothing new to commit"
+          git commit -m "Update proxies $(date '+%Y-%m-%d %H:%M') [v28.97]" || echo "[OK] Nothing new to commit"
           
           # 使用 token 推送
           git push https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}.git HEAD:main
@@ -169,6 +198,26 @@ jobs:
             *.yaml
             *.txt
           retention-days: 7
+
+      # v28.97: 成功通知（包含 Gist URL）
+      - name: Notify Success
+        if: success()
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
+        run: |
+          if [ -n "$BOT_TOKEN" ] && [ -n "$CHAT_ID" ]; then
+            NODE_COUNT=$(grep -c 'name:' proxies.yaml 2>/dev/null || echo "0")
+            ASIA_COUNT=$(grep -oE '(HK|TW|JP|SG|KR|MY|TH|VN|ID|PH|MO|MN|KH|LA)-[0-9]+' proxies.yaml 2>/dev/null | wc -l || echo "0")
+            MSG="✅ ZRONG v28.97 更新成功！$NODE_COUNT 节点 | 亚洲 $ASIA_COUNT"
+            [ -n "$GIST_ID" ] && MSG="$MSG%n📦 Gist: https://gist.github.com/$GIST_ID"
+            curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+              -d "chat_id=$CHAT_ID" \
+              -d "text=$MSG" \
+              -d "parse_mode=HTML"
+          fi
 
       # v28.22: 失败通知机制
       - name: Notify Failure

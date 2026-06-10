@@ -1,241 +1,240 @@
-# sources/config.py - 统一配置访问层
-# v28.53: 替换 sys.modules hack，提供类型安全的配置访问
-# 所有 sources 模块的函数从这里获取 crawler 状态
+# sources/config.py - ZRONG 配置统一访问层
+# v28.99 Phase A: 替换 sys.modules hack，直接从 config.constants 读取
+# 解决运行时循环导入问题，sources 模块不再依赖 crawler.py
 
 from typing import Any, Dict, List, Optional, Tuple
+import logging
 
-_config: Optional[Dict[str, Any]] = None
+# 直接从 constants 读取运行时值（crawler.py 加载 sources.yaml 后会更新这些变量）
+from config import constants as _const
+
+# ==================== 全局配置访问器（兼容旧代码）====================
+# v28.67: 保留模块级变量赋值，main() 调用 init_config() 后更新
+# v28.99: 改为直接从 constants 读取，不再依赖 crawler 运行时导入
+TELEGRAM_CHANNELS: List = []
+CANDIDATE_URLS: List = []
+MAX_FETCH_NODES: int = 5000
+FETCH_WORKERS: int = 150
+MAX_TCP_TEST_NODES: int = 500
+MAX_LATENCY: int = 800
+MAX_PROXY_TEST_NODES: int = 1000
+MAX_FINAL_NODES: int = 150
+MAX_PROXY_LATENCY: int = 1500
+TEST_URL: str = 'https://myip.ipip.net/json'
+TARGET_ASIA_RATIO: float = 0.60
+ASIA_TCP_RELAX: int = 1800
+ASIA_MIN_COUNT: int = 60
+BOT_TOKEN: str = ''
+CHAT_ID: str = ''
+REPO_NAME: str = 'user/repo'
+GITHUB_TOKEN: str = ''
+GITHUB_BASE_REPOS: List = []
+MAX_WORKERS: int = 80
+SUB_MIRRORS: List = []
+USER_AGENT_POOL: List = []
+HEADERS_POOL: List = [{}]
+TIMEOUT: int = 12
+MAX_FORK_REPOS: int = 60
+MAX_FORK_URLS: int = 1500
+MAX_CONCURRENT_FETCH: int = 3
+MAX_CONCURRENT_TCP: int = 60
+
+
+def _refresh_from_constants() -> None:
+    """从 config.constants 同步最新值到模块级变量"""
+    global TELEGRAM_CHANNELS, CANDIDATE_URLS, MAX_FETCH_NODES, FETCH_WORKERS
+    global MAX_TCP_TEST_NODES, MAX_LATENCY, MAX_PROXY_TEST_NODES
+    global MAX_FINAL_NODES, MAX_PROXY_LATENCY, TEST_URL, TARGET_ASIA_RATIO
+    global ASIA_TCP_RELAX, ASIA_MIN_COUNT, BOT_TOKEN, CHAT_ID, REPO_NAME
+    global GITHUB_TOKEN, GITHUB_BASE_REPOS, MAX_WORKERS
+    global SUB_MIRRORS, USER_AGENT_POOL, HEADERS_POOL, TIMEOUT
+    global MAX_FORK_REPOS, MAX_FORK_URLS, MAX_CONCURRENT_FETCH, MAX_CONCURRENT_TCP
+
+    TELEGRAM_CHANNELS = _const.TELEGRAM_CHANNELS
+    CANDIDATE_URLS = _const.CANDIDATE_URLS
+    MAX_FETCH_NODES = _const.MAX_FETCH_NODES
+    FETCH_WORKERS = _const.FETCH_WORKERS
+    MAX_TCP_TEST_NODES = _const.MAX_TCP_TEST_NODES
+    MAX_LATENCY = _const.MAX_LATENCY
+    MAX_PROXY_TEST_NODES = _const.MAX_PROXY_TEST_NODES
+    MAX_FINAL_NODES = _const.MAX_FINAL_NODES
+    MAX_PROXY_LATENCY = _const.MAX_PROXY_LATENCY
+    TEST_URL = _const.TEST_URL
+    TARGET_ASIA_RATIO = _const.TARGET_ASIA_RATIO
+    ASIA_TCP_RELAX = _const.ASIA_TCP_RELAX
+    ASIA_MIN_COUNT = _const.ASIA_MIN_COUNT
+    BOT_TOKEN = _const.BOT_TOKEN
+    CHAT_ID = _const.CHAT_ID
+    REPO_NAME = _const.REPO_NAME
+    GITHUB_TOKEN = _const.GITHUB_TOKEN
+    GITHUB_BASE_REPOS = _const.GITHUB_BASE_REPOS
+    MAX_WORKERS = _const.MAX_WORKERS
+    SUB_MIRRORS = _const.SUB_MIRRORS
+    USER_AGENT_POOL = _const.USER_AGENT_POOL
+    HEADERS_POOL = _const.HEADERS_POOL
+    TIMEOUT = _const.TIMEOUT
+    MAX_FORK_REPOS = _const.MAX_FORK_REPOS
+    MAX_FORK_URLS = _const.MAX_FORK_URLS
+    MAX_CONCURRENT_FETCH = _const.MAX_CONCURRENT_FETCH
+    MAX_CONCURRENT_TCP = _const.MAX_CONCURRENT_TCP
 
 
 def init_config() -> None:
-    """由 crawler.py main() 调用，注入全局配置"""
-    import crawler as cr
-    global _config
-    _config = {
-        # HTTP 客户端
-        'session': cr.session,
-        'get_http_client': cr.get_http_client,
-        'get_async_http_client': cr.get_async_http_client,
-        # 限流器
-        'limiter': getattr(cr, 'limiter', None),
-        # 解析器
-        'parse_node': cr.parse_node,
-        'ProxyNode': cr.ProxyNode,
-        # 配置常量
-        'TIMEOUT': getattr(cr, 'TIMEOUT', 12),
-        'MAX_WORKERS': getattr(cr, 'MAX_WORKERS', 80),
-        'USER_AGENT_POOL': getattr(cr, 'USER_AGENT_POOL', []),
-        'HEADERS_POOL': getattr(cr, 'HEADERS_POOL', [{}]),
-        'SUB_MIRRORS': getattr(cr, 'SUB_MIRRORS', []),
-        'MAX_FETCH_NODES': getattr(cr, 'MAX_FETCH_NODES', 5000),
-        'FETCH_WORKERS': getattr(cr, 'FETCH_WORKERS', 150),
-        'GITHUB_TOKEN': getattr(cr, 'GITHUB_TOKEN', ''),
-        'MAX_FORK_REPOS': getattr(cr, 'MAX_FORK_REPOS', 60),
-        'MAX_FORK_URLS': getattr(cr, 'MAX_FORK_URLS', 1500),
-        'GITHUB_BASE_REPOS': getattr(cr, 'GITHUB_BASE_REPOS', []),
-        # v28.67: 新增配置项
-        'TELEGRAM_CHANNELS': getattr(cr, 'TELEGRAM_CHANNELS', []),
-        'CANDIDATE_URLS': getattr(cr, 'CANDIDATE_URLS', []),
-        'MAX_TCP_TEST_NODES': getattr(cr, 'MAX_TCP_TEST_NODES', 500),
-        'MAX_LATENCY': getattr(cr, 'MAX_LATENCY', 800),
-        'MAX_PROXY_TEST_NODES': getattr(cr, 'MAX_PROXY_TEST_NODES', 1000),
-        'MAX_FINAL_NODES': getattr(cr, 'MAX_FINAL_NODES', 150),
-        'MAX_PROXY_LATENCY': getattr(cr, 'MAX_PROXY_LATENCY', 1500),
-        'TEST_URL': getattr(cr, 'TEST_URL', 'https://myip.ipip.net/json'),
-        'TARGET_ASIA_RATIO': getattr(cr, 'TARGET_ASIA_RATIO', 0.60),
-        'ASIA_TCP_RELAX': getattr(cr, 'ASIA_TCP_RELAX', 1800),
-        'ASIA_MIN_COUNT': getattr(cr, 'ASIA_MIN_COUNT', 60),
-        'BOT_TOKEN': getattr(cr, 'BOT_TOKEN', ''),
-        'CHAT_ID': getattr(cr, 'CHAT_ID', ''),
-        'REPO_NAME': getattr(cr, 'REPO_NAME', 'user/repo'),
-        # 动态权重
-        '_dynamic_source_weight': getattr(cr, '_dynamic_source_weight', None),
-        'is_asia': getattr(cr, 'is_asia', None),
-        # 异步客户端
-        '_async_http_client': getattr(cr, '_async_http_client', None),
-    }
-    # v28.67: 更新模块级变量
-    _update_module_vars()
+    """初始化配置（main() 调用一次，同步 constants 最新值）"""
+    _refresh_from_constants()
+    logging.debug(
+        f"[sources.config] init: {len(CANDIDATE_URLS)} urls, "
+        f"{len(TELEGRAM_CHANNELS)} tg channels, MAX_FINAL_NODES={MAX_FINAL_NODES}"
+    )
 
 
-def _check() -> Dict[str, Any]:
-    if _config is None:
-        raise RuntimeError(
-            "sources.config 尚未初始化。请在 crawler.py main() 开始时调用 sources.config.init_config()"
-        )
-    return _config
-
-
+# ==================== 访问器函数（向后兼容）====================
 def session():
-    return _check()['session']
+    from core.config import session as _s
+    return _s()
 
 
 def get_http_client():
-    return _check()['get_http_client']()
+    from network.client import get_http_client as _c
+    return _c()
 
 
 def get_async_http_client():
-    return _check()['get_async_http_client']()
+    from network.client import get_async_http_client as _c
+    return _c()
 
 
 def limiter():
-    return _check()['limiter']
+    from network.geo import limiter as _l
+    return _l()
 
 
 def parse_node():
-    return _check()['parse_node']
+    from parsers import parse_node as _p
+    return _p()
 
 
 def ProxyNode():
-    return _check()['ProxyNode']
+    from parsers.proxynode import ProxyNode as _P
+    return _P
 
 
 def config() -> Dict[str, Any]:
-    """返回完整配置 dict（用于批量访问）"""
-    return _check()
+    """返回配置字典（供调试使用）"""
+    _refresh_from_constants()
+    return {k: getattr(_const, k, None) for k in dir(_const) if not k.startswith('_')}
 
 
-def GITHUB_TOKEN() -> str:
-    c = _check()
-    return c.get('GITHUB_TOKEN', '')
+# v28.67: 函数式访问器（可被其他模块调用）
+def GITHUB_TOKEN_fn() -> str:
+    return _const.GITHUB_TOKEN
 
+def MAX_WORKERS_fn() -> int:
+    return _const.MAX_WORKERS
 
-def MAX_WORKERS() -> int:
-    return _check().get('MAX_WORKERS', 80)
+def SUB_MIRRORS_fn() -> List[str]:
+    return _const.SUB_MIRRORS
 
+def HEADERS_POOL_fn() -> List[Dict]:
+    return _const.HEADERS_POOL
 
-def SUB_MIRRORS() -> List[str]:
-    return _check().get('SUB_MIRRORS', [])
+def TIMEOUT_fn() -> int:
+    return _const.TIMEOUT
 
+def MAX_FETCH_NODES_fn() -> int:
+    return _const.MAX_FETCH_NODES
 
-def HEADERS_POOL() -> List[Dict]:
-    return _check().get('HEADERS_POOL', [{}])
+def FETCH_WORKERS_fn() -> int:
+    return _const.FETCH_WORKERS
 
+def MAX_FORK_REPOS_fn() -> int:
+    return _const.MAX_FORK_REPOS
 
-def TIMEOUT() -> int:
-    return _check().get('TIMEOUT', 12)
+def MAX_FORK_URLS_fn() -> int:
+    return _const.MAX_FORK_URLS
 
+def GITHUB_BASE_REPOS_fn() -> List[str]:
+    return _const.GITHUB_BASE_REPOS
 
-def MAX_FETCH_NODES() -> int:
-    return _check().get('MAX_FETCH_NODES', 5000)
+def USER_AGENT_POOL_fn() -> List[str]:
+    return _const.USER_AGENT_POOL
 
+def MAX_FINAL_NODES_fn() -> int:
+    return _const.MAX_FINAL_NODES
 
-def FETCH_WORKERS() -> int:
-    return _check().get('FETCH_WORKERS', 150)
+def MAX_PROXY_LATENCY_fn() -> int:
+    return _const.MAX_PROXY_LATENCY
 
+def TEST_URL_fn() -> str:
+    return _const.TEST_URL
 
-def MAX_FORK_REPOS() -> int:
-    return _check().get('MAX_FORK_REPOS', 60)
+def TARGET_ASIA_RATIO_fn() -> float:
+    return _const.TARGET_ASIA_RATIO
 
+def ASIA_TCP_RELAX_fn() -> int:
+    return _const.ASIA_TCP_RELAX
 
-def MAX_FORK_URLS() -> int:
-    return _check().get('MAX_FORK_URLS', 1500)
+def ASIA_MIN_COUNT_fn() -> int:
+    return _const.ASIA_MIN_COUNT
 
+def BOT_TOKEN_fn() -> str:
+    return _const.BOT_TOKEN
 
-def GITHUB_BASE_REPOS() -> List[str]:
-    return _check().get('GITHUB_BASE_REPOS', [])
+def CHAT_ID_fn() -> str:
+    return _const.CHAT_ID
 
-
-def USER_AGENT_POOL() -> List[str]:
-    return _check().get('USER_AGENT_POOL', [])
-
-
-def MAX_FINAL_NODES() -> int:
-    return _check().get('MAX_FINAL_NODES', 200)
-
-
-def MAX_PROXY_LATENCY() -> int:
-    return _check().get('MAX_PROXY_LATENCY', 1500)
-
-
-def TEST_URL() -> str:
-    return _check().get('TEST_URL', 'https://myip.ipip.net/json')
-
-
-def TARGET_ASIA_RATIO() -> float:
-    return _check().get('TARGET_ASIA_RATIO', 0.60)
-
-
-def ASIA_TCP_RELAX() -> int:
-    return _check().get('ASIA_TCP_RELAX', 1800)
-
-
-def ASIA_MIN_COUNT() -> int:
-    return _check().get('ASIA_MIN_COUNT', 60)
-
-
-def BOT_TOKEN() -> str:
-    return _check().get('BOT_TOKEN', '')
-
-
-def CHAT_ID() -> str:
-    return _check().get('CHAT_ID', '')
-
-
-def REPO_NAME() -> str:
-    return _check().get('REPO_NAME', 'user/repo')
-
+def REPO_NAME_fn() -> str:
+    return _const.REPO_NAME
 
 def dynamic_source_weight(url: str) -> float:
-    c = _check()
-    fn = c.get('_dynamic_source_weight')
-    if fn:
-        return fn(url)
-    return 3.0
-
+    from core.history import dynamic_source_weight as _dsw
+    return _dsw(url)
 
 def is_asia(node: dict) -> bool:
-    c = _check()
-    fn = c.get('is_asia')
-    if fn:
-        return fn(node)
-    return False
+    from core.validator import is_asia as _ia
+    return _ia(node)
 
+def TIMEOUT_fn() -> int:
+    return _const.TIMEOUT
+
+def USER_AGENT_POOL_fn() -> List[str]:
+    return _const.USER_AGENT_POOL
 
 def async_http_client():
-    return _check().get('_async_http_client')
+    from network.client import get_async_http_client as _c
+    return _c()
 
 
-# v28.67: 模块级变量，由 init_config() 设置
-TELEGRAM_CHANNELS = []
-CANDIDATE_URLS = []
-MAX_FETCH_NODES = 5000
-FETCH_WORKERS = 150
-MAX_TCP_TEST_NODES = 500
-MAX_LATENCY = 800
-MAX_PROXY_TEST_NODES = 1000
-MAX_FINAL_NODES = 150
-MAX_PROXY_LATENCY = 1500
-TEST_URL = 'https://myip.ipip.net/json'
-TARGET_ASIA_RATIO = 0.60
-ASIA_TCP_RELAX = 1800
-ASIA_MIN_COUNT = 60
-BOT_TOKEN = ''
-CHAT_ID = ''
-REPO_NAME = 'user/repo'
+# ==================== 函数式访问器（subscription.py 依赖）====================
+# subscription.py 中使用 config.SUB_MIRRORS() / config.HEADERS_POOL() 等函数调用
+# 提供这些别名以保持向后兼容
+def SUB_MIRRORS_fn() -> List:
+    return _const.SUB_MIRRORS
 
+def HEADERS_POOL_fn() -> List[Dict]:
+    return _const.HEADERS_POOL
 
-def _update_module_vars():
-    """从 _config 更新模块级变量"""
-    if _config is None:
-        return
-    global TELEGRAM_CHANNELS, CANDIDATE_URLS, MAX_FETCH_NODES, FETCH_WORKERS, MAX_TCP_TEST_NODES, MAX_LATENCY, MAX_PROXY_TEST_NODES
-    global MAX_FINAL_NODES, MAX_PROXY_LATENCY, TEST_URL, TARGET_ASIA_RATIO
-    global ASIA_TCP_RELAX, ASIA_MIN_COUNT, BOT_TOKEN, CHAT_ID, REPO_NAME
-    TELEGRAM_CHANNELS = _config.get('TELEGRAM_CHANNELS', [])
-    CANDIDATE_URLS = _config.get('CANDIDATE_URLS', [])
-    MAX_FETCH_NODES = _config.get('MAX_FETCH_NODES', 5000)
-    FETCH_WORKERS = _config.get('FETCH_WORKERS', 150)
-    MAX_TCP_TEST_NODES = _config.get('MAX_TCP_TEST_NODES', 500)
-    MAX_LATENCY = _config.get('MAX_LATENCY', 800)
-    MAX_PROXY_TEST_NODES = _config.get('MAX_PROXY_TEST_NODES', 1000)
-    MAX_FINAL_NODES = _config.get('MAX_FINAL_NODES', 150)
-    MAX_PROXY_LATENCY = _config.get('MAX_PROXY_LATENCY', 1500)
-    TEST_URL = _config.get('TEST_URL', 'https://myip.ipip.net/json')
-    TARGET_ASIA_RATIO = _config.get('TARGET_ASIA_RATIO', 0.60)
-    ASIA_TCP_RELAX = _config.get('ASIA_TCP_RELAX', 1800)
-    ASIA_MIN_COUNT = _config.get('ASIA_MIN_COUNT', 60)
-    BOT_TOKEN = _config.get('BOT_TOKEN', '')
-    CHAT_ID = _config.get('CHAT_ID', '')
-    REPO_NAME = _config.get('REPO_NAME', 'user/repo')
+def TIMEOUT_fn() -> int:
+    return _const.TIMEOUT
+
+def USER_AGENT_POOL() -> List[str]:
+    return _const.USER_AGENT_POOL
+
+def GITHUB_TOKEN() -> str:
+    return _const.GITHUB_TOKEN
+
+def MAX_WORKERS() -> int:
+    return _const.MAX_WORKERS
+
+def MAX_FORK_REPOS() -> int:
+    return _const.MAX_FORK_REPOS
+
+def MAX_FORK_URLS() -> int:
+    return _const.MAX_FORK_URLS
+
+def MAX_CONCURRENT_FETCH() -> int:
+    return _const.MAX_CONCURRENT_FETCH
+
+def MAX_CONCURRENT_TCP() -> int:
+    return _const.MAX_CONCURRENT_TCP
 

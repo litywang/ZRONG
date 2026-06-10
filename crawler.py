@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-聚合订阅爬虫 - 大陆优化版
-作者：Anftlity | Version: 28.72
-优化：httpx连接池 + 异步HTTP抓取 + sources.yaml配置外置 + Clash分批测速 + 大陆可用性优化 + ProxyNode数据模型
-核心原则：三层严格过滤 + 全量优质源 + 零语法错误 + 最佳稳定性 + 大陆高可用
+ZRONG 订阅聚合工具 - 入口文件
+作者：Anftlity | Version: 28.99
+重构 Phase A: 常量下沉至 config/constants.py，消除全局变量膨胀
 """
 
 import os
@@ -39,40 +38,84 @@ _sys_path = str(Path(__file__).parent)
 if _sys_path not in sys.path:
     sys.path.insert(0, _sys_path)
 
-# v28.42: 设置 stdout 编码为 utf-8，避免 Windows GBK 下 Unicode 输出报错
+# v28.42: 重定向 stdout 为 utf-8（解决 Windows GBK 与 Unicode 输出冲突）
 if sys.stdout.encoding != 'utf-8':
     sys.stdout = open(sys.stdout.fileno(), mode='w', encoding='utf-8', buffering=1)
     sys.stderr = open(sys.stderr.fileno(), mode='w', encoding='utf-8', buffering=1)
 
-# v28.55: 配置日志级别（默认INFO，可通过环境变量LOG_LEVEL调整）
-_LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+# v28.55: 配置日志级别，默认 INFO，可通过环境变量 LOG_LEVEL 覆盖
+_log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
-    level=getattr(logging, _LOG_LEVEL, logging.INFO),
+    level=getattr(logging, _log_level, logging.INFO),
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%H:%M:%S"
 )
-
-# 抑制第三方库冗余日志
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.CRITICAL)
 
-# ==================== 协议解析器 ====================
+# ==================== 全局常量（来自 config/constants.py）====================
+# v28.99: 所有常量统一从 config.constants 导入
+import config.constants as _cfg
+from config import constants as _const
+
+# 从 constants 导入所有常量，使 crawler.py 保持向后兼容
+from config.constants import (
+    TIMEOUT, MAX_WORKERS, FETCH_WORKERS, MAX_CONCURRENT_FETCH, MAX_CONCURRENT_TCP,
+    HEADERS_POOL, CANDIDATE_URLS, TELEGRAM_CHANNELS, GITHUB_BASE_REPOS,
+    MAX_FETCH_NODES, MAX_TCP_TEST_NODES, MAX_PROXY_TEST_NODES, MAX_FINAL_NODES,
+    MAX_LATENCY, MIN_PROXY_SPEED, MAX_PROXY_LATENCY, ASIA_TCP_RELAX,
+    TEST_URL, MAINLAND_TEST_URLS, MAINLAND_SCORE_THRESHOLD, MAINLAND_PASS_BONUS,
+    ASIA_PRIORITY_BONUS, TARGET_ASIA_RATIO, ASIA_MIN_COUNT,
+    GITHUB_TOKEN, GIST_ID, MAX_FORK_REPOS, MAX_FORK_URLS,
+    BOT_TOKEN, CHAT_ID, REPO_NAME,
+    SUB_MIRRORS, NODE_NAME_PREFIX,
+    HIGH_PORT_BONUS_THRESHOLD, COMMON_PORT_PENALTY,
+    USER_AGENT_POOL,
+)
+
+# v28.99: 从 sources.yaml 加载配置到 constants 全局变量
+_yaml_cfg = Path(__file__).parent / "sources.yaml"
+if _yaml_cfg.exists():
+    try:
+        with open(_yaml_cfg, encoding="utf-8") as _f:
+            _data = yaml.safe_load(_f) or {}
+            _const.CANDIDATE_URLS = [
+                (u.get("url") if isinstance(u, dict) else str(u))
+                for u in (_data.get("candidate_urls") or [])
+                if (u.get("url") if isinstance(u, dict) else str(u))
+            ]
+            _const.TELEGRAM_CHANNELS = [
+                str(c) for c in (_data.get("telegram_channels") or [])
+            ]
+            _const.GITHUB_BASE_REPOS = [
+                str(r) for r in (_data.get("github_base_repos") or [])
+            ]
+        logging.debug(
+            f"[sources.yaml] loaded {len(_const.CANDIDATE_URLS)} urls / "
+            f"{len(_const.TELEGRAM_CHANNELS)} tg channels / "
+            f"{len(_const.GITHUB_BASE_REPOS)} github repos"
+        )
+    except Exception as _e:
+        logging.debug(f"[sources.yaml] load failed, using empty config: {_e}")
+
+# ==================== 协议解析 ====================
 from parsers import (
     parse_vmess, parse_vless, parse_trojan, parse_trojan_go,
     parse_ss, parse_ssr, parse_hysteria, parse_hysteria2,
     parse_tuic, parse_snell, parse_http_proxy, parse_socks,
     parse_anytls, parse_node,
 )
-from parsers.proxynode import ProxyNode  # v28.52: ProxyNode 数据模型
+from parsers.proxynode import ProxyNode
 
 # ==================== 工具函数 ====================
 from utils import (
     _safe_port, is_pure_ip,
     get_region, ASIA_REGIONS, NON_FRIENDLY_REGIONS,
     NON_FRIENDLY_PENALTY,
-    WORK_DIR, MAX_RETRIES, HEADERS_POOL,
+    WORK_DIR, MAX_RETRIES, HEADERS_POOL as _UA_HEADERS,
+    REQUESTS_PER_SECOND,
 )
 
 # ==================== 核心模块 ====================
@@ -140,123 +183,15 @@ from sources import (
     strip_url, check_url, check_url_fast,
 )
 
-# ==================== CN IP 段数据 ====================
-from cn_cidr_data import CN_IP_RANGES as _CN_IP_RANGES_RAW  # 由 gen_cn_cidr.py 自动生成，不可添加自定义函数
+# ==================== CN IP 数据 ====================
+from cn_cidr_data import CN_IP_RANGES as _CN_IP_RANGES_RAW
 CN_IP_RANGES = _CN_IP_RANGES_RAW
 
-# ==================== 配置区 ====================
-# v28.34: 从 sources.yaml 读取配置（不再使用内联定义）
-_yaml_urls, _yaml_chans, _yaml_repos = [], [], []
-_cfg_path = Path(__file__).parent / "sources.yaml"
-if _cfg_path.exists():
-    try:
-        with open(_cfg_path, encoding="utf-8") as _f:
-            _data = yaml.safe_load(_f) or {}
-            _raw_urls = _data.get("candidate_urls", [])
-            _yaml_chans = _data.get("telegram_channels", [])
-            _yaml_repos = _data.get("github_base_repos", [])
-            
-            _yaml_urls = []
-            for item in _raw_urls:
-                if isinstance(item, dict):
-                    _yaml_urls.append(item.get("url", ""))
-                else:
-                    _yaml_urls.append(str(item))
-            _yaml_urls = [u for u in _yaml_urls if u]
-            
-            _yaml_repos = [str(r) for r in _yaml_repos if r]
-        
-        logging.debug(f"[sources.yaml] loaded {len(_yaml_urls)} urls / {len(_yaml_chans)} tg channels / {len(_yaml_repos)} github repos")
-    except Exception as _e:
-        logging.debug(f"[sources.yaml] load failed, using empty config: {_e}")
+# ==================== 兼容性别名（向后兼容，避免旧代码断裂）====================
+# v28.99: 删除旧的 _alias = real_function 批量赋值
+# 仅保留 crawler.py 作为命名空间入口，所有常量均已通过 import 语句导入
 
-CANDIDATE_URLS = _yaml_urls
-TELEGRAM_CHANNELS = _yaml_chans
-GITHUB_BASE_REPOS = _yaml_repos
-
-# ==================== 运行参数 ====================
-TIMEOUT = int(os.getenv("TIMEOUT", "12"))
-MAX_FETCH_NODES = int(os.getenv("MAX_FETCH_NODES", "5000"))
-MAX_TCP_TEST_NODES = int(os.getenv("MAX_TCP_TEST_NODES", "1200"))
-MAX_PROXY_TEST_NODES = int(os.getenv("MAX_PROXY_TEST_NODES", "1000"))
-MAX_FINAL_NODES = int(os.getenv("MAX_FINAL_NODES", "200"))
-MAX_LATENCY = int(os.getenv("MAX_LATENCY", "5000"))
-MIN_PROXY_SPEED = float(os.getenv("MIN_PROXY_SPEED", "30"))
-MAX_PROXY_LATENCY = int(os.getenv("MAX_PROXY_LATENCY", "5000"))
-
-TEST_URL = "https://myip.ipip.net/json"
-
-MAINLAND_TEST_URLS = [
-    "http://beian.miit.gov.cn",
-    "http://www.ccgp.gov.cn",
-    "http://www.pbccrc.org.cn",
-    "http://www.baidu.com",
-    "http://www.qq.com",
-    "http://www.taobao.com",
-    "http://114.114.114.114/resolve?name=www.baidu.com&type=A",
-]
-
-MAINLAND_SCORE_THRESHOLD = int(os.getenv("MAINLAND_SCORE_THRESHOLD", "30"))
-MAINLAND_PASS_BONUS = int(os.getenv("MAINLAND_PASS_BONUS", "20"))
-
-MAX_WORKERS = int(os.getenv("MAX_WORKERS", "80"))
-FETCH_WORKERS = int(os.getenv("FETCH_WORKERS", "150"))
-
-MAX_FORK_REPOS = int(os.getenv("MAX_FORK_REPOS", "60"))
-MAX_FORK_URLS = 1500
-
-SUB_MIRRORS = [
-    "https://gh.llkk.cc/",
-    "https://ghproxy.net/",
-    "https://gh-proxy.com/",
-    "https://mirror.ghproxy.com/",
-    "https://raw.iqiq.io/",
-    "https://gh.api.99988866.xyz/",
-    "https://ghps.cc/",
-    "https://ghfast.top/",
-]
-
-HIGH_PORT_BONUS_THRESHOLD = 10000
-COMMON_PORT_PENALTY = {80: 300, 443: 200, 8080: 100, 8443: 100}
-
-ASIA_PRIORITY_BONUS = int(os.getenv("ASIA_PRIORITY_BONUS", "40"))
-TARGET_ASIA_RATIO = float(os.getenv("TARGET_ASIA_RATIO", "0.60"))
-ASIA_TCP_RELAX = 1800
-ASIA_MIN_COUNT = int(os.getenv("ASIA_MIN_COUNT", "60"))
-
-MAX_CONCURRENT_FETCH = 3
-MAX_CONCURRENT_TCP = 60
-
-NODE_NAME_PREFIX = "Anftlity"
-
-# ==================== GitHub 配置 ====================
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
-GIST_ID = os.getenv("GIST_ID", "dc87627768298a4f6af8281cad97dfa3")
-BOT_TOKEN = os.getenv("BOT_TOKEN", "")
-CHAT_ID = os.getenv("CHAT_ID", "")
-REPO_NAME = os.getenv("GITHUB_REPOSITORY", "user/repo")
-
-USER_AGENT_POOL = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)",
-    "Mozilla/5.0 (Android 11; Mobile; rv:84.0) Gecko/84.0 Firefox/84.0",
-]
-
-# ==================== 兼容旧名 ====================
-_load_node_history = load_node_history
-_load_source_history = load_source_history
-_save_node_history = save_node_history
-_save_source_history = save_source_history
-_update_source_history = update_source_history
-_dynamic_source_weight = dynamic_source_weight
-_source_weight = source_weight
-_update_node_history = update_node_history
-_get_node_history_score = get_node_history_score
-
-
-# ==================== 主程序入口 ====================
+# ==================== 入口 ====================
 if __name__ == "__main__":
     try:
         main()
@@ -264,8 +199,7 @@ if __name__ == "__main__":
         logging.info("\n[WARN] 用户中断执行")
         sys.exit(1)
     except (OSError, ValueError, TypeError) as e:
-        logging.error(f"\n[FAIL] 程序异常：{e}")
+        logging.error(f"\n[FAIL] 运行异常：{e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
-

@@ -37,7 +37,7 @@ def fetch(url: str) -> str:
     """同步抓取单个 URL（GitHub URL 多镜像池遍历 + HTTP/2 + 重试）"""
     # v28.74: 设置 socket 默认超时，防止 TCP/SSL 无限阻塞
     import config
-    socket.setdefaulttimeout(config.TIMEOUT())
+    socket.setdefaulttimeout(config.TIMEOUT_fn())
     
     limiter = config.limiter()
     client = config.get_http_client()
@@ -139,10 +139,10 @@ def _get_async_sem():
 async def async_fetch_url(client: httpx.AsyncClient, url: str, mirror_pool: List[str] = None) -> str:
     """异步抓取单个 URL（带镜像池）"""
     if mirror_pool is None:
-        mirror_pool = config.SUB_MIRRORS()
+        mirror_pool = config.SUB_MIRRORS_fn()
 
     sem = _get_async_sem()
-    headers = random.choice(config.HEADERS_POOL())
+    headers = random.choice(config.HEADERS_POOL_fn())
     is_github = "github" in url.lower() or "raw.githubusercontent" in url
 
     if not is_github:
@@ -334,7 +334,7 @@ async def async_fetch_urls(urls: List[str], mirror_pool: List[str] = None) -> Di
         {url: content}
     """
     if mirror_pool is None:
-        mirror_pool = config.SUB_MIRRORS()
+        mirror_pool = config.SUB_MIRRORS_fn()
 
     client = config.get_async_http_client()
     # v28.50: 创建 task 对象而非传递 coroutine

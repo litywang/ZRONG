@@ -23,15 +23,12 @@ def filter_quality(p):
         return False
     name = p.get("name", "").lower()
 
-    # 仅排除明显无效的
+    # v29.01: 收窄排除关键词——"免费/公益/临时"可能含有效亚洲节点
     exclude_keywords = [
         "过期", "到期", "失效", "expire", "expired",
-        "广告", "推广", "官网", "购买", "test", "测试",
-        "体验", "试用", "trial", "临时", "temp",
-        "公益", "免费", "free",  # 公益/免费节点通常不稳定
-        "倍率", "倍", "x5", "x10", "x20",  # 高倍率节点
-        "邀请", "邀请码", "invite",
-        "订阅", "sub", "节点", "node",  # 纯描述性节点
+        "广告", "推广", "官网", "购买",
+        "倍率", "x5", "x10", "x20", "x50",  # 高倍率节点
+        "邀请码", "invite-only",
     ]
     for kw in exclude_keywords:
         if kw in name:
@@ -44,11 +41,13 @@ def filter_quality(p):
     # 排除已知不可用的协议组合
     ptype = p.get("type", "").lower()
     network = p.get("network", "tcp").lower()
-    # SSR 协议特征明显，大陆环境下基本不可用
+    # SSR/HTTP/SOCKS5 无加密，大陆环境下基本不可用
     if ptype == "ssr":
         return False
-    # HTTP/SOCKS5 无加密，大陆环境下容易被识别
     if ptype in ("http", "socks5") and network == "tcp":
+        return False
+    # v29.01: anytls 协议 Clash 不支持，过滤
+    if ptype == "anytls":
         return False
 
     # 非代理端口过滤（v24）

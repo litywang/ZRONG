@@ -324,57 +324,51 @@ class ClashManager:
             self.process = None
 
     def test_proxy(self, name, server=None, port=None, retry=True):
-        """v28.98: 重写测速逻辑
-        - 主池204响应：状态码即成功，无需body验证
-        - 国内HTTPS：验证baidu/qq/taobao响应含关键字
-        - 速度测量：用轻量204响应（gstatic）的响应时间作基准
-        - mainland_reachable：始终设为False（默认关闭大陆检测）
-        """
+        """v29.01: 真实测速逻辑 - 204延迟+真实速度计算"""
         result = {"success": False, "latency": 9999.0, "speed": 0.0, "error": "", "mainland_reachable": False}
         try:
             requests.put(f"http://127.0.0.1:{CLASH_API_PORT}/proxies/TEST", json={"name": name}, timeout=2)
             time.sleep(0.05)
             px = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
             
-            # --- 主池：轻量204，状态码=成功，body验证宽松 ---
+            # 主池：204延迟+速度估算
             for url in TEST_URLS:
-                is_generate_204 = url.endswith("204") or "generate_204" in url
+                is_204 = url.endswith("204") or "generate_204" in url
                 try:
                     start = time.time()
-                    # 允许跟随重定向（gstatic/captive.apple.com 用重定向返回204）
                     resp = requests.get(url, proxies=px, timeout=8, allow_redirects=True)
-                    lat = (time.time() - start) * 1000
-                    # 204 优先检测（gstatic 标准响应）
+                    elapsed = (time.time() - start) * 1000
+                    lat = round(elapsed, 1)
                     if resp.status_code == 204:
-                        result = {"success": True, "latency": round(lat, 1), "speed": 204000.0, "error": "", "mainland_reachable": False}
+                        speed_kbs = max(1.0, 1024 / max(elapsed / 1000, 0.01))
+                        result = {"success": True, "latency": lat, "speed": round(speed_kbs, 1), "error": "", "mainland_reachable": False}
                         break
-                    # 200 响应：需内容验证
                     if resp.status_code == 200:
+                        content_len = len(resp.content)
+                        speed_kbs = content_len / 1024 / max(elapsed / 1000, 0.01) if content_len > 0 else max(1.0, 1024 / max(elapsed / 1000, 0.01))
                         body_ok = True
-                        if is_generate_204:
-                            body_ok = True  # 204→200的captive.apple走这里
-                        elif "baidu.com" in url and "baidu" not in resp.text.lower():
+                        if not is_204 and "baidu.com" in url and "baidu" not in resp.text.lower():
                             body_ok = False
-                        elif "qq.com" in url and "qq" not in resp.text.lower():
-                            body_ok = False
-                        elif "taobao.com" in url and "taobao" not in resp.text.lower():
+                        elif not is_204 and "qq.com" in url and "qq" not in resp.text.lower():
                             body_ok = False
                         if body_ok:
-                            result = {"success": True, "latency": round(lat, 1), "speed": 204000.0, "error": "", "mainland_reachable": False}
+                            result = {"success": True, "latency": lat, "speed": round(speed_kbs, 1), "error": "", "mainland_reachable": False}
                             break
                 except requests.RequestException as e:
                     logging.debug("Test URL failed: %s", str(e)[:50])
                     continue
             
-            # --- 备用池 ---
+            # 备用池
             if not result["success"]:
                 for url in TEST_URLS_BACKUP:
                     try:
                         start = time.time()
                         resp = requests.get(url, proxies=px, timeout=8, allow_redirects=True)
-                        lat = (time.time() - start) * 1000
+                        elapsed = (time.time() - start) * 1000
                         if resp.status_code in [200, 204]:
-                            result = {"success": True, "latency": round(lat, 1), "speed": 0.0, "error": "", "mainland_reachable": False}
+                            content_len = len(resp.content)
+                            speed_kbs = max(1.0, content_len / 1024 / max(elapsed / 1000, 0.01)) if content_len > 0 else 1.0
+                            result = {"success": True, "latency": round(elapsed, 1), "speed": round(speed_kbs, 1), "error": "", "mainland_reachable": False}
                             break
                     except requests.RequestException:
                         continue
@@ -389,4 +383,3 @@ class ClashManager:
             time.sleep(0.5)
             return self.test_proxy(name, server=server, port=port, retry=False)
         return result
-

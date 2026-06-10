@@ -315,10 +315,13 @@ def main():
                                     if ws_host:
                                         sni_val = ws_host
                                     fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
+                                    # v29.01: 正确传递 mainland_friendly_score 为 score, r["speed"] 为 speed
+                                    mf_score = mainland_friendly_score(p)
                                     p["name"] = namer.generate(
-                                        fl, int(r["latency"]), r["speed"], tcp=False,
+                                        fl, lat=int(r["latency"]), score=mf_score, speed=r.get("speed", 0), tcp=False,
                                         server=srv, sni=sni_val,
-                                        mainland_reachable=r.get("mainland_reachable", False)
+                                        mainland_reachable=r.get("mainland_reachable", False),
+                                        proto=p.get("type", "")
                                     )
                                     # v28.57: 附加真实大陆可达性测试结果，供 final_sort_key 使用
                                     p["mainland_reachable"] = r.get("mainland_reachable", False)
@@ -373,15 +376,17 @@ def main():
                         if ws_host:
                             sni_val = ws_host
                         fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
+                        mf_score_tcp1 = mainland_friendly_score(p)
                         p["name"] = namer.generate(
-                            fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val,
-                            mainland_reachable=False
-                        ) + "[TCP]"
+                            fl, lat=int(item["latency"]), score=mf_score_tcp1, tcp=True, server=srv, sni=sni_val,
+                            mainland_reachable=False,
+                            proto=p.get("type", "")
+                        )
                         p["mainland_reachable"] = False  # v28.59: TCP节点标记大陆不可达
                         final.append(p)
                         logging.info(f"   [TCP] {p['name']}")
-                    elif item["latency"] < 800:
-                        # v28.16: 非亚洲TCP补充延迟提高（500→800）
+                    elif item["latency"] < 500:
+                        # v29.01: 非亚洲TCP补充延迟收紧（800→500）
                         tested.add(k)  # BUGFIX: 标记避免重复检测
                         srv = p.get("server", "")
                         sni_val = p.get("sni", "") or p.get("servername", "")
@@ -393,10 +398,12 @@ def main():
                         if ws_host:
                             sni_val = ws_host
                         fl, cd = get_region(p.get("name", ""), server=srv, sni=sni_val)
+                        mf_score_tcp2 = mainland_friendly_score(p)
                         p["name"] = namer.generate(
-                            fl, int(item["latency"]), tcp=True, server=srv, sni=sni_val,
-                            mainland_reachable=False
-                        ) + "[TCP]"
+                            fl, lat=int(item["latency"]), score=mf_score_tcp2, tcp=True, server=srv, sni=sni_val,
+                            mainland_reachable=False,
+                            proto=p.get("type", "")
+                        )
                         p["mainland_reachable"] = False  # v28.59: TCP节点标记大陆不可达
                         final.append(p)
                         logging.info(f"   [TCP] {p['name']}")

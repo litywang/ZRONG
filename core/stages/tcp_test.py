@@ -66,7 +66,7 @@ def run_tcp_test(nlist: list, tcp_workers: int = 200) -> list:
 
 def sort_tcp_results(nres: list) -> list:
     """TCP 测试后排序：地理位置 > is_asia > Reality > 协议 > 延迟"""
-    from core.tls import is_reality_friendly
+    from network.tls import is_reality_friendly
     from core.scorer import PROTOCOL_SCORE
     from core.filter import _geo_score
 

@@ -91,7 +91,7 @@ def init_config() -> None:
 # ==================== 访问器函数 =====================
 def session_fn():
     from core.config import session as _s
-    return _s()
+    return _s
 
 def get_http_client_fn():
     from network.client import get_http_client as _c
@@ -103,7 +103,7 @@ def get_async_http_client_fn():
 
 def limiter_fn():
     from network.geo import limiter as _l
-    return _l()
+    return _l
 
 def parse_node_fn():
     from parsers import parse_node as _p

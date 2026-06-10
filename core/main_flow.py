@@ -53,6 +53,9 @@ from sources import (
     crawl_telegram_channels, strip_url, discover_github_forks,
     fetch_and_parse, async_fetch_nodes, sync_close_async_http_client,
 )
+# v28.97: 补充缺失的 CLASH_API_PORT 常量（原 v28.96 健康检查引入但未导入）
+CLASH_API_PORT = 9090
+
 from sources.config import (
     TELEGRAM_CHANNELS, CANDIDATE_URLS, MAX_FETCH_NODES, FETCH_WORKERS,
     MAX_TCP_TEST_NODES, MAX_LATENCY, MAX_PROXY_TEST_NODES,

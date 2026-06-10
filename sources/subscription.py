@@ -283,8 +283,8 @@ async def async_fetch_nodes(all_urls: List[str], max_nodes: int = 5000) -> Tuple
 
                 # 使用 config 获取动态权重和 is_asia 函数
                 if url:
-                    dw_fn = config.dynamic_source_weight
-                    is_asia_func = config.is_asia
+                    dw_fn = config.dynamic_source_weight_fn()
+                    is_asia_func = config.is_asia_fn()
                     if is_asia_func:
                         asia_count = sum(1 for pp in local_nodes.values() if is_asia_func(pp))
                     if dw_fn:

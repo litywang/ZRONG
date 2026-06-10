@@ -402,6 +402,24 @@ def main():
 
         final = final[:MAX_FINAL_NODES]
 
+        # v28.87: 健康检查（在 Clash 停止前执行，利用 Clash Controller API）
+        # 借鉴 discovery-service：连续失败3次禁用节点
+        if not args.skip_health_check and proxy_ok:
+            logging.info(f"[START] 健康检查，共 {len(final)} 个节点（Clash API 模式）...")
+            _max_workers = int(os.getenv('HEALTH_CHECK_MAX_WORKERS', '20'))
+            _timeout = int(os.getenv('HEALTH_CHECK_TIMEOUT', '5'))
+            health_results = batch_health_check_via_clash(
+                final, clash_api_port=CLASH_API_PORT,
+                timeout=_timeout, max_workers=_max_workers
+            )
+            before_health = len(final)
+            final = [p for p in final if not is_node_disabled(p)]
+            disabled_count = before_health - len(final)
+            summary = get_health_summary()
+            logging.info(f"[OK] 健康检查完成：ok={summary['ok']} degraded={summary['degraded']} disabled={summary['disabled']} (移除 {disabled_count} 个)")
+        elif not args.skip_health_check and not proxy_ok:
+            logging.warning("[WARN] Clash 未运行，跳过 Clash API 健康检查")
+
         # v28.57: 最终排序整合真实大陆可达性测试结果
 
 
@@ -489,29 +507,6 @@ def main():
                 w = dynamic_source_weight(url)
                 success_rate = rec["success_count"] / max(rec["success_count"] + rec["fail_count"], 1)
                 logging.debug(f"   • 权重{w:.1f} | 成功率{success_rate:.0%} | {url[:60]}...")
-
-        # v28.87: 健康检查（通过 Clash Controller API，适配 GitHub Actions 环境）
-        # 借鉴 discovery-service：连续失败3次禁用节点
-        if not args.skip_health_check and proxy_ok:
-            logging.info(f"[START] 健康检查，共 {len(cleaned_final)} 个节点（Clash API 模式）...")
-            from core.validator import batch_health_check_via_clash, get_health_summary
-            from core.config import CLASH_API_PORT
-            _max_workers = int(os.getenv('HEALTH_CHECK_MAX_WORKERS', '20'))
-            _timeout = int(os.getenv('HEALTH_CHECK_TIMEOUT', '5'))
-            # 执行健康检查
-            health_results = batch_health_check_via_clash(
-                cleaned_final, clash_api_port=CLASH_API_PORT,
-                timeout=_timeout, max_workers=_max_workers
-            )
-            # 过滤禁用节点，保留 ok 和 degraded 节点
-            healthy_nodes = [p for p in cleaned_final if not is_node_disabled(p)]
-            disabled_count = len(cleaned_final) - len(healthy_nodes)
-            summary = get_health_summary()
-            logging.info(f"[OK] 健康检查完成：ok={summary['ok']} degraded={summary['degraded']} disabled={summary['disabled']} (移除 {disabled_count} 个)")
-            cleaned_final = healthy_nodes
-            unique_final = healthy_nodes  # 更新 unique_final
-        elif not args.skip_health_check and not proxy_ok:
-            logging.warning("[WARN] Clash 未运行，跳过 Clash API 健康检查")
 
         # v28.52: 大陆路由规则（CN_DIRECT=1 启用）
         _cn_direct = os.getenv("CN_DIRECT", "1") == "1"

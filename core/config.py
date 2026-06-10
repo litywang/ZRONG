@@ -55,22 +55,19 @@ def create_session():
 
 session = create_session()
 
-# ===== 测速 URL（v28.98 从 crawler.py 迁移）=====
-# v28.98: 全面重构测速URL策略
-# 原则：优先轻量204响应（generate_204），无需解析内容；避免需要重定向的HTTP URL
-# 主池：gstatic（Clash自带）+ cloudflare（全球高可用）+ apple（苹果全球节点）
-# 国内池：baidu/qq/taobao（国内大站，HTTPS可靠），仅作参考不强制
+# ===== 测速 URL（v29.04 从 crawler.py 迁移）=====
+# v29.04: 简化测速URL，只保留全球可达的HTTP 204检测
+# 原则：HTTP优于HTTPS（避免TLS问题），204优于200（避免body校验）
+# 全球可达：Cloudflare + Apple + Microsoft（HTTP 204/无内容）
 TEST_URLS = [
-    # 主池：轻量无内容验证
-    "https://www.gstatic.com/generate_204",
+    # 主池：全球可达的HTTP 204检测（优先HTTP，避免TLS问题）
     "http://cp.cloudflare.com/generate_204",
-    "https://cp.cloudflare.com/generate_204",
     "http://captive.apple.com/generation_204",
+    "http://www.msftconnecttest.com/connecttest.txt",
+    # HTTPS补充（如果HTTP失败，尝试HTTPS）
+    "https://cp.cloudflare.com/generate_204",
     "https://captive.apple.com/generation_204",
-    # 国内池：需TLS握手，验证内容关键字
-    "https://www.baidu.com",
-    "https://www.qq.com",
-    "https://www.taobao.com",
+    "https://www.gstatic.com/generate_204",
 ]
 # 备用池：其他全球可用地址
 TEST_URLS_BACKUP = [

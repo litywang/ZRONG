@@ -324,7 +324,7 @@ class ClashManager:
             self.process = None
 
     def test_proxy(self, name, server=None, port=None, retry=True):
-        """v29.03: 真实测速 - 简化逻辑，只要HTTP请求成功就认为节点合格"""
+        """v29.04: 真实测速 - 添加详细日志，记录每个URL的失败原因"""
         result = {"success": False, "latency": 9999.0, "speed": 0.0, "error": "", "mainland_reachable": False}
         try:
             requests.put(f"http://127.0.0.1:{CLASH_API_PORT}/proxies/TEST", json={"name": name}, timeout=2)
@@ -344,8 +344,10 @@ class ClashManager:
                         speed_kbs = content_len / 1024 / max(elapsed / 1000, 0.01) if content_len > 0 else 1.0
                         result = {"success": True, "latency": lat, "speed": round(speed_kbs, 1), "error": "", "mainland_reachable": False}
                         break
+                    else:
+                        logging.debug(f"test_proxy {name}: URL {url} 返回状态码 {resp.status_code}")
                 except requests.RequestException as e:
-                    logging.debug("Test URL failed: %s", str(e)[:50])
+                    logging.debug(f"test_proxy {name}: URL {url} 失败: {str(e)[:80]}")
                     continue
             
             # 备用池

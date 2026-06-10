@@ -148,7 +148,7 @@ class ClashManager:
                 continue
             filtered.append(p)
         if not filtered:
-            logging.debug("   [WARN] 所有节点协议均不支持，无法生成 Clash 配置")
+            logging.info("[CLASH] 所有节点协议均不支持，无法生成配置")
             return False
         # BUGFIX: 移除内部双重截断，调用方已用 batch_size 限制了 proxies 数量
         # 原代码 proxies[:MAX_PROXY_TEST_NODES] 出现两次，与外层 batch_size 职责重叠
@@ -175,7 +175,7 @@ class ClashManager:
             valid_proxies.append(p)
 
         if not valid_proxies:
-            logging.warning("所有节点均缺少必填字段或端口无效，无法生成 Clash 配置")
+            logging.info("[CLASH] 所有节点缺少必填字段或端口无效，无法生成配置")
             return False
 
         for i, p in enumerate(valid_proxies):
@@ -254,6 +254,7 @@ class ClashManager:
     def start(self):
         ensure_clash_dir()
         if not CLASH_PATH.exists() and not self.download_clash():
+            logging.info("[CLASH] mihomo 二进制文件不存在且下载失败")
             return False
         LOG_FILE.touch()
         try:
@@ -280,33 +281,27 @@ class ClashManager:
                         try:
                             out, _ = self.process.communicate(timeout=5)
                             out_short = out[:500] + "\n...\n" + out[-500:] if len(out) > 1000 else out
-                            logging.debug(f"   [FAIL] Clash 崩溃:\n{out_short}")
+                            logging.info(f"[CLASH] 进程崩溃，输出:\n{out_short}")
                         except (subprocess.TimeoutExpired, OSError):
-                            logging.debug("   [FAIL] Clash 崩溃")
+                            logging.info("[CLASH] 进程崩溃，无法读取输出")
                         return False
                     try:
                         if requests.get(f"http://127.0.0.1:{CLASH_API_PORT}/version", timeout=2).status_code == 200:
-                            logging.debug("   [OK] Clash API 就绪")
+                            logging.info("[CLASH] API 就绪")
                             api_ready = True
                             break
                     except requests.RequestException:
-                        logging.debug("Clash API version check failed")
+                        if i < 3:
+                            logging.info(f"[CLASH] API 未就绪，等待中... ({i+1}/30)")
                 if not api_ready:
-                    logging.debug("   [TIMEOUT] Clash 启动超时")
+                    logging.info("[CLASH] 启动超时（30秒）")
                     return False
             except (OSError, subprocess.SubprocessError) as e:
-                logging.debug(f"   [ERROR] Clash 启动异常：{e}")
+                logging.info(f"[CLASH] 启动异常：{e}")
                 return False
-            finally:
-                # 确保 stdout/stderr 管道关闭
-                if self.process and self.process.stdout:
-                    try:
-                        self.process.stdout.close()
-                    except OSError as e:
-                        logging.debug(f"关闭 stdout 管道失败: {e}", exc_info=True)
             return True
         except (OSError, subprocess.SubprocessError) as e:
-            logging.debug(f"   [ERROR] Clash 启动异常：{e}")
+            logging.info(f"[CLASH] Popen 异常：{e}")
             return False
 
     def stop(self):

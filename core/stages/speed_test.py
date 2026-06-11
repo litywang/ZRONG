@@ -64,11 +64,18 @@ def run_speed_test(nres: list, clash: ClashManager) -> tuple:
     while len(final) < MAX_FINAL_NODES and not batch_enough:
         batch_id += 1
         if untested_items is None:
+            # v30.0: [WEB] 节点预过滤（CDN/WEB代理节点大陆用户不可靠）
             untested_items = [
                 item for item in nres_untested
                 if f"{item['proxy']['server']}:{item['proxy']['port']}" not in tested
                 and not is_node_disabled(item['proxy'])
+                and not item['proxy'].get('name', '').startswith('[WEB]')
             ]
+            # v30.0: 亚洲节点优先（更快被测速、获得更好的speed数据参与排序）
+            untested_items.sort(key=lambda x: (
+                0 if is_asia(x['proxy']) else 1,  # Asia first
+                x.get('latency', 9999)             # then by TCP latency
+            ))
         batch_items = untested_items[:MAX_PROXY_TEST_NODES]
         untested_items = untested_items[MAX_PROXY_TEST_NODES:]
         if not batch_items:

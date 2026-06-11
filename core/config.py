@@ -59,19 +59,19 @@ session = create_session()
 # v29.04: 简化测速URL，只保留全球可达的HTTP 204检测
 # 原则：HTTP优于HTTPS（避免TLS问题），204优于200（避免body校验）
 # 全球可达：Cloudflare + Apple + Microsoft（HTTP 204/无内容）
-# v30.0 Phase 6c: 使用可靠全局CDN测速URL
+# v30.0 Phase 6f: 多层级测速URL池
 # 之前false positive的根源是/proxies/TEST而非/proxies/GLOBAL（代理选择器bug），非URL本身
-# 204检测URL：所有CDN captive portal，全球可达，稳定可靠
+# 第一层：HTTP 204（最快，无body，全球CDN），第二层：HTTP纯文本（避免TLS开销）
 TEST_URLS = [
-    # 主池：全球CDN captive portal（快速稳定，全球可达）
+    # 主池：全球CDN captive portal（快速稳定，HTTP优先）
     "http://cp.cloudflare.com/generate_204",
     "http://captive.apple.com/generation_204",
-    "https://www.gstatic.com/generate_204",
+    "http://connectivitycheck.gstatic.com/generate_204",
 ]
 # 备用池：其他全球可用地址（避免单点故障）
 TEST_URLS_BACKUP = [
-    "http://connectivitycheck.gstatic.com/generate_204",
     "http://www.msftconnecttest.com/connecttest.txt",
+    "http://www.google.com/generate_204",
 ]
 
 ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "0") == "1"

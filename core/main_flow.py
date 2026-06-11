@@ -126,8 +126,9 @@ def main():
     logging.info("[START] 真实代理测速（分批）...")
     final, proxy_ok = run_speed_test(nres, clash)
 
-    # ── 阶段6: Clash 测速输出（supplement_tcp 不可靠，v30.0 Phase 6c 禁用）
-    # supplement_tcp(final, nres, tested, proxy_ok)  ← 禁用：用TCP数据绕过Clash验证，输出不可用节点
+    # ── 阶段6: TCP 保底补充（v30.0 Phase 6f: 严格约束版）────────────
+    tested = set()
+    final, _ = supplement_tcp(final, nres, tested, proxy_ok)
 
     if not final:
         logging.warning("[FAIL] 无合格节点!")

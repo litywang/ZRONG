@@ -283,7 +283,9 @@ class ClashManager:
         """v30.0: 优化测速——连接超时3s+读取超时5s，ConnectTimeout直接失败"""
         result = {"success": False, "latency": 9999.0, "speed": 0.0, "error": "", "mainland_reachable": False}
         try:
-            requests.put(f"http://127.0.0.1:{CLASH_API_PORT}/proxies/TEST", json={"name": name}, timeout=2)
+            # v30.0 Phase 6c: global 模式必须用 GLOBAL 选择器（非 TEST 自定义组）
+            # 否则所有测试走同一条路径 → 全部 false positive
+            requests.put(f"http://127.0.0.1:{CLASH_API_PORT}/proxies/GLOBAL", json={"name": name}, timeout=2)
             time.sleep(0.03)
             px = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
             # v30.0: 连接超时3s + 读取超时5s（分离超时，快速识别不可达节点）

@@ -158,7 +158,6 @@ def supplement_tcp(final: list, nres: list, tested: set, proxy_ok: bool) -> tupl
 
     lf_score = mainland_friendly_score
     from core.filter import is_non_friendly_region, final_sort_key
-    from sources.config import LOW_VALUE_REGIONS
 
     logging.warning(f"[WARN] 测速合格{len(final)}个，TCP补充上限{tcp_needed}（严格约束）...")
     namer = NodeNamer()

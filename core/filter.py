@@ -143,6 +143,12 @@ def _geo_score(item):
         score += 30
     return score
 
+def is_non_friendly_region(p):
+    """判断节点是否属于低价值区域（UA/TR/IR等，通过名称中 emoji 旗帜识别）"""
+    name = p.get("name", "")
+    return any(fl in name for fl in _LOW_VALUE_NON_ASIA_FLAGS)
+
+
 def final_sort_key(p):
     """v30.0: 排序键 = 亚洲优先 > 综合评分 > 源权重 > 延迟
 

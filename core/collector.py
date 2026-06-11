@@ -49,6 +49,7 @@ def collect_nodes(use_async=False, max_fetch_nodes=5000, fetch_workers=150):
         crawl_telegram_channels, strip_url, discover_github_forks,
         fetch_and_parse, async_fetch_nodes,
     )
+    from sources.config import is_url_healthy
     from sources.config import TELEGRAM_CHANNELS, CANDIDATE_URLS
     from core.history import dynamic_source_weight, update_source_history
     from core.filter import filter_quality
@@ -89,12 +90,22 @@ def collect_nodes(use_async=False, max_fetch_nodes=5000, fetch_workers=150):
     
     if use_async:
         logger.info("[WEB] 使用异步抓取模式...")
+        # v30.0: URL 健康检查（快速过滤死链，减少无效请求）
+        healthy_urls = [u for u in all_urls if is_url_healthy(u)]
+        skipped = len(all_urls) - len(healthy_urls)
+        if skipped > 0:
+            logger.info(f"[WEB] 健康检查：跳过 {skipped} 个不可达 URL，剩余 {len(healthy_urls)} 个")
         nodes, yaml_count, txt_count, url_results = asyncio.run(
-            async_fetch_nodes(all_urls, max_fetch_nodes)
+            async_fetch_nodes(healthy_urls, max_fetch_nodes)
         )
     else:
+        # v30.0: URL 健康检查（同步模式）
+        healthy_urls = [u for u in all_urls if is_url_healthy(u)]
+        skipped = len(all_urls) - len(healthy_urls)
+        if skipped > 0:
+            logger.info(f"[WEB] 健康检查：跳过 {skipped} 个不可达 URL，剩余 {len(healthy_urls)} 个")
         with ThreadPoolExecutor(max_workers=fetch_workers) as ex:
-            futures = {ex.submit(fetch_and_parse, u): u for u in all_urls}
+            futures = {ex.submit(fetch_and_parse, u): u for u in healthy_urls}
             completed = 0
             for future in as_completed(futures):
                 url = futures[future]

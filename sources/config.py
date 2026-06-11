@@ -211,3 +211,31 @@ def MAX_CONCURRENT_FETCH_fn() -> int:
 
 def MAX_CONCURRENT_TCP_fn() -> int:
     return _const.MAX_CONCURRENT_TCP
+
+
+# ===== URL 健康检查（v30.0） =====
+_URL_HEALTH_CACHE: dict = {}  # url -> (ok, timestamp)
+
+
+def is_url_healthy(url: str, timeout: float = 3.0) -> bool:
+    """快速检查 URL 是否可达（HEAD 请求，3s 超时）
+    
+    使用内存缓存（5 分钟有效期），避免重复探测。
+    主要用于在批量抓取前过滤明显不可达的 URL。
+    """
+    import time as _t
+    now = _t.time()
+    cached = _URL_HEALTH_CACHE.get(url)
+    if cached and (now - cached[1]) < 300:  # 5分钟缓存
+        return cached[0]
+    
+    try:
+        sess = session_fn()
+        resp = sess.head(url, timeout=timeout, allow_redirects=True,
+                         headers={"User-Agent": "Mozilla/5.0"})
+        ok = resp.status_code in (200, 301, 302, 304)
+    except Exception:
+        ok = False
+    
+    _URL_HEALTH_CACHE[url] = (ok, now)
+    return ok

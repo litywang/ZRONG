@@ -17,8 +17,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# ===== 评分策略开关 =====
-USE_NEW_SCORING = os.getenv("ZRONG_USE_NEW_SCORING", "0") == "1"
+# ===== 评分策略（v30.0: 统一使用新版评分）=====
 
 # ===== 从 config/rules.yaml 读取评分规则 =====
 from config import load_rules, get_scoring_weights
@@ -237,11 +236,65 @@ def _main_land_friendly_score_new(p):
 
 
 def mainland_friendly_score(p):
-    """评估节点对大陆用户的友好程度，返回 0-100 分数。
+    """评估节点对大陆用户的友好程度，返回 0-100 分数。v30.0: 统一使用新版评分。"""
+    return _main_land_friendly_score_new(p)
 
-    通过环境变量 ZRONG_USE_NEW_SCORING 控制使用新版还是旧版评分逻辑。
-    默认使用旧版（与原版行为完全一致）。
+
+def composite_score(p: dict) -> float:
+    """v30.0: 综合评分（0-100）= 评分权重: 地理+协议40% + TCP延迟25% + 速度15% + 历史10% + Reality/TLS 10%
+
+    此函数在 final_sort_key 中使用，替代简单的 mainland_friendly_score。
     """
-    if USE_NEW_SCORING:
-        return _main_land_friendly_score_new(p)
-    return _main_land_friendly_score_legacy(p)
+    mf = _main_land_friendly_score_new(p)  # 地理+协议+端口（0-100）
+
+    # TCP延迟评分：从节点名称中提取延迟ms
+    lat = 9999
+    m = re.search(r"\d+", p.get("name", ""))
+    if m:
+        lat = int(m.group(0))
+    if lat <= 100:
+        lat_score = 100
+    elif lat <= 200:
+        lat_score = 80
+    elif lat <= 400:
+        lat_score = 60
+    elif lat <= 800:
+        lat_score = 35
+    elif lat <= 1500:
+        lat_score = 15
+    else:
+        lat_score = 0
+
+    # 速度评分
+    speed = p.get("_speed", 0.0)
+    if speed <= 0:
+        speed_score = 0
+    elif speed < 10:
+        speed_score = 20
+    elif speed < 50:
+        speed_score = 50
+    elif speed < 200:
+        speed_score = 80
+    else:
+        speed_score = 100
+
+    # 历史稳定性评分
+    try:
+        from core.history import get_node_history_score as _ghs
+        hist = _ghs(p)
+    except (ImportError, AttributeError):
+        hist = 0
+    hist_score = min(hist * 20, 100)  # 归一化到0-100
+
+    # Reality/TLS 加分
+    reality = 100 if p.get("reality-opts") else (50 if p.get("tls") else 0)
+
+    # 加权合成
+    composite = (
+        mf * 0.40 +      # 地理+协议+端口
+        lat_score * 0.25 + # TCP延迟
+        speed_score * 0.15 + # 速度
+        hist_score * 0.10 +  # 历史
+        reality * 0.10       # Reality/TLS
+    )
+    return round(min(composite, 100), 2)

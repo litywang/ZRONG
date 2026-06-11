@@ -6,7 +6,7 @@ import re
 import logging
 
 from core.validator import is_china_mainland, is_asia, NON_PROXY_PORTS
-from core.scorer import mainland_friendly_score, PROTOCOL_SCORE
+from core.scorer import mainland_friendly_score, composite_score, PROTOCOL_SCORE
 from network.tls import is_reality_friendly
 from core.history import get_node_history_score as _get_node_history_score
 from config import ASIA_REGIONS, ASIA_PRIORITY_BONUS, NON_FRIENDLY_REGIONS, NON_FRIENDLY_PENALTY
@@ -111,26 +111,17 @@ def _geo_score(item):
     return score
 
 def final_sort_key(p):
-    """v28.90: 排序键 = 亚洲 > 大陆友好分 > 速度 > 源权重 > Reality > 协议 > 历史 > 延迟"""
+    """v30.0: 排序键 = 亚洲优先 > 综合评分 > 源权重 > 延迟
+
+    综合评分已包含地理+协议+TCP延迟+速度+历史+Reality的加权合成，
+    无需再逐个字段排序。
+    """
     asia = 3 if is_asia(p) else 0
-    reality = 1 if is_reality_friendly(p) else 0
-    proto_score = PROTOCOL_SCORE.get(p.get("type", ""), 0) / 10.0
-    mf_score = mainland_friendly_score(p)
-    if asia > 0:
-        mf_score += 15
-    # 大陆测试加分（仅开启时）
-    if ENABLE_MAINLAND_TEST:
-        ml = p.get("mainland_reachable")
-        if ml is True:
-            mf_score += MAINLAND_PASS_BONUS
-        elif ml is False:
-            mf_score -= 30
+    comp = composite_score(p)
     src_weight = p.get("_src_weight", 3)
-    speed = p.get("_speed", 0.0)
-    hist_score = _get_node_history_score(p)
-    lat_from_name = 0
+    lat_from_name = 9999
     m = re.search(r"\d+", p.get("name", ""))
     if m:
         lat_from_name = int(m.group(0))
-    return (-asia, -mf_score, -speed, -src_weight, -reality, -proto_score, -hist_score, lat_from_name)
+    return (-asia, -comp, -src_weight, lat_from_name)
 

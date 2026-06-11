@@ -48,7 +48,7 @@ MAINLAND_SCORE_THRESHOLD = int(os.getenv("MAINLAND_SCORE_THRESHOLD", "30"))
 MAINLAND_PASS_BONUS = int(os.getenv("MAINLAND_PASS_BONUS", "20"))
 
 # ==================== 亚洲配额 ====================
-ASIA_PRIORITY_BONUS = int(os.getenv("ASIA_PRIORITY_BONUS", "30"))
+ASIA_PRIORITY_BONUS = int(os.getenv("ASIA_PRIORITY_BONUS", "40"))
 TARGET_ASIA_RATIO = float(os.getenv("TARGET_ASIA_RATIO", "0.60"))
 ASIA_MIN_COUNT = int(os.getenv("ASIA_MIN_COUNT", "60"))
 

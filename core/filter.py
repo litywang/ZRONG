@@ -20,7 +20,7 @@ ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "0") == "1"
 MAINLAND_PASS_BONUS = int(os.getenv("MAINLAND_PASS_BONUS", "20"))
 
 # v29.1: 限制无法识别地区的 CDN 伪装节点数量
-MAX_WEB_NET_NODES = int(os.getenv("MAX_WEB_NET_NODES", "10"))
+MAX_WEB_NET_NODES = int(os.getenv("MAX_WEB_NET_NODES", "15"))
 
 # v30.0: [WEB] 节点计数器（每日重置，按自然日清零）
 _web_node_count = 0

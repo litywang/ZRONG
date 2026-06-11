@@ -78,11 +78,26 @@ def _cn_direct_rules() -> list:
 
 
 def apply_quota(final: list) -> list:
-    """柔性配额：亚洲节点保底~目标~上限，非亚洲补足"""
+    """柔性配额：亚洲节点保底~目标~上限，非亚洲补足 + [WEB]硬截断 + 低价值地区硬筛"""
+    # v30.0 Phase6: [WEB] 硬截断（name.startswith("[WEB]") 而非 "NET" in name）
+    web_nodes = [p for p in final if p.get("name", "").lower().startswith("[web]")]
+    non_web_final = [p for p in final if not p.get("name", "").lower().startswith("[web]")]
+    if len(web_nodes) > MAX_WEB_NET_NODES:
+        web_nodes = web_nodes[:MAX_WEB_NET_NODES]
+        logging.info(f"   [v30.0] [WEB] 节点截断为 {MAX_WEB_NET_NODES} 个 (原{len(web_nodes)}个)")
+    final = non_web_final + web_nodes  # [WEB] 放末尾
+
+    # v30.0 Phase6: 低价值非亚洲 emoji 地区硬筛（在 apply_quota，防止 history 节点绕过）
+    LOW_VALUE_FLAGS = {'🇺🇦', '🇹🇷', '🇮🇷'}
+    before = len(final)
+    final = [p for p in final if not any(fl in p.get("name", "") for fl in LOW_VALUE_FLAGS)]
+    if before > len(final):
+        logging.info(f"   [v30.0] 低价值非亚洲节点过滤: {before} -> {len(final)}")
+
     asia_final = sorted([p for p in final if is_asia(p)], key=final_sort_key)
     non_asia_final = sorted([p for p in final if not is_asia(p)], key=final_sort_key)
 
-    # v29.1: [WEB]NET 节点上限
+    # v29.1: [WEB]NET 节点上限（已由上方 [WEB] 截断覆盖，此处保留兼容）
     web_net = [p for p in non_asia_final if "NET" in p.get("name", "")]
     other_non = [p for p in non_asia_final if "NET" not in p.get("name", "")]
     if len(web_net) > MAX_WEB_NET_NODES:

@@ -59,20 +59,20 @@ session = create_session()
 # v29.04: 简化测速URL，只保留全球可达的HTTP 204检测
 # 原则：HTTP优于HTTPS（避免TLS问题），204优于200（避免body校验）
 # 全球可达：Cloudflare + Apple + Microsoft（HTTP 204/无内容）
+# v30.0 Phase 6b: 替换为实际下载测速URL
+# 理由：cp.cloudflare.com/captive.apple.com 是CDN captive portal，
+# 任何请求（含直接DNS解析不走代理）都会返回HTTP 204 → false positive
+# 新URL：需代理路由+下载内容，speed>0才能通过
 TEST_URLS = [
-    # 主池：全球可达的HTTP 204检测（优先HTTP，避免TLS问题）
-    "http://cp.cloudflare.com/generate_204",
-    "http://captive.apple.com/generation_204",
-    "http://www.msftconnecttest.com/connecttest.txt",
-    # HTTPS补充（如果HTTP失败，尝试HTTPS）
-    "https://cp.cloudflare.com/generate_204",
-    "https://captive.apple.com/generation_204",
-    "https://www.gstatic.com/generate_204",
+    # 主池：真实下载测速（需代理隧道 + 下载非零内容）
+    "https://speed.cloudflare.com/__down?bytes=102400",   # 100KB下载测速
+    "http://speedtest.tele2.net/1024KB.zip",             # 1MB下载测速
+    "https://proof.utt.utt",                             # 法国速度测试
 ]
-# 备用池：其他全球可用地址
+# 备用池：小文件+短超时（快速识别可用节点）
 TEST_URLS_BACKUP = [
-    "http://www.msftconnecttest.com/connecttest.txt",
-    "https://www.microsoft.com",
+    "https://speed.hetzner.de/1MB.bin",                  # 1MB下载
+    "https://download.hetzner.de/512KB.bin",             # 512KB下载
 ]
 
 ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "0") == "1"

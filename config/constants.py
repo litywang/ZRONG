@@ -28,7 +28,7 @@ MAX_FINAL_NODES = int(os.getenv("MAX_FINAL_NODES", "150"))
 # ==================== 延迟阈值 ====================
 MAX_LATENCY = int(os.getenv("MAX_LATENCY", "5000"))
 MIN_PROXY_SPEED = float(os.getenv("MIN_PROXY_SPEED", "30"))
-MAX_PROXY_LATENCY = int(os.getenv("MAX_PROXY_LATENCY", "5000"))
+MAX_PROXY_LATENCY = int(os.getenv("MAX_PROXY_LATENCY", "2000"))
 ASIA_TCP_RELAX = 1800
 
 # ==================== 测速 URL ====================

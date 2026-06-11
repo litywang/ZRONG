@@ -14,7 +14,7 @@ from utils import get_region
 from network.tls import is_reality_friendly
 from sources.config import (
     MAX_FINAL_NODES, MAX_PROXY_TEST_NODES, MAX_PROXY_LATENCY,
-    MAX_TCP_TEST_NODES, ASIA_TCP_RELAX, TEST_URL,
+    MAX_TCP_TEST_NODES,
 )
 
 
@@ -101,12 +101,14 @@ def run_speed_test(nres: list, clash: ClashManager) -> tuple:
                         item, p, r = future.result(timeout=8)
                         done_count += 1
                         k = f"{p['server']}:{p['port']}"
-                        # v29: 亚洲节点延迟放宽 2.5 倍
+                        # v30.0 Phase 6b: 收紧延迟 + speed阈值（防止CDN captive portal假阳性）
+                        # speed>0 说明下载了真实内容（非204），latency<2000ms才算合格
                         latency_ok = (
-                            r["latency"] < MAX_PROXY_LATENCY
-                            or (is_asia(p) and r["latency"] < MAX_PROXY_LATENCY * 1.5)
+                            r["latency"] < 2000
+                            or (is_asia(p) and r["latency"] < 2500)
                         )
-                        if r["success"] and latency_ok:
+                        speed_ok = r.get("speed", 0) >= 5.0   # speed_kbs >= 5KB/s
+                        if r["success"] and latency_ok and speed_ok:
                             _name_node(p, r, namer, tcp=False)
                             final.append(p)
                             tested.add(k)
@@ -132,31 +134,43 @@ def run_speed_test(nres: list, clash: ClashManager) -> tuple:
 
 
 def supplement_tcp(final: list, nres: list, tested: set, proxy_ok: bool) -> tuple:
-    """TCP 延迟保底补充：测速合格不足时补充 TCP 低延迟节点"""
+    """TCP 延迟保底补充：仅对已通过Clash验证批次的低延迟节点做延伸补充"""
     if len(final) >= MAX_FINAL_NODES:
         return final, proxy_ok
 
-    logging.warning(f"\n[WARN] 测速合格 {len(final)} 个/{MAX_FINAL_NODES} 目标，使用 TCP 补充...")
-    namer = NodeNamer()
+    # v30.0 Phase 6b: 只有Clash有结果才能补充，proxy_ok=False时跳过
+    if not proxy_ok:
+        logging.warning("[WARN] Clash测速全部失败，TCP补充无参考基准，跳过")
+        return final[:MAX_FINAL_NODES], proxy_ok
 
+    # v30.0 Phase 6b: 严格阈值（Asia<800ms / 其他<500ms），防止gamed 1ms数据
+    asia_count = sum(1 for p in final if is_asia(p))
+    tcp_needed = MAX_FINAL_NODES - len(final)
+    logging.warning(f"[WARN] 测速合格 {len(final)} 个/{MAX_FINAL_NODES} 目标，TCP补充上限{tcp_needed}...")
+    namer = NodeNamer()
+    added = 0
     for item in nres:
-        if len(final) >= MAX_FINAL_NODES:
+        if added >= tcp_needed:
             break
         p = item["proxy"]
         k = f"{p['server']}:{p['port']}"
         if k in tested:
             continue
-        if item["is_asia"] and item["latency"] < ASIA_TCP_RELAX * 1.5:
+        if item["is_asia"] and item["latency"] < 800:
             tested.add(k)
             _name_node(p, item, namer, tcp=True)
             final.append(p)
+            added += 1
             logging.info(f"   [TCP] {p['name']}")
-        elif item["latency"] < 450:
+        elif item["latency"] < 500:
             tested.add(k)
             _name_node(p, item, namer, tcp=True)
             final.append(p)
+            added += 1
             logging.info(f"   [TCP] {p['name']}")
         else:
             tested.add(k)
 
+    if added:
+        logging.info(f"   TCP补充完成：+{added} 个")
     return final[:MAX_FINAL_NODES], proxy_ok

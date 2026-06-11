@@ -101,14 +101,12 @@ def run_speed_test(nres: list, clash: ClashManager) -> tuple:
                         item, p, r = future.result(timeout=8)
                         done_count += 1
                         k = f"{p['server']}:{p['port']}"
-                        # v30.0 Phase 6c: 收紧延迟 + speed阈值（防止CDN captive portal假阳性）
-                        # speed>0 说明下载了真实内容（非204），latency<3000ms算合格
+                        # v30.0 Phase 6c: 延迟阈值控制（proxy选择器bug已修，speed阈值对HTTP 204不适用）
                         latency_ok = (
                             r["latency"] < 2500
                             or (is_asia(p) and r["latency"] < 3000)
                         )
-                        speed_ok = r.get("speed", 0) >= 2.0   # speed_kbs >= 2KB/s（放宽，防止SSH可达但速度低的节点被误杀）
-                        if r["success"] and latency_ok and speed_ok:
+                        if r["success"] and latency_ok:
                             _name_node(p, r, namer, tcp=False)
                             final.append(p)
                             tested.add(k)

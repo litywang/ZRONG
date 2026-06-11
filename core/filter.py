@@ -6,6 +6,9 @@ import re
 import logging
 
 from core.validator import is_china_mainland, is_asia, NON_PROXY_PORTS
+
+# v30.0 Phase5: 国旗 emoji 直接识别的低价值非亚洲地区（无 IP 地理信息时无法被 geo_score 扣分，需硬筛）
+_LOW_VALUE_NON_ASIA_FLAGS = {'🇺🇦', '🇹🇷', '🇮🇷'}
 from core.scorer import mainland_friendly_score, composite_score, PROTOCOL_SCORE
 from network.tls import is_reality_friendly
 from core.history import get_node_history_score as _get_node_history_score
@@ -76,6 +79,11 @@ def filter_quality(p):
             logging.debug("Filter: [WEB] node %s rejected, limit reached (%d)", p.get('name', '?'), MAX_WEB_NET_NODES)
             return False
         _web_node_count += 1
+
+    # v30.0 Phase5: 已知低价值非亚洲地区直接过滤（emoji 识别，但无 IP 地理信息，无法被 geo_score 扣分）
+    if any(fl in name for fl in _LOW_VALUE_NON_ASIA_FLAGS):
+        logging.debug("Filter: low-value non-Asia region node %s", p.get('name', '?'))
+        return False
 
 
     # 非代理端口过滤（v24）

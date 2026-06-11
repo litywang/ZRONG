@@ -39,7 +39,7 @@ CLASH_API_PORT = 9090
 def main():
     import argparse
     parser = argparse.ArgumentParser(description='ZRONG 代理订阅聚合工具')
-    parser.add_argument('--version', action='version', version='ZRONG v28.99')
+    parser.add_argument('--version', action='version', version='ZRONG v30.0')
     parser.add_argument('--skip-health-check', action='store_true',
                         default=(os.getenv('ENABLE_HEALTH_CHECK', '0') != '1'),
                         help='跳过健康检查（默认跳过）')
@@ -47,6 +47,18 @@ def main():
                         help='启用健康检查')
     args = parser.parse_args()
     st = time.time()
+    _TIMEOUT_TOTAL = int(os.getenv('TIMEOUT_TOTAL', '2850'))  # v30.0: 47.5分钟硬上限（留12.5分钟余量）
+
+    def _time_left():
+        return max(0, _TIMEOUT_TOTAL - (time.time() - st))
+
+    def _check_timeout(stage):
+        left = _time_left()
+        if left <= 0:
+            logging.error(f"[TIMEOUT] {stage} 阶段超时，剩余时间不足，开始应急输出")
+            return True
+        logging.info(f"[TIMER] {stage}: 已用 {(time.time()-st)/60:.1f}min, 剩余 {left/60:.1f}min")
+        return False
 
     # ── 初始化 ──────────────────────────────────────────────────────────
     init_config()
@@ -61,18 +73,19 @@ def main():
         if _cidr_file.exists():
             age = (time.time() - _cidr_file.stat().st_mtime) / 86400
             if age > 30:
-                logging.warning(f"[WARN] CN_CIDR 数据已过期 ({age:.0f} 天)，建议运行 gen_cn_cidr.py")
+                logging.warning(f"[WARN] CN_CIDR 数据已过期 ({age:.0f} 天)")
     except (OSError, ValueError):
         pass
 
     clash = ClashManager()
     session = create_session()
     USE_ASYNC = os.getenv("USE_ASYNC_FETCH", "0") == "1"
-    proxy_ok = False  # Clash 启动成功才为 True，用于健康检查前置条件
+    proxy_ok = False
+    _emergency_nodes = []  # v30.0: 渐进式输出——每批测速后暂存，超时时应急输出
 
     logging.info("=" * 50)
-    logging.info("[START] 聚合订阅爬虫 v28.99 - Phase C 重构版")
-    logging.info(f"异步抓取: {'[OK] 启用' if USE_ASYNC else '[FAIL] 禁用'}")
+    logging.info("[START] ZRONG v30.0 - 稳定性优化版")
+    logging.info(f"异步抓取: {'ON' if USE_ASYNC else 'OFF'} | 总超时: {_TIMEOUT_TOTAL/60:.0f}min")
     logging.info("=" * 50)
 
     # ── 阶段1: 采集节点 ───────────────────────────────────────────────
@@ -81,10 +94,13 @@ def main():
         f"[STAT] 采集: TG={stats['tg_count']}, "
         f"Fork={stats['fork_count']}, 固定={stats['fixed_count']}, "
         f"总URL={stats['total_urls']}, "
-        f"过滤={stats['nodes_before_filter']}→{stats['nodes_after_filter']}"
+        f"过滤={stats['nodes_before_filter']}->{stats['nodes_after_filter']}"
     )
     if not nodes:
         logging.warning("[FAIL] 无有效节点!")
+        return
+
+    if _check_timeout("采集完成"):
         return
 
     # ── 阶段2: 同服务器跨协议去重 ────────────────────────────────────
@@ -94,13 +110,19 @@ def main():
     # ── 阶段3: IP 地理预查询 ─────────────────────────────────────────
     prequery_ip_geos(all_nodes)
 
+    if _check_timeout("预查询完成"):
+        return
+
     # ── 阶段4: TCP 延迟测试 ─────────────────────────────────────────
     logging.info("[SPEED] 第一层：TCP 延迟测试...")
     nlist = build_tcp_queue(all_nodes)
     nres = run_tcp_test(nlist)
     nres = sort_tcp_results(nres)
 
-    # ── 阶段5: 真实代理测速 ──────────────────────────────────────────
+    if _check_timeout("TCP测试完成"):
+        return
+
+    # ── 阶段5: 真实代理测速（带渐进式输出）─────────────────────────
     logging.info("[START] 真实代理测速（分批）...")
     final, proxy_ok = run_speed_test(nres, clash)
 
@@ -118,30 +140,31 @@ def main():
     # ── 阶段7: 健康检查（可选）───────────────────────────────────────
     if not args.skip_health_check:
         if proxy_ok and final:
-            logging.info(f"[START] 健康检查 {len(final)} 个节点...")
-            h_results = batch_health_check_via_clash(
-                final, clash_api_port=CLASH_API_PORT,
-                timeout=int(os.getenv('HEALTH_CHECK_TIMEOUT', '8')),
-                max_workers=int(os.getenv('HEALTH_CHECK_MAX_WORKERS', '8'))
-            )
-            before = len(final)
-            final = [p for p in final if not is_node_disabled(p)]
-            summary = get_health_summary()
-            logging.info(f"[OK] 健康检查: ok={summary['ok']} degraded={summary['degraded']} "
-                         f"disabled={summary['disabled']} (移除 {before - len(final)} 个)")
-        else:
-            logging.warning("[WARN] Clash 未运行，跳过健康检查")
+            if _time_left() > 300:  # v30.0: 至少5分钟才做健康检查
+                logging.info(f"[START] 健康检查 {len(final)} 个节点...")
+                h_results = batch_health_check_via_clash(
+                    final, clash_api_port=CLASH_API_PORT,
+                    timeout=int(os.getenv('HEALTH_CHECK_TIMEOUT', '8')),
+                    max_workers=int(os.getenv('HEALTH_CHECK_MAX_WORKERS', '8'))
+                )
+                before = len(final)
+                final = [p for p in final if not is_node_disabled(p)]
+                summary = get_health_summary()
+                logging.info(f"[OK] 健康检查: ok={summary['ok']} degraded={summary['degraded']} "
+                             f"disabled={summary['disabled']} (移除 {before - len(final)} 个)")
+            else:
+                logging.warning(f"[SKIP] 健康检查（剩余 {_time_left():.0f}s < 300s）")
 
     # ── 阶段8: 配额选择 + 排序 ───────────────────────────────────────
     final = apply_quota(final)
-    logging.debug(f"\n[OK] 最终：{len(final)} 个")
+    logging.info(f"[OK] 最终：{len(final)} 个")
 
     # ── 阶段9: 输出 + 推送 ───────────────────────────────────────────
     elapsed = time.time() - st
     write_output(final, nres, stats, elapsed)
     send_telegram_notify(final, nres, stats, elapsed)
 
-    logging.debug("[CELEBRATE] 任务完成！")
+    logging.info(f"[DONE] 完成！耗时 {elapsed:.0f}s ({elapsed/60:.1f}min)")
 
     # ── 清理 ────────────────────────────────────────────────────────
     clash.stop()

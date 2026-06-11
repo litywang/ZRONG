@@ -185,63 +185,24 @@ class ClashManager:
             seen.add(name)
             names.append(name)
             p["name"] = name
-        # 大陆路由规则：环境变量 CN_DIRECT=1 启用
-        cn_direct = os.getenv("CN_DIRECT", "0") == "1"
-        rules = []
-        if cn_direct:
-            # 动态规则集（大陆域名直连 + GFW 列表代理）
-            rules += [
-                "DOMAIN-SUFFIX,icloud.com,DIRECT",  # 保留常用直连域名
-                "RULE-SET,cn_domains,DIRECT",       # 大陆域名动态规则
-                "RULE-SET,gfw_list,PROXY",          # GFW 列表走代理
-                "GEOIP,CN,DIRECT,no-resolve",       # 大陆 IP 直连
-                # 局域网/本地地址直连
-                "IP-CIDR,192.168.0.0/16,DIRECT",
-                "IP-CIDR,10.0.0.0/8,DIRECT",
-                "IP-CIDR,172.16.0.0/12,DIRECT",
-                "IP-CIDR,127.0.0.0/8,DIRECT",
-            ]
-        # 剩余流量走 TEST 代理组
-        rules.append("MATCH,TEST")
+                # v30.0: 简化Clash配置——移除rule-providers/DNS fake-ip（下载耗时不稳定）
+        # 测速环境只需：所有流量走TEST代理组，无需路由规则和DNS提供者
+        rules = ["MATCH,TEST"]
 
         config = {
-            "port": CLASH_PORT, "socks-port": CLASH_PORT + 1, "allow-lan": False, "mode": "rule",
+            "port": CLASH_PORT, "socks-port": CLASH_PORT + 1, "allow-lan": False, "mode": "global",
             "log-level": "error", "external-controller": f"127.0.0.1:{CLASH_API_PORT}",
-            "secret": "",  # nosec B105: Clash API local only
+            "secret": "",
             "ipv6": False, "unified-delay": True, "tcp-concurrent": True,
-            # 动态规则提供者（大陆域名直连 + GFW 列表代理）
-            "rule-providers": {
-                "cn_domains": {
-                    "type": "http",
-                    "url": "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/cn.txt",
-                    "behavior": "domain",
-                    "interval": 86400,  # 每天更新一次
-                },
-                "gfw_list": {
-                    "type": "http",
-                    "url": "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/gfw.txt",
-                    "behavior": "domain",
-                    "interval": 86400,
-                }
-            },
-            # 防 DNS 泄露配置
+            # v30.0: 简化DNS——仅用公共DNS，无需fake-ip和规则提供者
             "dns": {
                 "enable": True,
-                "listen": "0.0.0.0:53",
-                "enhanced-mode": "fake-ip",
-                "fake-ip-range": "198.18.0.1/16",
+                "listen": "0.0.0.0:1053",
+                "enhanced-mode": "normal",
                 "nameserver": [
-                    "https://dns.alidns.com/dns-query",  # 阿里云 DoH（大陆优先）
-                    "https://doh.pub/dns-query",          # 腾讯云 DoH
+                    "8.8.8.8",
+                    "1.1.1.1",
                 ],
-                "fallback": [
-                    "https://cloudflare-dns.com/dns-query",
-                    "https://dns.google/dns-query",
-                ],
-                "fallback-filter": {
-                    "geoip": True,
-                    "ipcidr": ["198.18.0.1/16"],  # 排除 fake-ip 范围
-                }
             },
             "proxies": valid_proxies,
             "proxy-groups": [{"name": "TEST", "type": "select", "proxies": names}],
@@ -318,55 +279,61 @@ class ClashManager:
                 logging.debug("Clash stop failed")
             self.process = None
 
-    def test_proxy(self, name, server=None, port=None, retry=True):
-        """v29.04: 真实测速 - 添加详细日志，记录每个URL的失败原因"""
+    def test_proxy(self, name, server=None, port=None, retry=False):
+        """v30.0: 优化测速——连接超时3s+读取超时5s，ConnectTimeout直接失败"""
         result = {"success": False, "latency": 9999.0, "speed": 0.0, "error": "", "mainland_reachable": False}
         try:
             requests.put(f"http://127.0.0.1:{CLASH_API_PORT}/proxies/TEST", json={"name": name}, timeout=2)
-            time.sleep(0.05)
+            time.sleep(0.03)
             px = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
-            
-            # 主池：只要HTTP请求成功（200/204）就合格，不做body校验
+            # v30.0: 连接超时3s + 读取超时5s（分离超时，快速识别不可达节点）
+            timeout_main = (3, 5)
+
+            # 主池：HTTP 204检测
             for url in TEST_URLS:
                 try:
                     start = time.time()
-                    resp = requests.get(url, proxies=px, timeout=8, allow_redirects=True)
+                    resp = requests.get(url, proxies=px, timeout=timeout_main, allow_redirects=True)
                     elapsed = (time.time() - start) * 1000
-                    lat = round(elapsed, 1)
-                    if resp.status_code in [200, 204]:
+                    if resp.status_code in (200, 204):
                         content_len = len(resp.content) if resp.content else 0
-                        # 速度估算：content_len / 下载时间
                         speed_kbs = content_len / 1024 / max(elapsed / 1000, 0.01) if content_len > 0 else 1.0
-                        result = {"success": True, "latency": lat, "speed": round(speed_kbs, 1), "error": "", "mainland_reachable": False}
+                        result = {"success": True, "latency": round(elapsed, 1), "speed": round(speed_kbs, 1), "error": "", "mainland_reachable": False}
                         break
-                    else:
-                        logging.info(f"test_proxy {name}: URL {url} 返回状态码 {resp.status_code}")
+                except requests.ConnectTimeout:
+                    logging.debug("test_proxy %s: ConnectTimeout -> skip", name)
+                    break  # 连接超时=网络不可达，无需尝试其他URL
+                except requests.ReadTimeout:
+                    logging.debug("test_proxy %s: ReadTimeout", name)
+                    break  # 读取超时=线路质量差
                 except requests.RequestException as e:
-                    logging.info(f"test_proxy {name}: URL {url} 失败: {str(e)[:80]}")
-                    continue
-            
-            # 备用池
+                    logging.debug("test_proxy %s: %s", name, str(e)[:60])
+                    continue  # 其他错误，尝试下一个URL
+
+            # 备用池：更短超时
             if not result["success"]:
+                timeout_bak = (2, 3)
                 for url in TEST_URLS_BACKUP:
                     try:
                         start = time.time()
-                        resp = requests.get(url, proxies=px, timeout=8, allow_redirects=True)
+                        resp = requests.get(url, proxies=px, timeout=timeout_bak, allow_redirects=True)
                         elapsed = (time.time() - start) * 1000
-                        if resp.status_code in [200, 204]:
+                        if resp.status_code in (200, 204):
                             content_len = len(resp.content) if resp.content else 0
                             speed_kbs = content_len / 1024 / max(elapsed / 1000, 0.01) if content_len > 0 else 1.0
                             result = {"success": True, "latency": round(elapsed, 1), "speed": round(speed_kbs, 1), "error": "", "mainland_reachable": False}
                             break
                     except requests.RequestException:
                         continue
-            
+
             if not result["success"]:
                 result["error"] = "All test URLs failed"
         except requests.RequestException as e:
             result["error"] = str(e)[:60]
-        
-        # 失败重试一次
+
+        # v30.0: 默认不重试（重试浪费大量时间且结果通常相同）
+        # retry=True 仅由调用方在有充分理由时手动传入
         if retry and not result["success"]:
-            time.sleep(0.5)
+            time.sleep(0.3)
             return self.test_proxy(name, server=server, port=port, retry=False)
         return result

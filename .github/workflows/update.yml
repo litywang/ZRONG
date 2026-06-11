@@ -95,9 +95,44 @@ jobs:
         run: |
           echo "=== 节点统计 ==="
           echo "proxies.yaml: $(wc -l < proxies.yaml) 行"
-          echo "节点数: $(grep -c 'name:' proxies.yaml) 个"
-          echo "区域: $(grep -oE '(HK|TW|JP|SG|KR|MY|TH|VN|ID|PH|MO|MN|KH|LA|US|OT)-[0-9]+' proxies.yaml | cut -d- -f1 | sort | uniq -c | sort -rn)"
-          echo "亚洲占比: $(grep -oE '(HK|TW|JP|SG|KR|MY|TH|VN|ID|PH|MO|MN|KH|LA)-[0-9]+' proxies.yaml | wc -l) / $(grep -c 'name:' proxies.yaml)"
+          python3 << 'PYEOF'
+          import yaml, re, sys
+          sys.stdout.reconfigure(encoding='utf-8')
+          with open('proxies.yaml', 'r', encoding='utf-8') as f:
+              data = yaml.safe_load(f)
+          proxies = data.get('proxies', [])
+          total = len(proxies)
+          print(f'Total: {total} nodes')
+          # Asian flag emojis
+          ASIA_FLAGS = {'🇭🇰':'HK','🇸🇬':'SG','🇯🇵':'JP','🇰🇷':'KR','🇹🇼':'TW',
+                        '🇹🇭':'TH','🇻🇳':'VN','🇲🇾':'MY','🇮🇩':'ID','🇵🇭':'PH',
+                        '🇲🇴':'MO','🇲🇳':'MN','🇰🇭':'KH','🇱🇦':'LA'}
+          regions = {}
+          web = 0
+          for p in proxies:
+              n = p.get('name', '')
+              if n.startswith('[WEB]'):
+                  web += 1
+                  continue
+              matched = False
+              for flag, abbr in ASIA_FLAGS.items():
+                  if flag in n:
+                      regions[abbr] = regions.get(abbr, 0) + 1
+                      matched = True
+                      break
+              if not matched:
+                  m = re.search(r'[\U0001F1E6-\U0001F1FF]{2}', n)
+                  if m: regions['OTHER'] = regions.get('OTHER', 0) + 1
+                  else: regions['??'] = regions.get('??', 0) + 1
+          asia = sum(v for k,v in regions.items() if k not in ('??','OTHER'))
+          print(f'Asia: {asia} ({asia*100//max(total,1)}%)')
+          print(f'[WEB]: {web} ({web*100//max(total,1)}%)')
+          for k, v in sorted(regions.items(), key=lambda x: -x[1]):
+              print(f'  {k}: {v}')
+          protos = {}
+          for p in proxies: protos[p.get('type','?')] = protos.get(p.get('type','?'), 0) + 1
+          print('Protocols:', ', '.join(f'{k}:{v}' for k,v in sorted(protos.items(), key=lambda x:-x[1])))
+          PYEOF
 
       # v28.98: 上传到 GitHub Gist（需在 Repo Secrets 配置 GIST_ID）
       # 使用 steps.gist.outputs.gist_url 条件更可靠

@@ -102,7 +102,7 @@ def is_china_mainland(p):
 
 
 def is_asia(p):
-    """v28.16: 增强亚洲节点检测（关键词+IP地理位置+SNI+域名TLD）
+    """v28.16: 增强亚洲节点检测（关键词+IP地理位置+SNI+域名TLD+v30.0 emoji旗帜）
 
     延迟导入 utils 中的常量，避免循环依赖。
     """
@@ -110,7 +110,30 @@ def is_asia(p):
     from core.scorer import _get_limiter
     if not p or not isinstance(p, dict):
         return False
-    t = f"{p.get('name', '')} {p.get('server', '')}".lower()
+
+    # v30.0: 国旗 emoji 直接匹配（re.split 会拆散复合emoji，需单独检测）
+    name = p.get('name', '')
+    # 亚洲地区国旗 emoji：港新日韩台泰越马印菲蒙柬老
+    asia_flags = {
+        '🇭🇰', '🇸🇬', '🇯🇵', '🇰🇷', '🇹🇼',
+        '🇹🇭', '🇻🇳', '🇲🇾', '🇮🇩', '🇵🇭',
+        '🇲🇴', '🇲🇳', '🇰🇭', '🇱🇦',
+    }
+    if any(fl in name for fl in asia_flags):
+        return True
+    # 非亚洲常见国旗（优先排除，减少误判）
+    non_asia_flags = {
+        '🇺🇸', '🇬🇧', '🇩🇪', '🇫🇷', '🇳🇱',
+        '🇷🇺', '🇺🇦', '🇹🇷', '🇮🇹', '🇨🇦',
+        '🇦🇺', '🇧🇷', '🇮🇳', '🇪🇸', '🇵🇱',
+        '🇨🇭', '🇸🇪', '🇳🇴', '🇩🇰', '🇫🇮',
+        '🇧🇪', '🇦🇹', '🇵🇹', '🇨🇿', '🇭🇺',
+        '🇮🇷',
+    }
+    if any(fl in name for fl in non_asia_flags):
+        return False
+
+    t = f"{name} {p.get('server', '')}".lower()
     tokens = set(re.split(r'[\s\-_|,.:;/()\uff08\uff09\u3010\u3011\[\]\{\}]+', t))
     asia_2letter = {
         "hk", "tw", "jp", "sg", "kr", "th", "vn",

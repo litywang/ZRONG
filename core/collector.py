@@ -52,9 +52,12 @@ def collect_nodes(use_async=False, max_fetch_nodes=5000, fetch_workers=150):
     from sources.config import is_url_healthy
     from sources.config import TELEGRAM_CHANNELS, CANDIDATE_URLS
     from core.history import dynamic_source_weight, update_source_history
-    from core.filter import filter_quality
+    from core.filter import filter_quality, reset_filter_state
     from core.validator import is_asia
-    
+
+    # v30.0: 重置 [WEB] 节点计数器（按自然日清零）
+    reset_filter_state()
+
     # 1. Telegram 频道爬取（最高优先级）
     logger.info("[TG] 爬取 Telegram 频道（优先）...")
     tg_subs = crawl_telegram_channels(TELEGRAM_CHANNELS, pages=1, limits=20)

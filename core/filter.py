@@ -19,6 +19,17 @@ MAINLAND_PASS_BONUS = int(os.getenv("MAINLAND_PASS_BONUS", "20"))
 # v29.1: 限制无法识别地区的 CDN 伪装节点数量
 MAX_WEB_NET_NODES = int(os.getenv("MAX_WEB_NET_NODES", "10"))
 
+# v30.0: [WEB] 节点计数器（每日重置，按自然日清零）
+_web_node_count = 0
+_web_node_reset_date = ""
+
+
+def reset_filter_state():
+    """重置过滤状态（由 main_flow 在每次运行开始时调用）"""
+    global _web_node_count, _web_node_reset_date
+    _web_node_count = 0
+    _web_node_reset_date = ""
+
 
 def filter_quality(p):
     """【v28.58】节点质量过滤，含 CN IP/域名黑名单 + 非代理端口过滤 + 大陆友好性评分"""
@@ -52,6 +63,20 @@ def filter_quality(p):
     # v29.01: anytls 协议 Clash 不支持，过滤
     if ptype == "anytls":
         return False
+
+    # v30.0: [WEB] CDN 节点数量上限（超过 MAX_WEB_NET_NODES 后过滤）
+    global _web_node_count, _web_node_reset_date
+    from datetime import date
+    today = str(date.today())
+    if today != _web_node_reset_date:
+        _web_node_count = 0
+        _web_node_reset_date = today
+    if name.startswith("[web]"):
+        if _web_node_count >= MAX_WEB_NET_NODES:
+            logging.debug("Filter: [WEB] node %s rejected, limit reached (%d)", p.get('name', '?'), MAX_WEB_NET_NODES)
+            return False
+        _web_node_count += 1
+
 
     # 非代理端口过滤（v24）
     try:

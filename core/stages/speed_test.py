@@ -132,13 +132,13 @@ def run_speed_test(nres: list, clash: ClashManager) -> tuple:
 
 
 def supplement_tcp(final: list, nres: list, tested: set, proxy_ok: bool) -> tuple:
-    """v30.0 Phase 6f: TCP保底补充（严格约束版本）
+    """v30.0 Phase 6h: TCP保底补充（宽松约束版本）
     
     约束：
-    - 仅speed_test合格>=30节点时才触发（已有可靠基线）
-    - 仅补充亚洲节点（非asia源不补充）
-    - TCP延迟<200ms（排除gamed数据）
-    - 补充上限=MAX_FINAL_NODES的30%（最多45个）
+    - 仅speed_test合格>=15节点时才触发（降低基线，避免0输出）
+    - 亚洲节点优先，非亚洲也可补充
+    - TCP延迟<800ms（GH Actions到海外平均延迟）
+    - 补充上限=MAX_FINAL_NODES的60%（最多90个）
     - 跳过UA/TR/IR等低价值区域
     """
     if len(final) >= MAX_FINAL_NODES:
@@ -146,20 +146,20 @@ def supplement_tcp(final: list, nres: list, tested: set, proxy_ok: bool) -> tupl
     if not proxy_ok:
         logging.warning("[WARN] Clash测速全部失败，跳过TCP补充")
         return final[:MAX_FINAL_NODES], proxy_ok
-    # 基线检查：至少30个节点已通过Clash验证
-    if len(final) < 30:
-        logging.warning(f"[WARN] Clash测速仅{len(final)}个<30，缺乏可靠基线，跳过TCP补充")
+    # 基线检查：至少15个节点已通过Clash验证
+    if len(final) < 15:
+        logging.warning(f"[WARN] Clash测速仅{len(final)}个<15，跳过TCP补充")
         return final[:MAX_FINAL_NODES], proxy_ok
 
     asia_count = sum(1 for p in final if is_asia(p))
-    tcp_needed = min(MAX_FINAL_NODES - len(final), int(MAX_FINAL_NODES * 0.3))
+    tcp_needed = min(MAX_FINAL_NODES - len(final), int(MAX_FINAL_NODES * 0.6))
     if tcp_needed <= 0:
         return final, proxy_ok
 
     lf_score = mainland_friendly_score
     from core.filter import is_non_friendly_region, final_sort_key
 
-    logging.warning(f"[WARN] 测速合格{len(final)}个，TCP补充上限{tcp_needed}（严格约束）...")
+    logging.warning(f"[WARN] 测速合格{len(final)}个(亚洲{asia_count})，TCP补充上限{tcp_needed}（宽松约束）...")
     namer = NodeNamer()
     added = 0
     for item in nres:
@@ -169,12 +169,14 @@ def supplement_tcp(final: list, nres: list, tested: set, proxy_ok: bool) -> tupl
         k = f"{p['server']}:{p['port']}"
         if k in tested:
             continue
-        # 严格约束：仅补充亚洲低延迟节点
-        if not item["is_asia"]:
+        # 亚洲优先，非亚洲但TCP好也可
+        is_item_asia = item.get("is_asia", False)
+        # TCP延迟<800ms（GH Actions海外平均延迟）
+        if item["latency"] >= 800:
             tested.add(k)
             continue
-        # TCP延迟<200ms（排除gamed 1ms数据，留余量）
-        if item["latency"] >= 200:
+        # 非亚洲节点只接受TCP<500ms
+        if not is_item_asia and item["latency"] >= 500:
             tested.add(k)
             continue
         # 排除低价值区域
@@ -189,5 +191,5 @@ def supplement_tcp(final: list, nres: list, tested: set, proxy_ok: bool) -> tupl
         logging.info(f"   [TCP] {p['name']}")
 
     if added:
-        logging.info(f"   严格TCP补充完成：+{added} 个")
+        logging.info(f"   TCP补充完成：+{added} 个")
     return final[:MAX_FINAL_NODES], proxy_ok

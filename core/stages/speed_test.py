@@ -94,12 +94,14 @@ def run_speed_test(nres: list, clash: ClashManager) -> tuple:
                 futures = {tex.submit(test_one, item, clash, namer): item
                            for item in batch_items}
                 done_count = 0
+                batch_success = 0  # v30.1: 跟踪本批成功率
                 for future in as_completed(futures):
                     try:
                         item, p, r = future.result(timeout=8)
                         done_count += 1
                         k = f"{p['server']}:{p['port']}"
-                        # v30.0 Phase 6f: 放宽延迟阈值（慢节点>死节点）
+                        # v30.1: 分层合格率判断（避免合格率为0）
+                        # 第一层：完全合格（success=True + 延迟达标）
                         latency_ok = (
                             r["latency"] < 5000
                             or (is_asia(p) and r["latency"] < 8000)
@@ -108,14 +110,36 @@ def run_speed_test(nres: list, clash: ClashManager) -> tuple:
                             _name_node(p, r, namer, tcp=False)
                             final.append(p)
                             tested.add(k)
+                            batch_success += 1
                             update_node_history(p, success=True)
                             logging.info(f"   [OK] {p['name']}")
+                        # v30.1: 第二层：TCP保底（success=False但TCP延迟低）
+                        elif item.get("latency", 9999) < 800:
+                            # TCP延迟低但代理测速失败，可能是测速URL问题，保留节点
+                            p["name"] = namer.generate(
+                                get_region(p.get("name", ""), server=p.get("server", ""))[0],
+                                lat=int(item["latency"]),
+                                score=mainland_friendly_score(p),
+                                tcp=True,
+                                server=p.get("server", ""),
+                                sni=p.get("sni", "") or p.get("servername", ""),
+                                mainland_reachable=False,
+                                proto=p.get("type", "")
+                            )
+                            p["mainland_reachable"] = False
+                            p["_speed"] = 0.0
+                            final.append(p)
+                            tested.add(k)
+                            logging.info(f"   [TCP-FALLBACK] {p['name']} (代理测速失败但TCP延迟低)")
                         else:
                             update_node_history(p, success=False)
                         if done_count % 20 == 0:
-                            logging.info(f"   进度：{done_count}/{len(batch_items)} | 合格：{len(final)}")
+                            logging.info(f"   进度：{done_count}/{len(batch_items)} | 合格：{len(final)} (本批成功:{batch_success})")
                     except (OSError, ValueError, TypeError):
                         logging.debug("Batch proxy test error")
+                # v30.1: 本批成功率过低时记录警告
+                if batch_success == 0 and len(batch_items) > 10:
+                    logging.warning(f"   [WARN] 第{batch_id}批测速全部失败！可能原因：节点质量问题或Clash配置问题")
             logging.debug(f"\n   第{batch_id}批完成：累计合格 {len(final)} 个\n")
         except Exception:
             logging.debug(f"   [FAIL] Clash 异常")

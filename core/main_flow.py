@@ -128,10 +128,11 @@ def main():
 
     # ── 阶段6: TCP 保底补充（v30.0 Phase 6f: 严格约束版）────────────
     tested = set()
-    final, _ = supplement_tcp(final, nres, tested, proxy_ok)
+    final, supplement_ok = supplement_tcp(final, nres, tested, proxy_ok)
 
-    if not final:
-        logging.warning("[FAIL] 无合格节点!")
+    # Clash合格<100且禁止TCP补充时终止；或无任何节点
+    if not final or not supplement_ok:
+        logging.warning("[FAIL] 合格节点不足100个，终止输出")
         clash.stop()
         return
 
@@ -139,7 +140,7 @@ def main():
 
     # ── 阶段7: 健康检查（可选）───────────────────────────────────────
     if not args.skip_health_check:
-        if proxy_ok and final:
+        if supplement_ok and final:
             if _time_left() > 300:  # v30.0: 至少5分钟才做健康检查
                 logging.info(f"[START] 健康检查 {len(final)} 个节点...")
                 h_results = batch_health_check_via_clash(

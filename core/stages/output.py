@@ -126,7 +126,7 @@ def apply_quota(final: list) -> list:
         result = asia_final[:max_asia] + non_asia_final[:actual_non]
         logging.debug(f"   [OK] 亚洲截断{max_asia}个(上限) + 非亚洲{actual_non}个")
 
-    return result[:MAX_FINAL_NODES]
+    return result
 
 
 def _clean_nodes(nodes: list) -> list:

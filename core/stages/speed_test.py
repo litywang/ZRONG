@@ -56,17 +56,15 @@ def run_speed_test(nres: list, clash: ClashManager) -> tuple:
     if not nres:
         return final, proxy_ok
 
-    batch_enough = False
     untested_items = None
     batch_id = 0
-    nres_untested = nres[:MAX_TCP_TEST_NODES]
 
-    while len(final) < MAX_FINAL_NODES and not batch_enough:
+    while True:
         batch_id += 1
         if untested_items is None:
             # v30.0: [WEB] 节点预过滤（CDN/WEB代理节点大陆用户不可靠）
             untested_items = [
-                item for item in nres_untested
+                item for item in nres
                 if f"{item['proxy']['server']}:{item['proxy']['port']}" not in tested
                 and not is_node_disabled(item['proxy'])
                 and not item['proxy'].get('name', '').startswith('[WEB]')
@@ -114,9 +112,6 @@ def run_speed_test(nres: list, clash: ClashManager) -> tuple:
                             logging.info(f"   [OK] {p['name']}")
                         else:
                             update_node_history(p, success=False)
-                        if len(final) >= MAX_FINAL_NODES:
-                            batch_enough = True
-                            break
                         if done_count % 20 == 0:
                             logging.info(f"   进度：{done_count}/{len(batch_items)} | 合格：{len(final)}")
                     except (OSError, ValueError, TypeError):
@@ -138,21 +133,18 @@ def supplement_tcp(final: list, nres: list, tested: set, proxy_ok: bool) -> tupl
     - 仅speed_test合格>=15节点时才触发（降低基线，避免0输出）
     - 亚洲节点优先，非亚洲也可补充
     - TCP延迟<800ms（GH Actions到海外平均延迟）
-    - 补充上限=MAX_FINAL_NODES的60%（最多90个）
     - 跳过UA/TR/IR等低价值区域
     """
-    if len(final) >= MAX_FINAL_NODES:
-        return final, proxy_ok
     if not proxy_ok:
         logging.warning("[WARN] Clash测速全部失败，跳过TCP补充")
-        return final[:MAX_FINAL_NODES], proxy_ok
+        return final, proxy_ok
     # 基线检查：Clash合格<100时跳过TCP补充（输出节点以下限100为准）
     if len(final) < 100:
         logging.warning(f"[WARN] Clash合格仅{len(final)}个<100，跳过TCP补充，输出{len(final)}个")
-        return final[:MAX_FINAL_NODES], proxy_ok
+        return final, proxy_ok
 
     asia_count = sum(1 for p in final if is_asia(p))
-    tcp_needed = min(MAX_FINAL_NODES - len(final), int(MAX_FINAL_NODES * 0.6))
+    tcp_needed = 999999  # 无上限
     if tcp_needed <= 0:
         return final, proxy_ok
 
@@ -192,4 +184,4 @@ def supplement_tcp(final: list, nres: list, tested: set, proxy_ok: bool) -> tupl
 
     if added:
         logging.info(f"   TCP补充完成：+{added} 个")
-    return final[:MAX_FINAL_NODES], proxy_ok
+    return final, proxy_ok

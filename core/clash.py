@@ -280,82 +280,102 @@ class ClashManager:
             self.process = None
 
     def test_proxy(self, name, server=None, port=None, retry=False):
-        """v30.0: 优化测速——连接超时3s+读取超时5s，ConnectTimeout直接失败"""
+        """v30.1: 出口IP验证——先获取直连IP，再通过代理获取，不同则代理生效"""
         result = {"success": False, "latency": 9999.0, "speed": 0.0, "error": "", "mainland_reachable": False}
         try:
-            # v30.0 Phase 6c: global 模式必须用 GLOBAL 选择器（非 TEST 自定义组）
-            # 否则所有测试走同一条路径 → 全部 false positive
+            # 切换代理
             requests.put(f"http://127.0.0.1:{CLASH_API_PORT}/proxies/GLOBAL", json={"name": name}, timeout=2)
             time.sleep(0.03)
             px = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
-            # v30.0: 连接超时3s + 读取超时5s（分离超时，快速识别不可达节点）
-            timeout_main = (3, 5)
 
-            # 主池：HTTP 204检测
+            # v30.1: 获取直连IP（每个Clash实例只获取一次，缓存复用）
+            if not hasattr(self, '_direct_ip'):
+                try:
+                    r = requests.get("http://api.ipify.org", timeout=5)
+                    self._direct_ip = r.text.strip() if r.status_code == 200 else ""
+                except Exception:
+                    self._direct_ip = ""
+            direct_ip = self._direct_ip
+
+            # v30.1: 通过代理获取出口IP
             for url in TEST_URLS:
                 try:
                     start = time.time()
-                    resp = requests.get(url, proxies=px, timeout=timeout_main, allow_redirects=True)
+                    resp = requests.get(url, proxies=px, timeout=(3, 5), allow_redirects=True)
                     elapsed = (time.time() - start) * 1000
-                    if resp.status_code in (200, 204):
-                        content_len = len(resp.content) if resp.content else 0
-                        speed_kbs = content_len / 1024 / max(elapsed / 1000, 0.01) if content_len > 0 else 1.0
-                        result = {"success": True, "latency": round(elapsed, 1), "speed": round(speed_kbs, 1), "error": "", "mainland_reachable": False}
-                        break
-                except requests.ConnectTimeout:
-                    logging.debug("test_proxy %s: ConnectTimeout -> skip", name)
-                    break  # 连接超时=网络不可达，无需尝试其他URL
-                except requests.ReadTimeout:
-                    logging.debug("test_proxy %s: ReadTimeout", name)
-                    break  # 读取超时=线路质量差
-                except requests.RequestException as e:
-                    logging.debug("test_proxy %s: %s", name, str(e)[:60])
-                    continue  # 其他错误，尝试下一个URL
+                    if resp.status_code == 200:
+                        # 提取出口IP
+                        body = resp.text.strip()
+                        proxy_ip = ""
+                        # ipify/ifconfig.me/icanhazip 返回纯IP
+                        import re
+                        ip_match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', body)
+                        if ip_match:
+                            proxy_ip = ip_match.group(1)
+                        # ip-api.com 返回JSON
+                        if not proxy_ip and '"query"' in body:
+                            import json
+                            try:
+                                proxy_ip = json.loads(body).get("query", "")
+                            except (json.JSONDecodeError, ValueError):
+                                pass
 
-            # 备用池：更短超时
+                        # v30.1: 核心判断——出口IP与直连不同，代理才真正生效
+                        if proxy_ip and proxy_ip != direct_ip:
+                            result = {"success": True, "latency": round(elapsed, 1), "speed": round(len(resp.content) / 1024 / max(elapsed / 1000, 0.01), 1), "error": "", "mainland_reachable": False}
+                            break
+                        elif proxy_ip == direct_ip:
+                            result["error"] = "proxy not working (same exit IP)"
+                            continue
+                        else:
+                            # 无法提取IP，退回原逻辑
+                            result = {"success": True, "latency": round(elapsed, 1), "speed": 1.0, "error": "", "mainland_reachable": False}
+                            break
+                except requests.ConnectTimeout:
+                    break
+                except requests.ReadTimeout:
+                    break
+                except requests.RequestException as e:
+                    continue
+
+            # 备用池
             if not result["success"]:
-                timeout_bak = (2, 3)
                 for url in TEST_URLS_BACKUP:
                     try:
                         start = time.time()
-                        resp = requests.get(url, proxies=px, timeout=timeout_bak, allow_redirects=True)
+                        resp = requests.get(url, proxies=px, timeout=(2, 3), allow_redirects=True)
                         elapsed = (time.time() - start) * 1000
-                        if resp.status_code in (200, 204):
-                            content_len = len(resp.content) if resp.content else 0
-                            speed_kbs = content_len / 1024 / max(elapsed / 1000, 0.01) if content_len > 0 else 1.0
-                            result = {"success": True, "latency": round(elapsed, 1), "speed": round(speed_kbs, 1), "error": "", "mainland_reachable": False}
-                            break
+                        if resp.status_code == 200:
+                            body = resp.text.strip()
+                            proxy_ip = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', body)
+                            proxy_ip = proxy_ip.group(1) if proxy_ip else ""
+                            if proxy_ip and proxy_ip != direct_ip:
+                                result = {"success": True, "latency": round(elapsed, 1), "speed": 1.0, "error": "", "mainland_reachable": False}
+                                break
                     except requests.RequestException:
                         continue
 
             if not result["success"]:
-                result["error"] = "All test URLs failed"
+                result["error"] = result.get("error", "") or "All test URLs failed"
         except requests.RequestException as e:
             result["error"] = str(e)[:60]
 
         # v30.1: 大陆可达性测试（仅当代理测速成功时）
         if result["success"] and result.get("latency", 9999) < 2000:
             try:
-                # 使用国内HTTP服务测试大陆可达性
-                mainland_urls = [
-                    "http://www.baidu.com",
-                    "http://www.qq.com",
-                ]
-                px = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
+                mainland_urls = ["http://www.baidu.com", "http://www.qq.com"]
+                px_m = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
                 for url in mainland_urls:
                     try:
-                        resp = requests.get(url, proxies=px, timeout=(3, 5))
+                        resp = requests.get(url, proxies=px_m, timeout=(3, 5))
                         if resp.status_code == 200:
                             result["mainland_reachable"] = True
-                            logging.debug(f"test_proxy {name}: 大陆可达")
                             break
                     except requests.RequestException:
                         continue
             except Exception:
                 pass
 
-        # v30.0: 默认不重试（重试浪费大量时间且结果通常相同）
-        # retry=True 仅由调用方在有充分理由时手动传入
         if retry and not result["success"]:
             time.sleep(0.3)
             return self.test_proxy(name, server=server, port=port, retry=False)

@@ -63,15 +63,16 @@ session = create_session()
 # 之前false positive的根源是/proxies/TEST而非/proxies/GLOBAL（代理选择器bug），非URL本身
 # 第一层：HTTP 204（最快，无body，全球CDN），第二层：HTTP纯文本（避免TLS开销）
 TEST_URLS = [
-    # v30.1: 验证代理是否真正生效（检查出口IP是否变化）
-    "http://api.ipify.org",
-    "http://ip-api.com/json",
-    "http://ifconfig.me/ip",
+    # v30.1: HTTPS大文件下载——必须走代理才能拿到内容，不存在CDN就近响应
+    # 用SSL握手+实际内容下载双重验证代理是否真正生效
+    "https://speed.cloudflare.com/__down?bytes=10000",
+    "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb",
+    "https://releases.ubuntu.com/24.04/SHA256SUMS",
 ]
 # 备用池
 TEST_URLS_BACKUP = [
-    "http://icanhazip.com",
-    "http://checkip.amazonaws.com",
+    "https://www.google.com/generate_204",
+    "https://clients1.google.com/generate_204",
 ]
 
 ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "0") == "1"

@@ -280,57 +280,24 @@ class ClashManager:
             self.process = None
 
     def test_proxy(self, name, server=None, port=None, retry=False):
-        """v30.1: 出口IP验证——先获取直连IP，再通过代理获取，不同则代理生效"""
+        """v30.1: HTTPS下载验证——SSL握手成功+拿到实际内容=代理生效"""
         result = {"success": False, "latency": 9999.0, "speed": 0.0, "error": "", "mainland_reachable": False}
         try:
-            # 切换代理
             requests.put(f"http://127.0.0.1:{CLASH_API_PORT}/proxies/GLOBAL", json={"name": name}, timeout=2)
             time.sleep(0.03)
             px = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
 
-            # v30.1: 获取直连IP（每个Clash实例只获取一次，缓存复用）
-            if not hasattr(self, '_direct_ip'):
-                try:
-                    r = requests.get("http://api.ipify.org", timeout=5)
-                    self._direct_ip = r.text.strip() if r.status_code == 200 else ""
-                except Exception:
-                    self._direct_ip = ""
-            direct_ip = self._direct_ip
-
-            # v30.1: 通过代理获取出口IP
             for url in TEST_URLS:
                 try:
                     start = time.time()
-                    resp = requests.get(url, proxies=px, timeout=(3, 5), allow_redirects=True)
+                    resp = requests.get(url, proxies=px, timeout=(5, 8), allow_redirects=True)
                     elapsed = (time.time() - start) * 1000
-                    if resp.status_code == 200:
-                        # 提取出口IP
-                        body = resp.text.strip()
-                        proxy_ip = ""
-                        # ipify/ifconfig.me/icanhazip 返回纯IP
-                        import re
-                        ip_match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', body)
-                        if ip_match:
-                            proxy_ip = ip_match.group(1)
-                        # ip-api.com 返回JSON
-                        if not proxy_ip and '"query"' in body:
-                            import json
-                            try:
-                                proxy_ip = json.loads(body).get("query", "")
-                            except (json.JSONDecodeError, ValueError):
-                                pass
-
-                        # v30.1: 核心判断——出口IP与直连不同，代理才真正生效
-                        if proxy_ip and proxy_ip != direct_ip:
-                            result = {"success": True, "latency": round(elapsed, 1), "speed": round(len(resp.content) / 1024 / max(elapsed / 1000, 0.01), 1), "error": "", "mainland_reachable": False}
-                            break
-                        elif proxy_ip == direct_ip:
-                            result["error"] = "proxy not working (same exit IP)"
-                            continue
-                        else:
-                            # 无法提取IP，退回原逻辑
-                            result = {"success": True, "latency": round(elapsed, 1), "speed": 1.0, "error": "", "mainland_reachable": False}
-                            break
+                    content_len = len(resp.content) if resp.content else 0
+                    # v30.1: 必须拿到实际内容（>100字节），204不算
+                    if resp.status_code == 200 and content_len > 100:
+                        speed_kbs = content_len / 1024 / max(elapsed / 1000, 0.01)
+                        result = {"success": True, "latency": round(elapsed, 1), "speed": round(speed_kbs, 1), "error": "", "mainland_reachable": False}
+                        break
                 except requests.ConnectTimeout:
                     break
                 except requests.ReadTimeout:
@@ -343,15 +310,11 @@ class ClashManager:
                 for url in TEST_URLS_BACKUP:
                     try:
                         start = time.time()
-                        resp = requests.get(url, proxies=px, timeout=(2, 3), allow_redirects=True)
+                        resp = requests.get(url, proxies=px, timeout=(3, 5), allow_redirects=True)
                         elapsed = (time.time() - start) * 1000
-                        if resp.status_code == 200:
-                            body = resp.text.strip()
-                            proxy_ip = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', body)
-                            proxy_ip = proxy_ip.group(1) if proxy_ip else ""
-                            if proxy_ip and proxy_ip != direct_ip:
-                                result = {"success": True, "latency": round(elapsed, 1), "speed": 1.0, "error": "", "mainland_reachable": False}
-                                break
+                        if resp.status_code in (200, 204):
+                            result = {"success": True, "latency": round(elapsed, 1), "speed": 1.0, "error": "", "mainland_reachable": False}
+                            break
                     except requests.RequestException:
                         continue
 
@@ -360,12 +323,11 @@ class ClashManager:
         except requests.RequestException as e:
             result["error"] = str(e)[:60]
 
-        # v30.1: 大陆可达性测试（仅当代理测速成功时）
+        # v30.1: 大陆可达性测试
         if result["success"] and result.get("latency", 9999) < 2000:
             try:
-                mainland_urls = ["http://www.baidu.com", "http://www.qq.com"]
                 px_m = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
-                for url in mainland_urls:
+                for url in ["http://www.baidu.com", "http://www.qq.com"]:
                     try:
                         resp = requests.get(url, proxies=px_m, timeout=(3, 5))
                         if resp.status_code == 200:

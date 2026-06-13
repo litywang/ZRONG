@@ -128,8 +128,8 @@ def run_speed_test(nres: list, clash: ClashManager) -> tuple:
                             batch_success += 1
                             update_node_history(p, success=True)
                             logging.info(f"   [OK] {p['name']}")
-                        # v30.1: 第二层：TCP保底（success=False但TCP延迟低）
-                        elif item.get("latency", 9999) < 800:
+                        # v30.1: 第二层：TCP保底（仅亚洲节点，TCP<500ms）
+                        elif is_asia(p) and item.get("latency", 9999) < 500:
                             # TCP延迟低但代理测速失败，可能是测速URL问题，保留节点
                             p["name"] = namer.generate(
                                 get_region(p.get("name", ""), server=p.get("server", ""))[0],
@@ -183,7 +183,7 @@ def supplement_tcp(final: list, nres: list, tested: set, proxy_ok: bool) -> tupl
         return final, proxy_ok
 
     asia_count = sum(1 for p in final if is_asia(p))
-    tcp_needed = 999999  # 无上限
+    tcp_needed = min(50, max(0, 150 - len(final)))  # v30.1: 最多补充50个
     if tcp_needed <= 0:
         return final, proxy_ok
 
@@ -206,8 +206,8 @@ def supplement_tcp(final: list, nres: list, tested: set, proxy_ok: bool) -> tupl
         if item["latency"] >= 800:
             tested.add(k)
             continue
-        # 非亚洲节点只接受TCP<500ms
-        if not is_item_asia and item["latency"] >= 500:
+        # 非亚洲节点只接受TCP<300ms
+        if not is_item_asia and item["latency"] >= 300:
             tested.add(k)
             continue
         # 排除低价值区域

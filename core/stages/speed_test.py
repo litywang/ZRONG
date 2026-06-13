@@ -56,10 +56,22 @@ def run_speed_test(nres: list, clash: ClashManager) -> tuple:
     if not nres:
         return final, proxy_ok
 
+    # v30.1: 超时控制（避免Actions SIGKILL）
+    import time
+    _st = time.time()
+    _timeout = int(os.getenv('TIMEOUT_TOTAL', '2850'))  # 与main_flow.py一致
+    def _time_left():
+        return max(0, _timeout - (time.time() - _st))
+
     untested_items = None
     batch_id = 0
 
     while True:
+        # v30.1: 超时检查（避免Actions SIGKILL）
+        if _time_left() < 300:  # 剩余<5分钟，停止测速
+            logging.warning(f"[TIMEOUT] 测速阶段剩余时间不足5分钟，停止测速（已用{ (time.time()-_st)/60:.1f}min）")
+            break
+
         batch_id += 1
         if untested_items is None:
             # v30.0: [WEB] 节点预过滤（CDN/WEB代理节点大陆用户不可靠）

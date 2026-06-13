@@ -102,11 +102,14 @@ def run_speed_test(nres: list, clash: ClashManager) -> tuple:
                         k = f"{p['server']}:{p['port']}"
                         # v30.1: 分层合格率判断（避免合格率为0）
                         # 第一层：完全合格（success=True + 延迟达标）
+                        # 阈值：通用5000ms，亚洲8000ms（宽松，慢节点>死节点）
                         latency_ok = (
                             r["latency"] < 5000
                             or (is_asia(p) and r["latency"] < 8000)
                         )
-                        if r["success"] and latency_ok:
+                        # v30.1: 放宽速度要求（最低0.5KB/s，避免误杀）
+                        speed_ok = r.get("speed", 0) >= 0.5
+                        if r["success"] and latency_ok and speed_ok:
                             _name_node(p, r, namer, tcp=False)
                             final.append(p)
                             tested.add(k)

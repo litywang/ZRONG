@@ -333,6 +333,27 @@ class ClashManager:
         except requests.RequestException as e:
             result["error"] = str(e)[:60]
 
+        # v30.1: 大陆可达性测试（仅当代理测速成功时）
+        if result["success"] and result.get("latency", 9999) < 2000:
+            try:
+                # 使用国内HTTP服务测试大陆可达性
+                mainland_urls = [
+                    "http://www.baidu.com",
+                    "http://www.qq.com",
+                ]
+                px = {"http": f"http://127.0.0.1:{CLASH_API_PORT}", "https": f"http://127.0.0.1:{CLASH_API_PORT}"}
+                for url in mainland_urls:
+                    try:
+                        resp = requests.get(url, proxies=px, timeout=(3, 5))
+                        if resp.status_code == 200:
+                            result["mainland_reachable"] = True
+                            logging.debug(f"test_proxy {name}: 大陆可达")
+                            break
+                    except requests.RequestException:
+                        continue
+            except Exception:
+                pass
+
         # v30.0: 默认不重试（重试浪费大量时间且结果通常相同）
         # retry=True 仅由调用方在有充分理由时手动传入
         if retry and not result["success"]:

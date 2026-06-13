@@ -30,7 +30,7 @@ from core.history import (
     update_node_history,
 )
 from sources import sync_close_async_http_client
-from sources.config import init_config
+from sources.config import init_config, MAX_FINAL_NODES as MAX_FINAL_NODES
 from core.testing import test_tcp_node
 
 CLASH_API_PORT = 9090
@@ -135,7 +135,7 @@ def main():
         clash.stop()
         return
 
-    final = final[:sources.config.MAX_FINAL_NODES]  # 输出上限100-120
+    final = final[:MAX_FINAL_NODES]  # 输出上限100-120
 
     # ── 阶段7: 健康检查（可选）───────────────────────────────────────
     if not args.skip_health_check:

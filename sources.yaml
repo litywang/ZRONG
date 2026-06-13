@@ -1,74 +1,172 @@
-# ZRONG v30.0 订阅源配置（已通过健康检查清洗）
-# Phase 3 v30.0: 78%的URL已404，本文件仅保留经 HEAD 检查确认可用的源
+# ZRONG v30.1 订阅源配置（v28.0+v30.0+v30.1 合并，最大覆盖）
 # 使用说明：修改此文件即可增删源，无需动 crawler.py
-version: "30.0"
+version: "30.1"
 
 candidate_urls:
-  # ============ 国内优质源（已确认可用） ============
+  # ============ 国内优质源（优先） ============
   - "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt"
   - "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt"
+  - "https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/v2"
   - "https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray"
   - "https://raw.githubusercontent.com/freefq/free/master/v2"
-  - "https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/v2"
+  - "https://raw.githubusercontent.com/kxswa/v2rayfree/main/v2ray"
+  - "https://raw.githubusercontent.com/llywhn/v2ray-subscribe/main/v2ray.txt"
 
-  # ============ mahdibland/V2RayAggregator（已确认：仅master分支的sub/splitted协议文件存活） ============
-  # v30.0: 修正分支名 main→master，移除全部404的 region/All/Eternity URL
+  # ============ 国际稳定源（mahdibland 大而全） ============
+  - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/splitted/vless.txt"
   - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/splitted/vmess.txt"
-  - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/splitted/ss.txt"
   - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/splitted/trojan.txt"
-  # Region splits 已全部404，注释保留方便后续监控（v30.0确认）
-  # hk/jp/sg/tw/kr/th/vn/my/id/ph/asia → 404 Not Found
+  - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/splitted/ss.txt"
+  - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/splitted/hysteria2.txt"
+  - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/splitted/tuic.txt"
+  - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/All_Configs_Sub.txt"
+  - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/Eternity.txt"
 
-  # ============ Epodonios（已确认可用：协议分类文件存活，region分类全部404） ============
+  # ============ 亚洲地区专用源（提高亚洲节点比例） ============
+  - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/splitted/hk.txt"
+  - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/splitted/jp.txt"
+  - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/splitted/sg.txt"
+  - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/splitted/tw.txt"
+  - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/splitted/kr.txt"
+  - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/splitted/th.txt"
+  - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/splitted/vn.txt"
+  - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/splitted/my.txt"
+  - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/splitted/id.txt"
+  - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/splitted/ph.txt"
+  - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/splitted/asia.txt"
+  - "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Region/hk.txt"
+  - "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Region/jp.txt"
+  - "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Region/sg.txt"
+  - "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Region/tw.txt"
+  - "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Region/kr.txt"
+
+  # ============ Epodonios ============
   - "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt"
   - "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vless.txt"
   - "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vmess.txt"
   - "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/trojan.txt"
   - "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/ss.txt"
 
-  # ============ barry-far（协议分类，region未知） ============
+  # ============ barry-far ============
   - "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt"
   - "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vless.txt"
   - "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/vmess.txt"
   - "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/trojan.txt"
   - "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Splitted-By-Protocol/ss.txt"
 
-  # ============ 其他已确认可用源 ============
+  # ============ 其他高质量源 ============
   - "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub"
+  - "https://raw.githubusercontent.com/roosterkid/openproxylist/main/SS.json"
+  - "https://raw.githubusercontent.com/roosterkid/openproxylist/main/VMESS.json"
+  - "https://raw.githubusercontent.com/baaif/Subconverter/master/sub/sub.ini"
+  - "https://shz.al/~WangCai"
+  - "https://raw.githubusercontent.com/fishball-2048/Subconverter/main/Sub/subconverter_subscribe.ini"
+  - "https://raw.githubusercontent.com/SagerNet/sing-box/develop/Configs/proxies.json"
+  - "https://raw.githubusercontent.com/XTLS/Xray-core/master/examples/config.json"
+
+  # ============ 国内额外优质源 ============
+  - "https://raw.githubusercontent.com/adiwzx/freenode/main/v2ray.txt"
+  - "https://raw.githubusercontent.com/xingsin/test/main/list"
+  - "https://raw.githubusercontent.com/vxiaodong/zgq/main/sub"
+  - "https://raw.githubusercontent.com/changfengoss/pro/main/sub"
+  - "https://raw.githubusercontent.com/mymysub/V2raySubscribe/main/v2ray"
+  - "https://raw.githubusercontent.com/wxloststar/v2ray_sub/master/v2ray.txt"
+  - "https://raw.githubusercontent.com/aiboboxx/clashfree/main/clash"
+  - "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/clash.yaml"
+  - "https://raw.githubusercontent.com/yonggekkk/yonggekkk.github.io/master/v2raylink.txt"
+  - "https://raw.githubusercontent.com/ONGKB/V2RayAggregator/master/sub/sub_merge.txt"
+  - "https://raw.githubusercontent.com/yeahwu/v2ray-wuzhi/main/v2ray"
+  - "https://raw.githubusercontent.com/v2ray-free/v2ray-free/master/v2ray"
+  - "https://raw.githubusercontent.com/ssrsub/ssr/master/v2ray"
+  - "https://raw.githubusercontent.com/anaer/Sub/main/sub_merge.txt"
+
+  # ============ 国内友好源 ============
+  - "https://raw.githubusercontent.com/mksshare/mksshare.github.io/main/sub"
+  - "https://raw.githubusercontent.com/yiiss/ProxyScrape/main/sub"
+  - "https://raw.githubusercontent.com/bulianglin/demo/main/sub"
+  - "https://raw.githubusercontent.com/chengaikun/V2RayNode/main/list"
+  - "https://raw.githubusercontent.com/xream/awesome-vpn/main/sub"
+  - "https://raw.githubusercontent.com/FreeFlyingMan/v2rayfree/main/v2ray"
+  - "https://raw.githubusercontent.com/NastyaFan/mihomo-clash/main/proxy"
+  - "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/clash.yml"
+  - "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.meta.yml"
   - "https://raw.githubusercontent.com/free18/v2ray/refs/heads/main/v.txt"
   - "https://raw.githubusercontent.com/free18/v2ray/refs/heads/main/c.yaml"
   - "https://raw.githubusercontent.com/shaoyouvip/free/refs/heads/main/all.yaml"
-  - "https://raw.githubusercontent.com/ssrsub/ssr/master/v2ray"
-  - "https://raw.githubusercontent.com/freefq/free/master/v2"
-  - "https://shz.al/~WangCai"
+  - "https://raw.githubusercontent.com/Alvin9999/pac2/master/v2rayn.txt"
+  - "https://raw.githubusercontent.com/FreeVFly/Free-Node/main/sub"
+  - "https://raw.githubusercontent.com/NodeFree/NodeFree/master/sub"
+  - "https://raw.githubusercontent.com/tsutsu/telegram-xray/master/sub"
+  - "https://raw.githubusercontent.com/v2ray-config/v2ray-config/master/README.md"
+  - "https://raw.githubusercontent.com/proxy-list/proxy-list/master/list.txt"
 
-  # ============ 新增高质量聚合源（v30.1 Phase 2 - 2026-06-14） ============
-  # longlon/v2ray-config: ★44, 6894条节点链接，每日更新，多源聚合
+  # ============ v30.1 新增聚合源（GitHub API验证活跃） ============
+  # longlon/v2ray-config: ★44, 6894条节点，每日更新
   - "https://raw.githubusercontent.com/longlon/v2ray-config/main/All_Configs_Sub.txt"
-  # aiboboxx/v2rayfree 已移入 github_base_repos，通过 fork 发现动态生成文件
-  # MohammadBahemmat/V2ray-Collector: ★52, 506条节点，Telegram多频道聚合
+  # MohammadBahemmat/V2ray-Collector: ★52, 506条，TG多频道聚合
   - "https://raw.githubusercontent.com/MohammadBahemmat/V2ray-Collector/main/all_servers.txt"
-  # R3ZARAHIMI/tg-v2ray-configs-every2h: ★48, 270条原始+143条过滤，每2小时更新
+  # R3ZARAHIMI/tg-v2ray-configs-every2h: ★48, 每2小时更新
   - "https://raw.githubusercontent.com/R3ZARAHIMI/tg-v2ray-configs-every2h/main/Original-Configs.txt"
   - "https://raw.githubusercontent.com/R3ZARAHIMI/tg-v2ray-configs-every2h/main/Config_jo.txt"
 
-  # ============ 新增高质量亚洲源（v30.0 Phase 3） ============
-  # 来自 CloudflareSpeedTest 研究：P3terx/ChinaDNS 等聚合源
-  - "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.meta.yml"
-
 github_base_repos:
-  # v30.1: 扩充 fork 发现目标仓库（新增活跃聚合源）
+  # ============ 国内优质源（优先） ============
   - "ermaozi/get_subscribe"
   - "peasoft/NoMoreWalls"
-  - "mahdibland/V2RayAggregator"
-  - "Epodonios/v2ray-configs"
-  - "barry-far/V2ray-Config"
+  - "aiboboxx/v2rayfree"
+  - "aiboboxx/clashfree"
   - "freefq/free"
   - "mfuu/v2ray"
-  - "free18/v2ray"
-  - "Pawdroid/Free-servers"
+  - "kxswa/v2rayfree"
+  - "llywhn/v2ray-subscribe"
+  - "baaif/Subconverter"
+
+  # ============ 国际核心源 ============
+  - "wzdnzd/aggregator"
+  - "mahdibland/V2RayAggregator"
+  - "PuddinCat/BestClash"
+  - "roosterkid/openproxylist"
+  - "anaer/Sub"
+  - "MrMohebi/xray-proxy-grabber-telegram"
+  - "jasonliu747/v2rayssr"
+  - "fslzhang/clash_config"
+  - "xream/awesome-vpn"
+  - "FreeFlyingMan/v2rayfree"
+  - "NastyaFan/mihomo-clash"
+  - "chengaikun/V2RayNode"
+  - "xiefei/V2RayConfig"
+  - "Epodonios/v2ray-configs"
+  - "barry-far/V2ray-Config"
+
+  # ============ 国内额外优质源 ============
+  - "adiwzx/freenode"
+  - "xingsin/test"
+  - "vxiaodong/zgq"
+  - "changfengoss/pro"
+  - "mymysub/V2raySubscribe"
+  - "wxloststar/v2ray_sub"
+  - "yonggekkk/yonggekkk.github.io"
+  - "ONGKB/V2RayAggregator"
+  - "yeahwu/v2ray-wuzhi"
+  - "v2ray-free/v2ray-free"
   - "ssrsub/ssr"
-  - "aiboboxx/v2rayfree"
+
+  # ============ 国内友好源 ============
+  - "Pawdroid/Free-servers"
+  - "mksshare/mksshare.github.io"
+  - "Alvin9999/pac2"
+  - "FreeVFly/Free-Node"
+  - "NodeFree/NodeFree"
+  - "tsutsu/telegram-xray"
+  - "v2ray-config/v2ray-config"
+  - "proxy-list/proxy-list"
+  - "yiiss/ProxyScrape"
+  - "bulianglin/demo"
+  - "fishball-2048/Subconverter"
+  - "SagerNet/sing-box"
+  - "XTLS/Xray-core"
+
+  # ============ v30.1 新增活跃源 ============
   - "longlon/v2ray-config"
   - "MohammadBahemmat/V2ray-Collector"
   - "R3ZARAHIMI/tg-v2ray-configs-every2h"
@@ -78,9 +176,14 @@ github_base_repos:
   - "littlebais/free-proxy-nodes"
   - "junjun266/FreeProxyGo"
   - "Au1rxx/free-vpn-subscriptions"
+  - "MhdiTaheri/V2rayCollector"
+  - "mohamadfg-dev/telegram-v2ray-configs-collector"
+  - "miladtahanian/Config-Collector"
+  - "OpenRunner/clash-freenode"
+  - "asgharkapk/Sub-Config-Extractor"
 
 telegram_channels:
-  # v30.1: 扩充 Telegram 频道（新增活跃节点分享频道）
+  # ============ 一线活跃（已验证） ============
   - "v2ray_free"
   - "freev2rayng"
   - "v2rayng_free"
@@ -93,15 +196,30 @@ telegram_channels:
   - "freeclash"
   - "freeproxy"
   - "v2ray_share"
+  - "v2raydaily"
   - "clashmeta"
-  - "hysteria2_free"
+  - "mr_v2ray"
+  - "wxdy666"
+  - "dns68"
+  - "jriedian"
+  - "AlphaV2ray"
+  - "proxies_share"
+  - "freev2ray"
   - "clashvpn"
   - "v2rayngvpn"
   - "freeVPNjd"
-  # v30.1 新增频道
+  - "hysteria2_free"
+  - "SSR_V2Ray"
+  - "FreeNodeVPN"
+  - "proxy_node"
+  - "v2rayfree"
+  - "proxyfree"
+  - "clashfree"
+  - "v2ray_node"
+  - "free_node"
+  # ============ v30.1 新增 ============
   - "freevpnshare"
   - "v2ray_ssr_free"
-  - "proxyfree"
   - "Configs_pool"
   - "V2ray_Vpn_Free"
   - "v2rayng_freeproxy"

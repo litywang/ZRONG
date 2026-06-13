@@ -341,7 +341,7 @@ class ClashManager:
                     "http://www.baidu.com",
                     "http://www.qq.com",
                 ]
-                px = {"http": f"http://127.0.0.1:{CLASH_API_PORT}", "https": f"http://127.0.0.1:{CLASH_API_PORT}"}
+                px = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
                 for url in mainland_urls:
                     try:
                         resp = requests.get(url, proxies=px, timeout=(3, 5))

@@ -63,15 +63,15 @@ session = create_session()
 # 之前false positive的根源是/proxies/TEST而非/proxies/GLOBAL（代理选择器bug），非URL本身
 # 第一层：HTTP 204（最快，无body，全球CDN），第二层：HTTP纯文本（避免TLS开销）
 TEST_URLS = [
-    # 主池：全球CDN captive portal（快速稳定，HTTP优先）
-    "http://cp.cloudflare.com/generate_204",
-    "http://captive.apple.com/generation_204",
-    "http://connectivitycheck.gstatic.com/generate_204",
+    # v30.1: 必须用需要翻墙的URL，否则CDN就近响应导致false positive
+    "https://www.google.com/search?q=test",
+    "https://api.ipify.org?format=json",
+    "https://www.googleapis.com/generate_204",
 ]
-# 备用池：其他全球可用地址（避免单点故障）
+# 备用池
 TEST_URLS_BACKUP = [
-    "http://www.msftconnecttest.com/connecttest.txt",
-    "http://www.google.com/generate_204",
+    "https://www.twitter.com",
+    "https://www.youtube.com/generate_204",
 ]
 
 ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "0") == "1"

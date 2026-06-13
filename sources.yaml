@@ -42,12 +42,22 @@ candidate_urls:
   - "https://raw.githubusercontent.com/freefq/free/master/v2"
   - "https://shz.al/~WangCai"
 
+  # ============ 新增高质量聚合源（v30.1 Phase 2 - 2026-06-14） ============
+  # longlon/v2ray-config: ★44, 6894条节点链接，每日更新，多源聚合
+  - "https://raw.githubusercontent.com/longlon/v2ray-config/main/All_Configs_Sub.txt"
+  # aiboboxx/v2rayfree 已移入 github_base_repos，通过 fork 发现动态生成文件
+  # MohammadBahemmat/V2ray-Collector: ★52, 506条节点，Telegram多频道聚合
+  - "https://raw.githubusercontent.com/MohammadBahemmat/V2ray-Collector/main/all_servers.txt"
+  # R3ZARAHIMI/tg-v2ray-configs-every2h: ★48, 270条原始+143条过滤，每2小时更新
+  - "https://raw.githubusercontent.com/R3ZARAHIMI/tg-v2ray-configs-every2h/main/Original-Configs.txt"
+  - "https://raw.githubusercontent.com/R3ZARAHIMI/tg-v2ray-configs-every2h/main/Config_jo.txt"
+
   # ============ 新增高质量亚洲源（v30.0 Phase 3） ============
   # 来自 CloudflareSpeedTest 研究：P3terx/ChinaDNS 等聚合源
   - "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.meta.yml"
 
 github_base_repos:
-  # v30.0: 仅保留经确认活跃的 fork 发现目标仓库
+  # v30.1: 扩充 fork 发现目标仓库（新增活跃聚合源）
   - "ermaozi/get_subscribe"
   - "peasoft/NoMoreWalls"
   - "mahdibland/V2RayAggregator"
@@ -58,10 +68,19 @@ github_base_repos:
   - "free18/v2ray"
   - "Pawdroid/Free-servers"
   - "ssrsub/ssr"
-  - "freefq/free"
+  - "aiboboxx/v2rayfree"
+  - "longlon/v2ray-config"
+  - "MohammadBahemmat/V2ray-Collector"
+  - "R3ZARAHIMI/tg-v2ray-configs-every2h"
+  - "snakem982/proxypool"
+  - "Barabama/FreeNodes"
+  - "xyfqzy/free-nodes"
+  - "littlebais/free-proxy-nodes"
+  - "junjun266/FreeProxyGo"
+  - "Au1rxx/free-vpn-subscriptions"
 
 telegram_channels:
-  # v30.0: 保留核心活跃频道（去除无响应频道）
+  # v30.1: 扩充 Telegram 频道（新增活跃节点分享频道）
   - "v2ray_free"
   - "freev2rayng"
   - "v2rayng_free"
@@ -79,3 +98,23 @@ telegram_channels:
   - "clashvpn"
   - "v2rayngvpn"
   - "freeVPNjd"
+  # v30.1 新增频道
+  - "freevpnshare"
+  - "v2ray_ssr_free"
+  - "proxyfree"
+  - "Configs_pool"
+  - "V2ray_Vpn_Free"
+  - "v2rayng_freeproxy"
+  - "clash_pro"
+  - "Proxy_Mirror"
+  - "Freenodeshare"
+  - "v2rayng_freeNode"
+  - "vpn_free2024"
+  - "Node_Collector"
+  - "clash_freenode"
+  - "SubscribePool"
+  - "VpnTehran"
+  - "free_server_vpn"
+  - "ShadowProxy66"
+  - "v2ray_shadow"
+  - "Config_collector_V2Ray"

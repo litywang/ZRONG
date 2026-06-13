@@ -135,7 +135,7 @@ def main():
         clash.stop()
         return
 
-    final = final[:150]  # MAX_FINAL_NODES 上限
+    final = final[:MAX_FINAL_NODES]  # 输出上限100-120
 
     # ── 阶段7: 健康检查（可选）───────────────────────────────────────
     if not args.skip_health_check:

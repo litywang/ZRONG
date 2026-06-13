@@ -146,9 +146,9 @@ def supplement_tcp(final: list, nres: list, tested: set, proxy_ok: bool) -> tupl
     if not proxy_ok:
         logging.warning("[WARN] Clash测速全部失败，跳过TCP补充")
         return final[:MAX_FINAL_NODES], proxy_ok
-    # 基线检查：至少15个节点已通过Clash验证
-    if len(final) < 15:
-        logging.warning(f"[WARN] Clash测速仅{len(final)}个<15，跳过TCP补充")
+    # 基线检查：Clash合格<100时跳过TCP补充（用户要求节点少不用TCP补充）
+    if len(final) < 100:
+        logging.warning(f"[WARN] Clash合格仅{len(final)}个<100，跳过TCP补充")
         return final[:MAX_FINAL_NODES], proxy_ok
 
     asia_count = sum(1 for p in final if is_asia(p))

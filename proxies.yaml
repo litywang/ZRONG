@@ -1,60 +1,8 @@
 proxies:
-- client-fingerprint: chrome
-  flow: xtls-rprx-vision
-  name: 🇹🇼1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  port: 54387
-  reality-opts:
-    public-key: qqb-vrDIPSrFIithw497zM-LmGUEcTo-dqAjhHi6kyY
-  server: 1.sdwan.realm-sync.com
-  servername: swcdn.apple.com
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: e0c3a80e-6290-4c29-9605-fbd6c4fb3322
-- client-fingerprint: chrome
-  flow: xtls-rprx-vision
-  name: 🇸🇬2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  port: 55567
-  reality-opts:
-    public-key: 0soGDTguByd3I9e2nLuzkw5BOHELZ_AHHDkA0Zx3JRA
-  server: 1.sdwan.realm-sync.com
-  servername: www.discoverasr.com
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: 48959fe8-4a5e-4996-bc87-8d66398e6860
-- client-fingerprint: firefox
-  flow: xtls-rprx-vision
-  name: 🇸🇬1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  network: tcp
-  port: 45075
-  reality-opts: &id001
-    public-key: l6Z-68Q2EJ8nZ5mzWSAB53lp1-_nOHwV2Z18y3DT7xQ
-    short-id: 7185b14179922a5c
-  server: 122.248.202.201
-  servername: www.tesla.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 452da0f8-3034-4e5d-9e7f-9c3f58abb8ff
-- client-fingerprint: firefox
-  flow: xtls-rprx-vision
-  name: 🇸🇬1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  network: tcp
-  port: 45075
-  reality-opts: *id001
-  server: 122.248.202.201
-  servername: www.tesla.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 452da0f8-3034-4e5d-9e7f-9c3f58abb8ff
-- name: 🇯🇵2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇰🇷14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 2053
-  server: 140.238.58.181
+  port: 443
+  server: 141.164.51.88
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -65,122 +13,10 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
-- name: 🇸🇬6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇰🇷19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 139.180.220.7
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇸🇬7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 66.42.61.215
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇭🇰9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 219.76.13.167
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇯🇵10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 217.142.254.144
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇭🇰10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 219.76.13.177
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇭🇰12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 104.253.175.99
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇭🇰13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 104.253.175.202
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇭🇰15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 45.39.190.143
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇭🇰16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 45.39.190.66
+  server: 15.164.84.61
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -192,98 +28,19 @@ proxies:
       Host: t1s1.rittbo.kdns.fr
     path: /
 - client-fingerprint: chrome
-  name: 🇹🇼1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  network: ws
-  port: 443
-  server: time.is
+  name: 🇯🇵14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: eeb6823c-b926-4ea2-866a-5542edd26e59
+  port: 8443
+  server: 47.245.62.4
   skip-cert-verify: true
-  sni: https.kmj.qzz.io
+  sni: dxy1h.twiladaphne.ndjp.net
   tls: true
-  type: vless
+  type: trojan
   udp: true
-  uuid: ce069292-c8bf-40dd-a6b1-87818a1e64e9
-  ws-opts:
-    headers:
-      Host: https.kmj.qzz.io
-    path: /https://118.163.99.115:443
-- client-fingerprint: chrome
-  name: 🇭🇰2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇯🇵17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: lt.hhhhh.eu.org
-  servername: cf.hulume.ccwu.cc
-  tls: true
-  type: vless
-  udp: true
-  uuid: c135158e-5869-4397-8116-6695ca18cd48
-  ws-opts:
-    headers:
-      Host: cf.hulume.ccwu.cc
-      User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like
-        Gecko) Chrome/36.0.1985.125 Safari/537.36
-    path: /
-- client-fingerprint: chrome
-  name: 🇹🇼2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: www.visa.com.tw
-  servername: rAyAn-F10.LeIlA.DpDnS.OrG
-  tls: true
-  type: vless
-  udp: true
-  uuid: 7a80a8d9-92f9-4f0a-8352-9005a8215ab8
-  ws-opts:
-    headers:
-      Host: rayan-f10.leila.dpdns.org
-      User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like
-        Gecko) Chrome/45.0.2454.85 Safari/537.36
-    path: /?ed=2560
-- name: 🇭🇰3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: www.wto.org
-  servername: sk1.ylks0033.dpdns.org
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: 06e4425e-a8cb-4b63-929f-2105604ab0a9
-  ws-opts:
-    headers:
-      host: sk1.ylks0033.dpdns.org
-    path: /?ed=2560
-- name: 🇭🇰6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: whatismyipaddress.com
-  servername: sk1.ylks0033.dpdns.org
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: 06e4425e-a8cb-4b63-929f-2105604ab0a9
-  ws-opts:
-    headers:
-      host: sk1.ylks0033.dpdns.org
-    path: /?ed=2560
-- name: 🇭🇰14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 18080
-  server: 47.243.54.45
-  servername: getsub.saas.classelivre.eu.org
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: 019984df-e8d5-10ee-435f-9143d7beb674
-  ws-opts:
-    headers:
-      host: getsub.saas.classelivre.eu.org
-    path: /snippets?ip=proxyip.oracle.cmliussss.net&nat64=6to4
-- name: 🇰🇷7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 152.67.210.234
+  server: 156.246.92.195
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -294,10 +51,10 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
-- name: 🇰🇷8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇰🇷16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 152.70.239.74
+  server: 141.164.35.94
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -308,10 +65,10 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
-- name: 🇰🇷9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇰🇷17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 161.118.158.9
+  server: 47.80.60.254
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -322,79 +79,53 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
-- name: 🇰🇷1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: steamdb.info
-  servername: hz1.ylks0033.dpdns.org
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: 06e4425e-a8cb-4b63-929f-2105604ab0a9
-  ws-opts:
-    headers:
-      host: hz1.ylks0033.dpdns.org
-    path: /?ed=2560
 - alterId: 0
   cipher: auto
-  name: 🇯🇵11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  name: 🇭🇰16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 161.129.34.102
+  server: hk2.lrzdx.uk
   skip-cert-verify: true
-  sni: 161.129.34.102
+  sni: hk2.lrzdx.uk
   tls: true
   type: vmess
   udp: true
-  uuid: ec736482-173e-3eff-9114-b49df8056e7d
+  uuid: db69d5bc-d36c-4903-f471-74b98c5cefe5
   ws-opts:
-    headers:
-      Host: 161.129.34.102
-    path: /
-- name: 🇸🇬4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: www.ntu.edu.sg
-  servername: t1s1.rittbo.kdns.fr
+    path: /register
+- client-fingerprint: chrome
+  flow: xtls-rprx-vision
+  name: 🇸🇬25-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  port: 10000
+  reality-opts:
+    public-key: xELgry1aUBwZLDAAvyiBkLTXsIi1M-mKhuqvwiP6FxU
+    short-id: 3b0b73e5
+  server: sgxi.959555.xyz
   skip-cert-verify: true
+  sni: gateway.icloud.com
   tls: true
   type: vless
   udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇯🇵6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 104.238.151.159
-  servername: t1s1.rittbo.kdns.fr
+  uuid: af6904c1-4349-4448-8e99-0024824a0c33
+- name: 🇹🇼2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: 4f4d1167-ef14-4304-9bce-0740472503ef
+  port: 45619
+  server: 90081bb25c.node.tro.cac.cab
   skip-cert-verify: true
+  sni: fr.01.naiun.bilibili.com
   tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇯🇵7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 167.179.101.103
-  servername: t1s1.rittbo.kdns.fr
+  type: trojan
+- alterId: 0
+  name: 🇹🇼3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: gcuCpQfaiVeDBdWG
+  port: 19128
+  server: 211.76.176.98
   skip-cert-verify: true
+  sni: yazhou10.dynu.net
   tls: true
-  type: vless
+  type: trojan
   udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇯🇵8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇯🇵1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
   server: 8.211.161.198
@@ -408,10 +139,10 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
-- name: 🇸🇬8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇯🇵2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 134.185.93.231
+  server: 138.2.62.8
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -422,10 +153,108 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
-- name: 🇯🇵9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇭🇰4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 168.138.46.67
+  server: 46.8.78.229
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇸🇬4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 8443
+  server: 139.180.143.248
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇭🇰5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 219.76.13.167
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇭🇰6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 219.76.13.177
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇸🇬6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 213.35.127.18
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇭🇰7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 46.8.226.108
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇸🇬7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 18.138.34.221
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇭🇰8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 45.39.190.66
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -450,10 +279,38 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
+- name: 🇭🇰10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 45.38.42.245
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
 - name: 🇸🇬10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 52.76.97.123
+  server: 161.118.213.45
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇯🇵11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 217.142.254.144
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -467,7 +324,7 @@ proxies:
 - name: 🇭🇰11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 2053
-  server: 45.38.42.156
+  server: 217.60.248.94
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -478,10 +335,10 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
-- name: 🇯🇵12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇭🇰13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 2053
-  server: 45.77.129.86
+  port: 443
+  server: 104.253.175.202
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -495,7 +352,7 @@ proxies:
 - name: 🇸🇬13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 129.150.48.17
+  server: 139.180.222.3
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -506,10 +363,10 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
-- name: 🇯🇵14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇭🇰14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 64.110.101.250
+  server: 45.39.190.143
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -520,63 +377,7 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
-- name: 🇯🇵15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 156.246.92.195
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇸🇬15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8443
-  server: 139.180.143.248
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇯🇵16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 66.245.218.44
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇸🇬16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 18.138.34.221
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇭🇰17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇭🇰15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
   server: 45.38.42.11
@@ -590,10 +391,490 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
-- name: 🇸🇬17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇸🇬15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 140.245.101.81
+  server: 47.82.178.58
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇸🇬16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 134.185.93.231
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇭🇰17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 104.253.175.16
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇯🇵18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 66.245.218.44
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: '[WEB]1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  password: 265f092f-418b-30c9-a479-4800fd44dd19mielink
+  port: 443
+  server: kaizen-tw-2.mielink-dns2.com
+  skip-cert-verify: true
+  sni: paydiu.com
+  tls: true
+  type: trojan
+  udp: true
+- name: '[WEB]3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  password: 265f092f-418b-30c9-a479-4800fd44dd19mielink
+  port: 443
+  server: kaizen-tw-1.mielink-dns2.com
+  skip-cert-verify: true
+  sni: paydiu.com
+  tls: true
+  type: trojan
+  udp: true
+- name: '[WEB]9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  password: 265f092f-418b-30c9-a479-4800fd44dd19mielink
+  port: 443
+  server: kaizen-hk-8.mielink-dns2.com
+  skip-cert-verify: true
+  sni: paydiu.com
+  tls: true
+  type: trojan
+  udp: true
+- name: '[WEB]10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  password: 265f092f-418b-30c9-a479-4800fd44dd19mielink
+  port: 443
+  server: kaizen-jp-11.mielink-dns2.com
+  skip-cert-verify: true
+  sni: paydiu.com
+  tls: true
+  type: trojan
+  udp: true
+- client-fingerprint: chrome
+  name: 🇹🇼1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: time.is
+  skip-cert-verify: true
+  sni: https.kmj.qzz.io
+  tls: true
+  type: vless
+  udp: true
+  uuid: ce069292-c8bf-40dd-a6b1-87818a1e64e9
+  ws-opts:
+    headers:
+      Host: https.kmj.qzz.io
+    path: /https://118.163.99.115:443
+- client-fingerprint: random
+  name: 🇸🇬1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 8443
+  server: www.visa.com.sg
+  servername: azadnet-a8q.pages.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 86c50e3a-5b87-49dd-bd20-03c7f2735e40
+  ws-opts:
+    headers:
+      Host: azadnet-a8q.pages.dev
+      User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like
+        Gecko) Chrome/69.0.3497.100 Safari/537.36
+    path: /?ed=2560
+- name: 🇭🇰2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: nnchkclyx.codesofun.pp.ua
+  servername: nnchk.codesofun.pp.ua
+  tls: true
+  type: vless
+  udp: true
+  uuid: 5f077162-99ad-424d-9f77-e5f7e37d9ef8
+  ws-opts:
+    headers:
+      Host: nnchk.codesofun.pp.ua
+    path: /ea3ac731
+- client-fingerprint: chrome
+  name: 🇸🇬2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 2053
+  server: ebc.zoom.us
+  servername: rv.mrsaathan.ggff.net
+  tls: true
+  type: vless
+  udp: true
+  uuid: ea3be2c0-be96-40d0-93f6-d350d47d3901
+  ws-opts:
+    headers:
+      Host: rv.mrsaathan.ggff.net
+      User-Agent: Mozilla/5.0 (Linux; Android 7.0; SM-G570M Build/NRD90M) AppleWebKit/537.36
+        (KHTML, like Gecko) Chrome/69.0.3497.100 Mobile Safari/537.36
+    path: /
+- client-fingerprint: chrome
+  name: 🇸🇬5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 141.11.43.124
+  servername: gaosir.unfeeling.sbs
+  tls: true
+  type: vless
+  udp: true
+  uuid: f61a4285-7264-4d07-9408-7b9ba1922c26
+  ws-opts:
+    headers:
+      Host: gaosir.unfeeling.sbs
+      User-Agent: Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML,
+        like Gecko) Chrome/62.0.3202.94 Safari/537.36
+    path: /Telegram🇨🇳@WangCai2/?ed=2560
+- client-fingerprint: chrome
+  name: 🇭🇰12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 217.60.248.66
+  servername: gaosir.unfeeling.sbs
+  tls: true
+  type: vless
+  udp: true
+  uuid: f61a4285-7264-4d07-9408-7b9ba1922c26
+  ws-opts:
+    headers:
+      Host: gaosir.unfeeling.sbs
+      User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
+        like Gecko) Chrome/65.0.3325.162 Safari/537.36
+    path: /Telegram🇨🇳 @WangCai2 /?ed=2560
+- name: 🇰🇷3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 158.247.211.170
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇰🇷4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 158.247.198.196
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇰🇷5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 158.247.209.57
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇰🇷6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 158.247.199.106
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇰🇷9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 152.70.239.74
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇰🇷10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 130.162.130.105
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇰🇷12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 161.118.158.9
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇰🇷13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 158.180.71.69
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- client-fingerprint: chrome
+  name: '[WEB]4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  network: ws
+  port: 443
+  server: myanmar.visa.com
+  skip-cert-verify: true
+  sni: RAYaN106-9uIaCO-1.rayan-106.wOrKErs.DeV
+  tls: true
+  type: vless
+  udp: true
+  uuid: 226c8b99-407a-4215-b00c-ff44b02b8b63
+  ws-opts:
+    headers:
+      Host: RAYaN106-9uIaCO-1.rayan-106.wOrKErs.DeV
+    path: /?ed=2560
+- client-fingerprint: chrome
+  name: 🇰🇷18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: afrcloud22.mmv.kr
+  skip-cert-verify: true
+  sni: afrcloud22.mmv.kr
+  tls: true
+  type: vless
+  udp: true
+  uuid: 1e681d1b-3f6e-4bd4-9fed-b8976bd1b3be
+  ws-opts:
+    headers:
+      Host: afrcloud22.mmv.kr
+    path: /45.76.192.129=24434
+- name: 🇰🇷11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 8443
+  server: 146.56.187.1
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- client-fingerprint: chrome
+  name: '[WEB]7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  network: ws
+  port: 2053
+  server: glob.thisiswe.uno
+  skip-cert-verify: true
+  sni: p1.thisiswe.uno
+  tls: true
+  type: vless
+  udp: true
+  uuid: ee9b0614-50ec-41b6-951b-e1d5d755fa4b
+  ws-opts:
+    headers:
+      Host: p1.thisiswe.uno
+- name: 🇯🇵5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 104.238.151.159
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇯🇵6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 2053
+  server: 140.238.58.181
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇯🇵7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 18.179.140.180
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇯🇵9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 54.248.143.139
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇭🇰9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 104.253.175.99
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇸🇬11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 139.180.220.7
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇯🇵12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 167.179.101.103
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇸🇬14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 138.2.87.237
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇯🇵16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 64.110.101.250
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇸🇬18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 146.235.16.191
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -618,7 +899,21 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
-- name: 🇸🇬18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇸🇬19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 129.150.48.17
+  servername: t1s1.rittbo.kdns.fr
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- name: 🇸🇬20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
   server: 18.143.76.130
@@ -632,21 +927,7 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
-- name: 🇯🇵19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 54.248.143.139
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇭🇰19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇭🇰20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
   server: 217.60.38.113
@@ -660,52 +941,10 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
-- name: 🇸🇬19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇸🇬21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 139.180.222.3
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇭🇰20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 2053
-  server: 217.60.248.94
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇯🇵20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 45.32.17.67
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇭🇰21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 104.253.175.16
+  server: 52.76.97.123
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -719,7 +958,7 @@ proxies:
 - name: 🇯🇵21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 138.2.62.8
+  server: 168.138.46.67
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -730,10 +969,10 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
-- name: 🇸🇬21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇭🇰22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 443
-  server: 138.2.87.237
+  port: 2053
+  server: 45.38.42.156
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -744,52 +983,10 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
-- name: 🇯🇵22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇸🇬23-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 18.179.140.180
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇸🇬22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 161.118.213.45
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇭🇰23-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 45.38.42.245
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇭🇰24-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 46.8.78.229
+  server: 140.245.101.81
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -803,7 +1000,7 @@ proxies:
 - name: 🇸🇬24-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 146.235.16.191
+  server: 66.42.61.215
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -814,10 +1011,10 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
-- name: 🇭🇰26-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇯🇵24-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 443
-  server: 46.8.226.108
+  port: 2053
+  server: 45.77.129.86
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -828,10 +1025,10 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
-- name: 🇸🇬30-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇯🇵25-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 138.2.64.229
+  server: 45.32.17.67
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -842,10 +1039,10 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
-- name: 🇸🇬32-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇸🇬26-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 47.82.178.58
+  server: www.ntu.edu.sg
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -856,201 +1053,83 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
-- name: 🇸🇬33-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 213.35.127.18
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇯🇵5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  password: 8r<[9'l6hAO#8ZQi
-  port: 4196
-  server: 185.184.223.138
-  skip-cert-verify: true
-  sni: Koma-YT.PAGeS.Dev
-  tls: true
-  type: trojan
-  ws-opts:
-    headers:
-      Host: Koma-YT.PAGeS.Dev
-    path: /trTelegram🇨🇳 @WangCai2
-- name: 🇸🇬20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  password: 8r<[9'l6hAO#8ZQi
-  port: 443
-  server: 139.59.239.116
-  skip-cert-verify: true
-  sni: Koma-YT.PAGeS.Dev
-  tls: true
-  type: trojan
-  ws-opts:
-    headers:
-      Host: Koma-YT.PAGeS.Dev
-    path: /trTelegram🇨🇳 @WangCai2
 - client-fingerprint: chrome
-  name: 🇸🇬23-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 12365
-  server: 8.222.154.58
-  servername: edgf.aimercc.dpdns.org
-  tls: true
-  type: vless
-  udp: true
-  uuid: ee6774c0-9b19-4ff1-8b30-2da4b71977e2
-  ws-opts:
-    headers:
-      Host: edgf.aimercc.dpdns.org
-      User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like
-        Gecko) Chrome/41.0.2272.101 Safari/537.36
-    path: /?ed=2560&proxyip=ts.hpc.tw
-- name: 🇭🇰28-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 7000
-  server: 202.85.53.160
-  servername: edgb.aimercc.dpdns.org
+  name: 🇯🇵3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  port: 8443
+  server: 178.249.213.177
   skip-cert-verify: true
+  sni: jp1.fromblancwithlove.com
   tls: true
   type: vless
   udp: true
-  uuid: ee6774c0-9b19-4ff1-8b30-2da4b71977e2
+  uuid: 394f6981-a782-4779-9a85-e6cf22935d93
+- client-fingerprint: chrome
+  name: 🇸🇬22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: www.lianchuang123.com
+  skip-cert-verify: true
+  sni: sni.mmadcoffee.info
+  tls: true
+  type: vless
+  udp: true
+  uuid: 2c473bc0-484c-49d5-8cf3-c89d26b724fe
   ws-opts:
     headers:
-      host: edgb.aimercc.dpdns.org
-    path: /?ed=2560&proxyip=ts.hpc.tw
+      Host: smtp.mmadcoffee.info
+    path: /16838/c89d26b724fe/
+- name: 🇯🇵22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: hV66LcSGyxUdHq2aAeqxmLfpBDQmRYxo8Wte43oZr8L379SS
+  port: 443
+  server: 43.207.87.133
+  skip-cert-verify: true
+  sni: node2.bw8848.org
+  tls: true
+  type: trojan
+  udp: true
+- name: 🇯🇵4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  password: '162534'
+  port: 443
+  server: 31.57.172.187
+  skip-cert-verify: true
+  sni: cchh2.pages.dev
+  tls: true
+  type: trojan
+  ws-opts:
+    headers:
+      Host: cchh2.pages.dev
+    path: /?ed=2560&https://t.me/WangCai2🇨🇳
+- client-fingerprint: chrome
+  name: 🇹🇼5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 43
+  server: 220.128.110.108
+  servername: mf.xmma.xyz
+  tls: true
+  type: vless
+  udp: true
+  uuid: e258977b-e413-4718-a3af-02d75492c349
+  ws-opts:
+    headers:
+      Host: mf.xmma.xyz
+      User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like
+        Gecko) Chrome/44.0.2403.157 Safari/537.36
+    path: /?ed=2048
 - alterId: 0
-  name: 🇭🇰33-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  name: 🇭🇰24-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   password: BxceQaOe
   port: 443
   server: 58.152.25.253
   skip-cert-verify: true
+  sni: t.me/ripaojiedian
   tls: true
   type: trojan
   udp: true
-- name: 🇰🇷2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇰🇷20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
-  server: 158.247.211.170
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇰🇷3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 141.164.35.94
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇰🇷4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 47.80.60.254
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇰🇷5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 141.164.51.88
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇰🇷6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 158.247.209.57
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇰🇷10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 158.247.199.106
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇰🇷11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 158.180.71.69
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇰🇷12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 130.162.130.105
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- name: 🇰🇷13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 158.247.198.196
+  server: 152.67.210.234
   servername: t1s1.rittbo.kdns.fr
   skip-cert-verify: true
   tls: true
@@ -1075,419 +1154,100 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
-- client-fingerprint: chrome
-  name: 🇯🇵23-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  password: eeb6823c-b926-4ea2-866a-5542edd26e59
-  port: 8443
-  server: 47.245.62.4
-  skip-cert-verify: true
-  sni: dxy1h.twiladaphne.ndjp.net
-  tls: true
-  type: trojan
-  udp: true
-- name: 🇰🇷14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇰🇷8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 8443
-  server: 146.56.187.1
-  servername: t1s1.rittbo.kdns.fr
-  skip-cert-verify: true
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- alterId: 0
-  cipher: auto
-  name: 🇯🇵4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 172.104.78.98
-  skip-cert-verify: true
-  sni: 172.104.78.98
-  tls: true
-  type: vmess
-  udp: true
-  uuid: 927094d3-d678-4763-8591-e240d0bcae87
-  ws-opts:
-    path: /chat
-- alterId: 64
-  cipher: auto
-  name: 🇸🇬11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 202.79.172.53
-  skip-cert-verify: true
-  sni: 202.79.172.53
-  tls: true
-  type: vmess
-  udp: true
-  uuid: 30216206-14b7-40e7-995d-61c1219ba584
-  ws-opts:
-    path: /path/220128071100
-- alterId: 64
-  cipher: auto
-  name: 🇸🇬12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 202.79.171.157
-  skip-cert-verify: true
-  sni: 202.79.171.157
-  tls: true
-  type: vmess
-  udp: true
-  uuid: fb3583a3-7717-4fe5-9146-3301861f9f41
-  ws-opts:
-    path: /path/243535322906
-- alterId: 0
-  cipher: auto
-  name: 🇯🇵13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: 131.186.57.111
-  skip-cert-verify: true
-  sni: e130917c-1b58-4136-b2d9-76dc920e0add.add97ee8-0f14-48a3-b2cd-979c56742e64.loseyourip.com
-  tls: true
-  type: vmess
-  udp: true
-  uuid: 05641cf5-58d2-4ba4-a9f1-b3cda0b1fb1d
-  ws-opts:
-    headers:
-      Host: e130917c-1b58-4136-b2d9-76dc920e0add.add97ee8-0f14-48a3-b2cd-979c56742e64.loseyourip.com
-    path: /
-- alterId: 0
-  cipher: auto
-  name: 🇯🇵18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: fullaccesstojapannetsubnode1.azurewebsites.net
-  skip-cert-verify: true
-  sni: fullaccesstojapannetsubnode1.azurewebsites.net
-  tls: true
-  type: vmess
-  udp: true
-  uuid: 274f11c6-f69b-40b9-8966-f39e06e97be7
-  ws-opts:
-    headers:
-      Host: fullaccesstojapannetsubnode1.azurewebsites.net
-    path: /ws
-- alterId: 0
-  cipher: auto
-  name: 🇭🇰25-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: fullaccesstohongkongnet.azurewebsites.net
-  skip-cert-verify: true
-  sni: fullaccesstohongkongnet.azurewebsites.net
-  tls: true
-  type: vmess
-  udp: true
-  uuid: 274f11c6-f69b-40b9-8966-f39e06e97be7
-  ws-opts:
-    headers:
-      Host: fullaccesstohongkongnet.azurewebsites.net
-    path: /ws
-- alterId: 0
-  cipher: auto
-  name: 🇭🇰31-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 443
-  server: hk2.lrzdx.uk
-  skip-cert-verify: true
-  sni: hk2.lrzdx.uk
-  tls: true
-  type: vmess
-  udp: true
-  uuid: db69d5bc-d36c-4903-f471-74b98c5cefe5
-  ws-opts:
-    path: /register
-- alterId: 0
-  cipher: auto
-  name: 🇭🇰8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 11655
-  server: 131.186.63.89
-  skip-cert-verify: true
-  sni: hk.nbee.pp.ua
-  tls: true
-  type: vmess
-  udp: true
-  uuid: 4bf075f5-4d5e-4d39-f5ab-b32a86250f0e
-  ws-opts:
-    headers:
-      Host: hk.nbee.pp.ua
-    path: /aa
-- name: 🇭🇰1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8880
-  server: 91.193.58.65
-  type: vless
-  udp: true
-  uuid: fab7bf9c-ddb9-4563-8a04-fb01ce6c0fbf
-  ws-opts:
-    headers:
-      Host: us.laoyoutiao.link
-      User-Agent: Mozilla/5.0 (Linux; Android 7.0; SM-J710F Build/NRD90M) AppleWebKit/537.36
-        (KHTML, like Gecko) Chrome/62.0.3202.84 Mobile Safari/537.36
-    path: /
-- name: 🇸🇬2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  network: ws
-  port: 8880
-  server: 92.243.74.188
-  servername: Telegram-channel-WangCai2
-  skip-cert-verify: false
-  tls: false
-  type: vless
-  udp: true
-  uuid: 583ceab3-4022-4553-9158-9bedc625ad4e
-  ws-opts:
-    headers:
-      Host: ip.langmanshanxi.top
-    path: /TelegramU0001F1E8U0001F1F3 @WangCai2 /?ed=2560
-- name: 🇯🇵3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 2052
-  server: 190.93.246.80
-  type: vless
-  udp: true
-  uuid: d342d11e-d424-4583-b36e-524ab1f0afa4
-  ws-opts:
-    headers:
-      Host: b.yzcjd.workers.dev
-      User-Agent: Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like
-        Gecko) Chrome/52.0.2743.116 Safari/537.36
-    path: /?ed=2048
-- name: 🇭🇰5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8880
-  server: 91.193.58.71
-  servername: us.laoyoutiao.link
-  type: vless
-  udp: true
-  uuid: fab7bf9c-ddb9-4563-8a04-fb01ce6c0fbf
-  ws-opts:
-    headers:
-      Host: us.laoyoutiao.link
-      User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML,
-        like Gecko) Chrome/55.0.2883.87 Safari/537.36
-    path: /
-- name: 🇭🇰7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8880
-  server: 91.193.58.159
-  servername: us.laoyoutiao.link
-  type: vless
-  udp: true
-  uuid: fab7bf9c-ddb9-4563-8a04-fb01ce6c0fbf
-  ws-opts:
-    headers:
-      Host: us.laoyoutiao.link
-      User-Agent: Mozilla/5.0 (Linux; Android 7.0; SM-G610M Build/NRD90M) AppleWebKit/537.36
-        (KHTML, like Gecko) Chrome/69.0.3497.100 Mobile Safari/537.36
-    path: /Telegram
-- name: 🇭🇰32-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  password: a305ac08-d136-11ee-b6db-f23c91cfbbc9
-  port: 443
-  server: ffc60249-t53wg0-t92wi1-1qkeg.hk2.hyhuawei.com
-  sni: ffc60249-t53wg0-t92wi1-1qkeg.hk2.hyhuawei.com
-  tls: false
-  type: hysteria2
-- name: 🇹🇼3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  password: gcuCpQfaiVeDBdWG
-  port: 19128
-  server: 211.76.176.97
-  skip-cert-verify: true
-  sni: yazhou10.dynu.net
-  tls: true
-  type: trojan
-  udp: true
-- name: 🇹🇼4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  password: gcuCpQfaiVeDBdWG
-  port: 19128
-  server: jpbgp.netvigor.cc
-  skip-cert-verify: true
-  sni: yazhou10.dynu.net
-  tls: true
-  type: trojan
-  udp: true
-- name: 🇹🇼5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: tcp
-  password: 4f4d1167-ef14-4304-9bce-0740472503ef
-  port: 45619
-  server: 90081bb25c.node.tro.cac.cab
-  skip-cert-verify: true
-  sni: fr.01.naiun.bilibili.com
-  tls: true
-  type: trojan
-  udp: true
-- name: 🇸🇬1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-2
-  network: ws
-  password: wb6368
-  port: 2087
-  server: 92.243.75.49
-  skip-cert-verify: true
-  sni: hsdgbuys.pages.dev
-  tfo: true
-  type: trojan
-  udp: true
-  ws-opts:
-    headers:
-      Host: hsdgbuys.pages.dev
-    path: /
-- alpn:
-  - http/1.1
-  client-fingerprint: random
-  name: 🇰🇷15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 50006
-  server: 175.199.169.221
-  servername: snippet.fgfw.de5.net
-  skip-cert-verify: false
-  tls: true
-  type: vless
-  udp: true
-  uuid: 948fac3c-42bf-41a6-a5f9-704d36ff0d8d
-  ws-opts:
-    headers:
-      Host: snippet.fgfw.de5.net
-    path: /danfeng
-- client-fingerprint: chrome
-  name: 🇰🇷17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 22410
+  port: 12312
   server: 211.48.77.114
-  servername: ylnhh.cc.cd
+  servername: gaosir.unfeeling.sbs
   skip-cert-verify: false
   tls: true
   type: vless
   udp: true
-  uuid: 14b02e2a-8930-4afb-8412-ea4a4954ca5b
+  uuid: f61a4285-7264-4d07-9408-7b9ba1922c26
   ws-opts:
     headers:
-      Host: ylnhh.cc.cd
-    path: /
+      Host: gaosir.unfeeling.sbs
+    path: /telegram @freecodes
 - client-fingerprint: chrome
-  name: 🇰🇷18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 18788
-  server: 146.56.157.15
-  servername: oracle1.mianfeicf.lol
-  skip-cert-verify: false
-  tfo: false
-  tls: true
-  type: vless
-  udp: true
-  uuid: a6a1f99c-2b59-481b-8ccf-32b07f6db993
-  ws-opts:
-    headers:
-      Host: oracle1.mianfeicf.lol
-    path: /?ed=2560
-- client-fingerprint: chrome
-  name: 🇰🇷20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 16993
-  server: 222.113.18.207
-  servername: snippet.fgfw.de5.net
-  skip-cert-verify: false
-  tls: true
-  type: vless
-  udp: true
-  uuid: 948fac3c-42bf-41a6-a5f9-704d36ff0d8d
-  ws-opts:
-    headers:
-      Host: snippet.fgfw.de5.net
-    path: /danfeng
-- client-fingerprint: chrome
-  name: 🇰🇷22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 12345
-  server: 124.59.181.7
-  servername: snippet.fgfw.ccwu.cc
-  tls: true
-  type: vless
-  udp: true
-  uuid: 948fac3c-42bf-41a6-a5f9-704d36ff0d8d
-  ws-opts:
-    headers:
-      Host: snippet.fgfw.ccwu.cc
-      User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like
-        Gecko) Chrome/52.0.2743.116 Safari/537.36
-    path: /danfeng
-- alterId: 0
-  cipher: auto
   name: '[WEB]2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
   network: ws
   port: 443
-  server: fake.id.workers.dev
+  server: 188.114.97.6
   skip-cert-verify: true
-  sni: fake.id.workers.dev
+  sni: hhlfy.twiladaphne.ndjp.net
   tls: true
-  type: vmess
+  type: vless
   udp: true
-  uuid: F591CE71-33F8-4B12-824A-0167FA839ED9
+  uuid: e5cc16a6-ea42-46b2-82ae-ad2157e1641b
   ws-opts:
     headers:
-      Host: fake.id.workers.dev
-    path: /speedtest
-- alterId: 0
-  cipher: auto
-  name: '[WEB]3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  network: ws
-  port: 443
-  server: seoul03.zgjok.com
-  skip-cert-verify: true
-  sni: seoul03.zgjok.com
-  tls: true
-  type: vmess
-  udp: true
-  uuid: 72a0dac4-9689-4a57-b164-5c65bfa94772
-  ws-opts:
-    headers:
-      Host: seoul03.zgjok.com
+      Host: hhlfy.twiladaphne.ndjp.net
     path: /
-- alterId: 0
-  cipher: auto
-  name: 🇯🇵17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+- name: 🇯🇵13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: share.mjj-home.com
+  port: 443
+  server: 185.212.56.168
+  skip-cert-verify: true
+  sni: share.softbank.mjj-home.com
+  type: trojan
+  udp: true
+- client-fingerprint: chrome
+  name: 🇸🇬27-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 54516
-  server: 158.101.146.3
+  port: 80
+  server: cncdn.cc
+  skip-cert-verify: true
+  type: vless
+  udp: true
+  uuid: 37c8b06a-25cf-42d7-b2ea-31d3c8561998
+  ws-opts:
+    headers:
+      Host: imap.mmadcoffee.info
+    path: /14708/31d3c8561998/
+- client-fingerprint: chrome
+  name: '[WEB]6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  network: ws
+  port: 2096
+  server: 104.16.7.70
+  skip-cert-verify: true
+  sni: sni.jpmj.dev
   tls: true
-  type: vmess
-  uuid: 6d0b24b6-6622-44b2-8da0-ef1e67651325
-  ws-opts:
-    headers:
-      Host: serv00_vmess.sweetrx.eu.org
-    path: /vmess
-- name: 🇸🇬5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8880
-  server: 92.243.74.156
-  servername: Telegram-channel-WangCai2
   type: vless
   udp: true
-  uuid: fab7bf9c-ddb9-4563-8a04-fb01ce6c0fbf
+  uuid: 6202b230-417c-4d8e-b624-0f71afa9c75d
   ws-opts:
     headers:
-      Host: kjgx.laoyoutiao.link
-      User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36
-        (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36
-    path: /Telegram🇨🇳 @WangCai2 /?ed=2560
-- name: 🇭🇰22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+      Host: sni.jpmj.dev
+    path: /?Telegram🇨🇳@WangCai2=
+- client-fingerprint: chrome
+  name: '[WEB]8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
   network: ws
-  port: 8880
-  server: 104.17.148.22
+  port: 8443
+  server: chatgpt.com
+  skip-cert-verify: true
+  sni: de.hknet.pro
+  tls: true
   type: vless
   udp: true
-  uuid: 6ec52bc7-fcd7-4841-ab69-70d6e03a6eda
+  uuid: 544843ba-8a4e-432e-a490-c326a8f4d51c
   ws-opts:
     headers:
-      Host: www.speedtest.net.zula.ir.cfp1.a2hdhjdxjbxjsjdjd.ddns-ip.net.
-      User-Agent: Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML,
-        like Gecko) Chrome/60.0.3112.113 Safari/537.36
-    path: /telegram@shadowproxy66/?ed=2560
-- name: 🇸🇬29-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+      Host: de.hknet.pro
+    path: /
+- name: 🇭🇰1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  password: tg-fq521free
+  port: 443
+  server: 194.76.18.129
+  skip-cert-verify: false
+  sni: torjan.xn--xhq44j.eu.org
+  type: trojan
+  udp: true
+  ws-opts:
+    headers:
+      Host: torjan.xn--xhq44j.eu.org
+    path: /
+- name: 🇸🇬12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   password: 8r<[9'l6hAO#8ZQi
   port: 443
@@ -1501,23 +1261,41 @@ proxies:
       User-Agent: Mozilla/5.0 (Linux; Android 6.0; vivo 1610 Build/MMB29M) AppleWebKit/537.36
         (KHTML, like Gecko) Chrome/53.0.2785.124 Mobile Safari/537.36
     path: /trTelegram🇨🇳 @WangCai2
-- alterId: 0
-  cipher: auto
-  name: '[WEB]1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  network: ws
+- name: 🇮🇩1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: bc7593fe-0604-4fbe-a70bYWVzLTI1Ni1nY206Q1VuZFNabllzUEtjdTaclWNFc1RmRBNk5NQU5KSnga3fa58ac5a3ef0-b4ab-11eb-b65e-1239d0255272
   port: 443
-  server: tw.xlkjjs.top
+  server: ca-trojan.bonds.id
   skip-cert-verify: true
-  type: vmess
+  sni: ca-trojan.bonds.id
+  tls: true
+  type: trojan
   udp: true
-  uuid: 0a6b7226-2f9c-393c-bc94-5a34859250c0
+- name: 🇸🇬28-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: pro@_LlpRWwEh4tRl4cSzc0TZDxM
+  port: 20000
+  server: starlink-sg2.mfa.cat
+  skip-cert-verify: true
+  sni: starlink-sg2.mfa.cat
+  tls: true
+  type: trojan
+  udp: true
+- name: 🇸🇬3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  password: wb6368
+  port: 2087
+  server: 92.243.75.49
+  skip-cert-verify: false
+  sni: hsdgbuys.pages.dev
+  tfo: true
+  type: trojan
+  udp: true
   ws-opts:
     headers:
-      Host: tw.xlkjjs.top
+      Host: hsdgbuys.pages.dev
     path: /
 - alterId: 0
   cipher: auto
-  name: 🇰🇷16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  name: 🇰🇷2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 443
   server: fullaccesstokoreannetsubnode1.azurewebsites.net
@@ -1533,23 +1311,74 @@ proxies:
     path: /ws
 - alterId: 0
   cipher: auto
-  name: 🇰🇷19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  name: 🇭🇰3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
-  port: 443
-  server: kr-arm2.018999.xyz
+  port: 11655
+  server: 131.186.63.89
   skip-cert-verify: true
-  sni: kr-arm2.018999.xyz
+  sni: hk.nbee.pp.ua
   tls: true
   type: vmess
   udp: true
-  uuid: e98fc1a0-9c52-4091-91a5-c159b0aa274e
+  uuid: 4bf075f5-4d5e-4d39-f5ab-b32a86250f0e
   ws-opts:
     headers:
-      Host: kr-arm2.018999.xyz
-    path: /e98fc1a0-9c52-4091-91a5-c159b0aa274e
+      Host: hk.nbee.pp.ua
+    path: /aa
+- alpn:
+  - http/1.1
+  client-fingerprint: chrome
+  name: '[WEB]5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  password: mitivpn
+  port: 443
+  server: eee.we.wwww.swsl.glowbal.diwgi.mwy.mitivpn.xyz
+  skip-cert-verify: true
+  sni: www.ssl.global.digi.my.mitivpn.xyz
+  tls: true
+  type: trojan
+  udp: true
+- client-fingerprint: chrome
+  name: 🇰🇷1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 80
+  server: 104.21.48.147
+  skip-cert-verify: true
+  type: vless
+  udp: true
+  uuid: aaaaaabb-4ddd-4eee-9fff-ffffffffffff
+  ws-opts:
+    headers:
+      Host: afrcloud22.mmv.kr
+    path: /64.181.218.67=443
+- client-fingerprint: chrome
+  name: 🇮🇩2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 10456
+  server: 116.202.96.72
+  skip-cert-verify: true
+  type: vless
+  udp: true
+  uuid: 59ed35e5-2e82-4352-bd9e-ac09a63486dd
+  ws-opts:
+    headers:
+      Host: zoomgov.vipren.biz.id
+    path: /193.123.81.105=443
+- name: 🇵🇪1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 80
+  server: 104.21.96.1
+  type: vless
+  udp: true
+  uuid: 2036e2c3-18a5-4eed-9db4-f91a7f02c7d5
+  ws-opts:
+    headers:
+      Host: zoomgov.vipren.biz.id
+      User-Agent: Mozilla/5.0 (Linux; Android 6.0.1; SM-G532M Build/MMB29T) AppleWebKit/537.36
+        (KHTML, like Gecko) Chrome/69.0.3497.100 Mobile Safari/537.36
+    path: /193.123.81.105=443
 - alterId: 0
   cipher: auto
-  name: 🇯🇵1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  name: 🇯🇵8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 80
   server: 172.111.146.64
@@ -1558,152 +1387,30 @@ proxies:
   udp: true
   uuid: 05b8c783-7f59-47f9-9923-06a465679f6a
   ws-opts:
+    path: /vmess/
+- cipher: aes-256-cfb
+  name: 🇹🇼4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: qwerREWQ@@
+  port: 41632
+  server: 185.189.160.105
+  type: ss
+- alterId: 0
+  cipher: auto
+  name: 🇰🇷15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 443
+  server: 152.67.218.38
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: b5e9480a-b7aa-40a4-f9a7-5299b5e363b4
+  ws-opts:
+    headers:
+      Host: 152.67.218.38
     path: /
 - alterId: 0
   cipher: auto
-  name: 🇸🇬3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 2052
-  server: 206.238.236.36
-  skip-cert-verify: true
-  type: vmess
-  udp: true
-  uuid: f584de15-2034-4170-a723-f48c2bae5e0f
-  ws-opts:
-    headers:
-      Host: mysan2.jaquay22.workers.dev
-    path: /afrhms16v.bestxray.buzz/linkws
-- alterId: 0
-  cipher: auto
-  name: 🇭🇰4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 80
-  server: icook.hk
-  skip-cert-verify: true
-  type: vmess
-  udp: true
-  uuid: 3eb05cb6-d2e1-4a31-9f82-514cfa98fe15
-  ws-opts:
-    headers:
-      Host: icook.hk
-    path: /ray?ed=2048
-- client-fingerprint: chrome
-  name: '[WEB]5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  network: ws
-  port: 2082
-  server: geoglyph.cloudflare.com
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 👉👉BanV2ray👈👈
-  ws-opts:
-    headers:
-      Host: chanel-fastt.lavazembaranjon.ir
-    path: /www.speedtest.net-www.speedtest.net-www.openai.com-www.speedtest.net?ed=3216
-- client-fingerprint: chrome
-  name: '[WEB]6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  network: ws
-  port: 2095
-  server: geoglyph.cloudflare.com
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 👉👉BanV2ray👈👈
-  ws-opts:
-    headers:
-      Host: chanel-fastt.lavazembaranjon.ir.
-    path: /www.speedtest.net-www.speedtest.net-www.speedtest.net-www.openai.com-www.speedtest.net?ed=3216
-- name: '[WEB]4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  network: ws
-  port: 8880
-  server: 193.227.99.156
-  servername: Telegram-channel-WangCai2
-  type: vless
-  udp: true
-  uuid: fab7bf9c-ddb9-4563-8a04-fb01ce6c0fbf
-  ws-opts:
-    headers:
-      Host: kjgx.laoyoutiao.link
-      User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML,
-        like Gecko) Chrome/56.0.2924.87 Safari/537.36
-    path: /Telegram🇨🇳 @WangCai2 /?ed=2560
-- alterId: 0
-  cipher: auto
-  name: 🇸🇬14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 80
-  server: 109.123.237.41
-  skip-cert-verify: true
-  type: vmess
-  udp: true
-  uuid: 03a77360-808d-11ed-b736-205c6d5f5d78
-  ws-opts:
-    path: /fastssh
-- alterId: 0
-  cipher: auto
-  name: 🇸🇬25-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 80
-  server: 15.235.184.36
-  skip-cert-verify: true
-  type: vmess
-  udp: true
-  uuid: 7ce525f5-3a9b-4627-ae0e-3ca0b57519e3
-  ws-opts:
-    path: /vmess
-- alterId: 0
-  cipher: auto
-  name: 🇸🇬26-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 80
-  server: 157.230.36.235
-  skip-cert-verify: true
-  type: vmess
-  udp: true
-  uuid: b484d576-b3e3-4ac5-b108-88a300dfe7e3
-  ws-opts:
-    path: /graphql
-- alterId: 0
-  cipher: auto
-  name: 🇸🇬27-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 80
-  server: 8.219.123.35
-  skip-cert-verify: true
-  type: vmess
-  udp: true
-  uuid: 7e7f8398-bd39-49d8-9ce6-e48ffef463dd
-  ws-opts:
-    path: /2TokGE9A/
-- alterId: 64
-  cipher: auto
-  name: 🇸🇬28-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 80
-  server: 159.223.94.156
-  skip-cert-verify: true
-  type: vmess
-  udp: true
-  uuid: 533724ad-58ef-4147-88dc-9da523c15fc4
-  ws-opts:
-    path: /anti13.zingfast.vn
-- alterId: 0
-  cipher: auto
-  name: 🇭🇰30-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 80
-  server: cfhk.oppo.quest
-  skip-cert-verify: true
-  type: vmess
-  udp: true
-  uuid: 2508cb1d-bd54-47c0-aead-1b8f55090427
-  ws-opts:
-    headers:
-      Host: scw.cloudflare.quest
-    path: /
-- alterId: 0
-  cipher: auto
-  name: 🇭🇰27-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  name: 🇭🇰19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 44867
   server: 47.244.120.197
@@ -1715,7 +1422,7 @@ proxies:
     path: /
 - alterId: 0
   cipher: auto
-  name: 🇭🇰29-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  name: 🇭🇰21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 36703
   server: 47.244.120.197
@@ -1727,131 +1434,156 @@ proxies:
     headers:
       Host: 47.244.120.197
     path: /
-- client-fingerprint: firefox
+- alterId: 2
+  cipher: auto
+  name: 🇯🇵20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  port: 30806
+  server: 103.182.97.12
+  skip-cert-verify: true
+  tls: false
+  type: vmess
+  udp: true
+  uuid: cbb3f877-d1fb-344c-87a9-d153bffd5484
+- alterId: 2
+  cipher: auto
+  name: 🇯🇵23-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  port: 30806
+  server: v6.hdacd.com
+  skip-cert-verify: true
+  tls: false
+  type: vmess
+  udp: true
+  uuid: cbb3f877-d1fb-344c-87a9-d153bffd5484
+- alterId: 0
+  cipher: auto
+  name: 🇯🇵10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  port: 49803
+  server: 153.121.73.175
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: cd3dacbc-2b7b-4718-83ad-ab870f87e12e
+- cipher: rc4-md5
+  name: 🇸🇬8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: 14fFPrbezE3HDZzsMOr6
+  port: 8080
+  server: 68.183.227.4
+  type: ss
+- cipher: aes-128-gcm
+  name: 🇯🇵19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: shadowsocks
+  port: 443
+  server: 149.22.87.204
+  type: ss
+- name: 🇯🇵15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: exaxgqkKkd0TAMrCxeonWg==
+  port: 443
+  server: jpgmo102-cdn-route.couldflare-cdn.com
+  skip-cert-verify: true
+  type: https
+  udp: true
+- cipher: aes-256-cfb
+  name: 🇰🇷7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: amazonskr05
+  port: 443
+  server: 3.36.96.166
+  tfo: false
+  type: ss
+- alterId: 0
+  cipher: auto
+  name: 🇲🇾1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 8613
+  server: 47.250.45.234
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 80039b4d-bac0-4f89-82c7-54fad3b0a1ea
+  ws-opts:
+    path: /
+- alterId: 0
+  cipher: auto
+  name: 🇲🇾2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 43063
+  server: 47.250.45.234
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: c77f48f5-4be3-4461-b52b-49998e7b897b
+  ws-opts:
+    path: /
+- cipher: chacha20-ietf
+  name: 🇸🇬17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: asd123456
+  port: 8388
+  server: 103.36.91.32
+  type: ss
+- cipher: aes-256-cfb
+  name: 🇭🇰23-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: qwerREWQ@@
+  port: 41632
+  server: 112.213.102.188
+  type: ss
+- client-fingerprint: chrome
   flow: xtls-rprx-vision
-  name: '[WEB]8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  name: 🇷🇺1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   port: 443
   reality-opts:
-    public-key: vTtRZ_FeFQoAigFr_pmVc_O85RaE9H8aVL0SitFYcmI
-    short-id: 53cd45d26d7b53fe
-  server: 159.195.60.65
+    public-key: 8vqOvJ5eoG_9oHla4B3Vh1E-o39RrCXW6Wr7OcXZGmI
+  server: 209.127.228.114
   skip-cert-verify: true
-  sni: free1.anotherboring.top
+  sni: cars.morro-settings.ru
   tls: true
   type: vless
   udp: true
-  uuid: c897facf-2836-4538-be6e-25386fb49284
-- client-fingerprint: edge
-  name: 🇺🇸1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  network: ws
-  port: 443
-  server: 199.232.1.47
-  servername: Elenav2ray.my.id
-  skip-cert-verify: true
-  tfo: false
-  tls: true
-  type: vless
-  udp: true
-  uuid: 621e8a54-2947-4a98-b0e0-f9048a426e34
-  ws-opts: &id002
-    headers:
-      Host: Elenav2ray.my.id
-    path: /VLESS?ed=2560
+  uuid: d205ae68-0819-473c-b425-6c5947ac2f8d
 - client-fingerprint: chrome
-  name: 🇫🇷1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
+  flow: xtls-rprx-vision
+  name: 🇷🇺2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   port: 443
-  server: 104.19.174.68
-  servername: rayan-fg-2.mohammad-janam.filegear-sg.me
-  tls: true
-  type: vless
-  udp: true
-  uuid: e97a0128-4785-4323-a2a5-dd01ce49d359
-  ws-opts:
-    headers:
-      Host: rayan-fg-2.mohammad-janam.filegear-sg.me
-      User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
-        like Gecko) Chrome/70.0.3538.67 Safari/537.36
-    path: /?ed=2560
-- client-fingerprint: edge
-  name: 🇺🇸1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  network: ws
-  port: 443
-  server: 199.232.1.47
-  servername: Elenav2ray.my.id
+  reality-opts:
+    public-key: 8vqOvJ5eoG_9oHla4B3Vh1E-o39RrCXW6Wr7OcXZGmI
+  server: 198.154.93.102
   skip-cert-verify: true
-  tfo: false
+  sni: cars.morro-settings.ru
   tls: true
   type: vless
   udp: true
-  uuid: 621e8a54-2947-4a98-b0e0-f9048a426e34
-  ws-opts: *id002
-- name: 🇬🇧1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  uuid: d205ae68-0819-473c-b425-6c5947ac2f8d
+- name: 🇺🇸6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 8880
-  server: 91.193.58.107
-  servername: kjgx.laoyoutiao.link
-  skip-cert-verify: false
-  tfo: false
-  tls: true
+  server: 102.177.189.30
+  skip-cert-verify: true
+  tls: false
   type: vless
   udp: true
-  uuid: fab7bf9c-ddb9-4563-8a04-fb01ce6c0fbf
+  uuid: 6202b230-417c-4d8e-b624-0f71afa9c75d
   ws-opts:
     headers:
-      Host: kjgx.laoyoutiao.link
-    path: Telegram
-- name: 🇬🇧2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8880
-  server: 91.193.58.114
-  servername: kjgx.laoyoutiao.link
-  skip-cert-verify: false
-  tfo: false
-  tls: true
-  type: vless
-  udp: true
-  uuid: fab7bf9c-ddb9-4563-8a04-fb01ce6c0fbf
-  ws-opts:
-    headers:
-      Host: kjgx.laoyoutiao.link
-    path: Telegram
-- name: 🇺🇸3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+      Host: vms.lifetime29.workers.dev
+    path: /
+- name: 🇩🇪1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 80
-  server: 141.193.213.10
-  servername: us.laoyoutiao.link
-  skip-cert-verify: false
-  tfo: false
-  tls: true
+  server: 104.24.45.247
+  skip-cert-verify: true
+  tls: false
   type: vless
   udp: true
-  uuid: fab7bf9c-ddb9-4563-8a04-fb01ce6c0fbf
+  uuid: 2e71d8fc-d2e8-44fc-89bd-c8a449a193aa
   ws-opts:
     headers:
-      Host: us.laoyoutiao.link
-    path: /Telegram---MARAMBASHI---Telegram---MARAMBASHI---Telegram---MARAMBASHI---Telegram---MARAMBASHI---Telegram---MARAMBASHI---Telegram---MARAMBASHI
-- name: 🇬🇧3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8880
-  server: 91.193.58.112
-  servername: kjgx.laoyoutiao.link
-  skip-cert-verify: false
-  tfo: false
-  tls: true
-  type: vless
-  udp: true
-  uuid: fab7bf9c-ddb9-4563-8a04-fb01ce6c0fbf
-  ws-opts:
-    headers:
-      Host: kjgx.laoyoutiao.link
-    path: Telegram
-- client-fingerprint: chrome
-  name: '[WEB]10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+      Host: odd-bread-435d.ahmadrezasteamacc.workers.dev
+    path: /
+- name: 🇩🇪2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 80
-  server: 151.101.194.219
+  server: 199.232.197.131
+  servername: max-gb1.global.ssl.fastly.net
   skip-cert-verify: true
+  tls: false
   type: vless
   udp: true
   uuid: cabbfe13-038b-4dbb-9c45-5079c829abfa
@@ -1859,187 +1591,76 @@ proxies:
     headers:
       Host: max-gb1.global.ssl.fastly.net
     path: /
-- client-fingerprint: chrome
-  name: 🇩🇪1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 4001
-  server: 185.94.29.156
-  servername: sub.mot.ip-ddns.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 00000000-0000-4000-8000-000000000000
-  ws-opts:
-    headers:
-      Host: sub.mot.ip-ddns.com
-      User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML,
-        like Gecko) Chrome/58.0.3029.110 Safari/537.36
-    path: /
-- client-fingerprint: chrome
-  name: 🇩🇪2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 4002
-  server: 37.114.50.157
-  servername: sub.mot.ip-ddns.com
-  skip-cert-verify: false
-  tfo: false
-  tls: true
-  type: vless
-  udp: true
-  uuid: 00000000-0000-4000-8000-000000000000
-  ws-opts:
-    headers:
-      Host: sub.mot.ip-ddns.com
-    path: /
-- client-fingerprint: chrome
-  name: 🇳🇱1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: tcp
-  port: 8443
-  server: 46.229.243.144
-  servername: cdn3-87.vk-cdnvideo.com
-  skip-cert-verify: false
-  tls: true
-  type: vless
-  udp: true
-  uuid: 931729a8-3c20-4841-89a1-f18dc9ce0a6f
-- client-fingerprint: chrome
-  name: 🇭🇺1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: tcp
-  port: 8443
-  server: 77.74.123.180
-  servername: cdn7-09.vk-cdnvideo.com
-  skip-cert-verify: false
-  tls: true
-  type: vless
-  udp: true
-  uuid: 931729a8-3c20-4841-89a1-f18dc9ce0a6f
-- client-fingerprint: chrome
-  name: '[WEB]7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  port: 8443
-  server: cdn3-87.vk-cdnvideo.com
-  skip-cert-verify: true
-  sni: cdn3-87.vk-cdnvideo.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 931729a8-3c20-4841-89a1-f18dc9ce0a6f
-- name: 🇬🇧4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8880
-  server: 91.193.58.171
-  servername: kjgx.laoyoutiao.link
-  skip-cert-verify: false
-  tfo: false
-  tls: true
-  type: vless
-  udp: true
-  uuid: fab7bf9c-ddb9-4563-8a04-fb01ce6c0fbf
-  ws-opts:
-    headers:
-      Host: kjgx.laoyoutiao.link
-    path: /Telegram
-- name: 🇮🇹1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8880
-  server: 45.85.119.213
-  type: vless
-  udp: true
-  uuid: fab7bf9c-ddb9-4563-8a04-fb01ce6c0fbf
-  ws-opts:
-    headers:
-      Host: jp.laoyoutiao.link
-      User-Agent: Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML,
-        like Gecko) Chrome/69.0.3497.100 Safari/537.36
-- client-fingerprint: chrome
-  name: '[WEB]9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+- name: 🇩🇪3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 80
-  server: 151.101.109.223
+  server: 151.101.240.151
   skip-cert-verify: true
+  tls: false
   type: vless
   udp: true
-  uuid: 0058c215-ab1e-400c-a403-b5b2fda7e846
+  uuid: cabbfe13-038b-4dbb-9c45-5079c829abfa
   ws-opts:
     headers:
       Host: max-gb1.global.ssl.fastly.net
+    path: /?https://t.me/WangCai2🇨🇳
+- name: 🇺🇸5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 8080
+  server: www.speedtest.org
+  skip-cert-verify: true
+  tls: false
+  type: vless
+  udp: true
+  uuid: cabbfe13-038b-4dbb-9c45-5079c829abfa
+  ws-opts:
+    headers:
+      Host: tr-cd.sublink-vip2.com
     path: /
 - client-fingerprint: chrome
-  name: 🇺🇸4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  password: 0F22D008-24D4-4DFE-947B-8D2FD64CD24C
-  port: 2053
-  server: www.visa.com.sg
-  skip-cert-verify: false
-  sni: t.hongkong6.qzz.io
-  type: trojan
-  udp: true
-  ws-opts:
-    headers:
-      User-Agent: Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like
-        Gecko) Chrome/51.0.2704.63 Safari/537.36
-    path: /?ed=2560
-- name: 🇮🇹1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
+  name: 🇺🇸3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 8880
-  server: 45.12.31.156
-  servername: Telegram-channel-WangCai2
-  type: vless
-  udp: true
-  uuid: fab7bf9c-ddb9-4563-8a04-fb01ce6c0fbf
-  ws-opts: &id003
-    headers:
-      Host: kjgx.laoyoutiao.link
-      User-Agent: Mozilla/5.0 (X11; U; Linux i586; en-US) AppleWebKit/533.2 (KHTML,
-        like Gecko) Chrome/5.0.342.1 Safari/533.2
-    path: /Telegram🇨🇳 @WangCai2 /?ed=2560
-- name: 🇮🇹1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  network: ws
-  port: 8880
-  server: 45.12.31.156
-  servername: Telegram-channel-WangCai2
-  type: vless
-  udp: true
-  uuid: fab7bf9c-ddb9-4563-8a04-fb01ce6c0fbf
-  ws-opts: *id003
-- name: 🇮🇹2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8880
-  server: 45.12.30.168
-  servername: kjgx.laoyoutiao.link
-  type: vless
-  udp: true
-  uuid: fab7bf9c-ddb9-4563-8a04-fb01ce6c0fbf
-  ws-opts:
-    early-data-header-name: Sec-WebSocket-Protocol
-    headers:
-      Host: kjgx.laoyoutiao.link
-      User-Agent: Mozilla/5.0 (Linux; Android 6.0.1; Redmi 4A Build/MMB29M; wv) AppleWebKit/537.36
-        (KHTML, like Gecko) Version/4.0 Chrome/60.0.3112.116 Mobile Safari/537.36
-    max-early-data: 2560
-    path: /Telegram@WangCai2/
-- name: 🇮🇹4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  network: ws
-  port: 8880
-  server: 45.12.31.213
-  type: vless
-  udp: true
-  uuid: fab7bf9c-ddb9-4563-8a04-fb01ce6c0fbf
-  ws-opts:
-    headers:
-      Host: jp.laoyoutiao.link
-      User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
-        like Gecko) Chrome/68.0.3440.75 Safari/537.36
-- name: 🇺🇸5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  password: 0ab6c98dae3b48e8b9c4a776b6c9c19a
-  port: 443
-  server: 104.16.192.146
+  server: 104.25.144.171
   skip-cert-verify: true
-  sni: jobscareertoday.com
-  type: trojan
+  type: vless
   udp: true
+  uuid: 01fa7ee4-ef31-4e5f-9e4c-c998b912e1a1
+  ws-opts:
+    headers:
+      Host: stockcitywild.northernlight.monster
+    path: /globalizzer
+- name: 🇲🇽1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 8880
+  server: 185.207.197.113
+  type: vless
+  udp: true
+  uuid: d60fc3c5-9f07-4cdb-b81f-70af27936bdc
+  ws-opts:
+    headers:
+      Host: ex.sue.x10.mx
+      User-Agent: Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML,
+        like Gecko) Chrome/63.0.3239.132 Safari/537.36
+    path: /telegram🇨🇳 @wangcai2 /?ed=2560
+- client-fingerprint: chrome
+  name: 🇺🇸2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  network: ws
+  port: 8880
+  server: 135.84.74.177
+  servername: Telegram-channel-WangCai2
+  skip-cert-verify: false
+  tls: false
+  type: vless
+  udp: true
+  uuid: 583ceab3-4022-4553-9158-9bedc625ad4e
+  ws-opts:
+    headers:
+      Host: ip.langmanshanxi.top
+    path: /Telegram🇨🇳 @WangCai2 /?ed=2560
 - alterId: 0
   cipher: auto
-  name: 🇺🇸2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  name: 🇺🇸1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   network: ws
   port: 2086
   server: singapore.com
@@ -2051,314 +1672,306 @@ proxies:
     headers:
       Host: ip1.1789034.xyz
     path: github.com/Alvin9999
+- cipher: aes-128-gcm
+  name: 🇺🇸7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  password: shadowsocks
+  port: 443
+  server: 173.244.56.9
+  type: ss
+- alterId: 2
+  cipher: auto
+  name: 🇬🇧1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  port: 30836
+  server: v36.hdacd.com
+  skip-cert-verify: false
+  tls: false
+  type: vmess
+  udp: true
+  uuid: cbb3f877-d1fb-344c-87a9-d153bffd5484
+- alterId: 2
+  cipher: auto
+  name: 🇺🇸4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  port: 30804
+  server: v4.hdacd.com
+  skip-cert-verify: false
+  tls: false
+  type: vmess
+  udp: true
+  uuid: cbb3f877-d1fb-344c-87a9-d153bffd5484
 proxy-groups:
 - interval: 300
   name: '[START] Auto'
   proxies:
-  - 🇹🇼1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  - 🇸🇬1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  - 🇯🇵2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇹🇼1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  - 🇭🇰2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇹🇼2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇯🇵14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬25-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇹🇼2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇹🇼3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇸🇬15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇸🇬16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇭🇰17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰23-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰24-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬24-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰26-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬30-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬32-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬33-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬23-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰28-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰33-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - '[WEB]1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  - '[WEB]3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  - '[WEB]9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  - '[WEB]10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  - 🇹🇼1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇰🇷3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇰🇷4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇰🇷5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇰🇷6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇰🇷10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇰🇷12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇰🇷13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵23-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰25-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰31-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  - 🇯🇵3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰32-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇹🇼3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇹🇼4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇹🇼5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-2
-  - 🇰🇷15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - '[WEB]2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  - '[WEB]3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  - 🇯🇵17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬29-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - '[WEB]1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  - 🇰🇷16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - '[WEB]5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  - '[WEB]6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
   - '[WEB]4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  - 🇰🇷18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - '[WEB]7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  - 🇯🇵5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇸🇬14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬25-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬23-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬24-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵24-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵25-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇸🇬26-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇹🇼5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰24-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - '[WEB]2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  - 🇯🇵13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇸🇬27-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬28-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰30-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰27-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰29-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - '[WEB]6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
   - '[WEB]8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  - 🇺🇸1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  - 🇫🇷1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇺🇸1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  - 🇬🇧1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇬🇧2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇺🇸3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇬🇧3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - '[WEB]10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  - 🇭🇰1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇮🇩1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬28-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - '[WEB]5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  - 🇰🇷1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇮🇩2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇵🇪1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇹🇼4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵23-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇲🇾1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇲🇾2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰23-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇷🇺1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇷🇺2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇺🇸6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇩🇪1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇩🇪2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇳🇱1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇺1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - '[WEB]7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  - 🇬🇧4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇮🇹1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - '[WEB]9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  - 🇺🇸4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇮🇹1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  - 🇮🇹1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  - 🇮🇹2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇮🇹4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇩🇪3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇺🇸3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇲🇽1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇺🇸1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇺🇸7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇬🇧1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇺🇸4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   tolerance: 50
   type: url-test
   url: https://myip.ipip.net/json
 - name: '[GEO] Select'
   proxies:
   - '[START] Auto'
-  - 🇹🇼1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  - 🇸🇬1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  - 🇯🇵2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇹🇼1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  - 🇭🇰2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇹🇼2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇯🇵14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬25-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇹🇼2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇹🇼3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇸🇬15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇸🇬16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇭🇰17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰23-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰24-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬24-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰26-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬30-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬32-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬33-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬23-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰28-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰33-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - '[WEB]1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  - '[WEB]3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  - '[WEB]9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  - '[WEB]10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  - 🇹🇼1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇰🇷3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇰🇷4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇰🇷5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇰🇷6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇰🇷10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇰🇷12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇰🇷13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵23-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰25-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰31-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  - 🇯🇵3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰32-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇹🇼3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇹🇼4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇹🇼5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-2
-  - 🇰🇷15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - '[WEB]2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  - '[WEB]3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  - 🇯🇵17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬29-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - '[WEB]1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  - 🇰🇷16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇰🇷19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇯🇵1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - '[WEB]5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  - '[WEB]6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
   - '[WEB]4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  - 🇰🇷18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - '[WEB]7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  - 🇯🇵5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬11-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇸🇬14-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬25-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵16-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰18-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬23-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬24-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵24-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵25-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇸🇬26-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵22-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇹🇼5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰24-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - '[WEB]2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  - 🇯🇵13-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇸🇬27-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇸🇬28-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰30-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰27-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇰29-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - '[WEB]6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
   - '[WEB]8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  - 🇺🇸1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  - 🇫🇷1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇺🇸1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  - 🇬🇧1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇬🇧2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇺🇸3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇬🇧3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - '[WEB]10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  - 🇭🇰1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬12-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇮🇩1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬28-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - '[WEB]5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
+  - 🇰🇷1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇮🇩2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇵🇪1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇹🇼4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰21-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵20-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵23-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵10-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬8-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵19-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇯🇵15-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇰🇷7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇲🇾1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇲🇾2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇸🇬17-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇭🇰23-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇷🇺1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇷🇺2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇺🇸6-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇩🇪1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇩🇪2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇳🇱1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇭🇺1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - '[WEB]7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  - 🇬🇧4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇮🇹1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - '[WEB]9-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶'
-  - 🇺🇸4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇮🇹1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  - 🇮🇹1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶-1
-  - 🇮🇹2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
-  - 🇮🇹4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇩🇪3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸5-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇺🇸3-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇲🇽1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   - 🇺🇸2-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇺🇸1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇺🇸7-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇬🇧1-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
+  - 🇺🇸4-𝔄𝔫𝔣𝔱𝔩𝔦𝔱𝔶
   type: select
 rules:
 - DOMAIN-SUFFIX,cn,DIRECT

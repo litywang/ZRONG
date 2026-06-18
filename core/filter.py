@@ -80,10 +80,16 @@ def filter_quality(p):
             return False  # vless+tcp+tls无flow无reality → 协议握手会失败
         if network == "ws" and has_tls and not has_sni:
             return False  # vless+ws+tls无SNI → CDN无法路由
+        # v30.3: vless+ws无TLS → 裸WS连接，GFW秒识别秒封
+        if network == "ws" and not has_tls:
+            return False  # vless+ws无TLS → 裸连必封
+        # v30.3: vless+tcp无TLS也无reality → 裸连必封
+        if network == "tcp" and not has_tls and not has_reality:
+            return False  # vless+tcp无TLS无reality → 裸连必封
     elif ptype == "vmess":
-        # vmess无tls → 裸连接，GFW秒封
-        if not has_tls and network != "ws":
-            return False  # vmess+tcp无tls → 基本不可用
+        # vmess无tls → 裸连接，GFW秒封（包括ws，CDN中转vmess仍需TLS）
+        if not has_tls:
+            return False  # vmess无TLS → 无论tcp/ws均被GFW识别
     elif ptype == "trojan":
         # trojan必须有tls
         if not has_tls:

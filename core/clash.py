@@ -280,14 +280,14 @@ class ClashManager:
             self.process = None
 
     def test_proxy(self, name, server=None, port=None, retry=False):
-        """v30.1: 双层验证——1)代理能连上 2)能访问国内网站(说明代理通了)"""
+        """v30.2: 测速逻辑——代理能连上并访问目标URL就算成功"""
         result = {"success": False, "latency": 9999.0, "speed": 0.0, "error": "", "mainland_reachable": False}
         try:
             requests.put(f"http://127.0.0.1:{CLASH_API_PORT}/proxies/GLOBAL", json={"name": name}, timeout=2)
             time.sleep(0.03)
             px = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
 
-            # 第一层：测试代理是否能连上（SSL握手）
+            # 第一层：测试代理是否能连上（访问目标URL）
             connected = False
             for url in TEST_URLS:
                 try:
@@ -325,25 +325,19 @@ class ClashManager:
                 result["error"] = "Connection failed"
                 return result
 
-            # 第二层：验证代理能访问国内网站（关键！）
-            # 如果连不上百度，说明代理没真正通（可能是 false positive）
-            mainland_ok = False
+            # v30.2: 去掉国内网站验证（GH Actions在海外，直连国内网站不可靠）
+            # connected成功就说明代理通了，mainland_reachable仅用于评分参考
+            result["success"] = True
+
+            # 大陆可达性检测（用于评分，不影响success）
             for url in ["http://www.baidu.com", "http://www.qq.com"]:
                 try:
                     resp = requests.get(url, proxies=px, timeout=(5, 10))
                     if resp.status_code == 200:
-                        mainland_ok = True
                         result["mainland_reachable"] = True
                         break
                 except requests.RequestException:
                     continue
-
-            # v30.1: 只有能访问国内网站，才算真正通过
-            if mainland_ok:
-                result["success"] = True
-            else:
-                result["success"] = False
-                result["error"] = "Cannot access mainland sites"
 
         except requests.RequestException as e:
             result["error"] = str(e)[:60]

@@ -137,6 +137,25 @@ def _clean_nodes(nodes: list) -> list:
     ]
 
 
+def _deduplicate_nodes(nodes: list) -> list:
+    """基于节点指纹去重（保留第一个），指纹=server+port+type+uuid/password"""
+    seen = set()
+    result = []
+    for p in nodes:
+        # 构建指纹
+        fp_parts = [
+            p.get("server", ""),
+            str(p.get("port", "")),
+            p.get("type", ""),
+            p.get("uuid", "") or p.get("password", "") or "",
+        ]
+        fp = "|".join(fp_parts)
+        if fp not in seen:
+            seen.add(fp)
+            result.append(p)
+    return result
+
+
 def _deduplicate_names(nodes: list) -> list:
     """去重节点名称（同名节点加数字后缀）"""
     names = {}
@@ -153,6 +172,9 @@ def _deduplicate_names(nodes: list) -> list:
 
 def write_output(final: list, nres: list, stats: dict, elapsed: float) -> None:
     """生成 proxies.yaml 和 subscription.txt"""
+    # v30.1: 先基于指纹去重，再处理名称
+    final = _deduplicate_nodes(final)
+    logging.info(f"   [v30.1] 节点指纹去重: {len(final)} 个唯一节点")
     unique_final = _deduplicate_names(final)
     cleaned = _clean_nodes(unique_final)
 

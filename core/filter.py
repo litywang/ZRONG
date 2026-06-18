@@ -67,6 +67,28 @@ def filter_quality(p):
     if ptype == "anytls":
         return False
 
+    # v30.2: 协议配置完整性硬筛（避免无效节点通过测速）
+    has_tls = p.get("tls", False)
+    has_reality = bool(p.get("reality-opts"))
+    has_flow = bool(p.get("flow"))
+    has_sni = bool(p.get("sni") or p.get("servername"))
+
+    if ptype == "vless":
+        # vless+tcp+tls 必须有 flow（xtls-rprx-vision）或 reality-opts
+        # vless+ws+tls 必须有 sni（CDN 伪装域名）
+        if network == "tcp" and has_tls and not has_flow and not has_reality:
+            return False  # vless+tcp+tls无flow无reality → 协议握手会失败
+        if network == "ws" and has_tls and not has_sni:
+            return False  # vless+ws+tls无SNI → CDN无法路由
+    elif ptype == "vmess":
+        # vmess无tls → 裸连接，GFW秒封
+        if not has_tls and network != "ws":
+            return False  # vmess+tcp无tls → 基本不可用
+    elif ptype == "trojan":
+        # trojan必须有tls
+        if not has_tls:
+            return False  # trojan无tls → 协议要求TLS
+
     # v30.0: [WEB] CDN 节点数量上限（超过 MAX_WEB_NET_NODES 后过滤）
     global _web_node_count, _web_node_reset_date
     from datetime import date

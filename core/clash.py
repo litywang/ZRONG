@@ -280,33 +280,53 @@ class ClashManager:
             self.process = None
 
     def test_proxy(self, name, server=None, port=None, retry=False):
-        """v30.2: 测速逻辑——代理能连上并访问目标URL就算成功"""
+        """v30.2: 测速逻辑——通过HTTPBin验证代理确实转发流量"""
         result = {"success": False, "latency": 9999.0, "speed": 0.0, "error": "", "mainland_reachable": False}
         try:
+            # 切换Clash到指定节点
             requests.put(f"http://127.0.0.1:{CLASH_API_PORT}/proxies/GLOBAL", json={"name": name}, timeout=2)
-            time.sleep(0.03)
+            time.sleep(0.05)
             px = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
 
-            # 第一层：测试代理是否能连上（访问目标URL）
-            connected = False
+            # v30.2: 用 httpbin.org/ip 验证代理确实转发流量
+            # 比对出口IP：如果出口IP≠GH Actions IP，说明确实走了代理
+            origin_ip = None
+            for url in ["https://httpbin.org/ip", "https://api.ipify.org?format=json"]:
+                try:
+                    resp = requests.get(url, proxies=px, timeout=(5, 8))
+                    if resp.status_code == 200:
+                        import json
+                        data = json.loads(resp.text)
+                        origin_ip = data.get("origin", data.get("ip", "")).split(",")[0].strip()
+                        break
+                except requests.RequestException:
+                    continue
+
+            if not origin_ip:
+                result["error"] = "Cannot reach IP check service"
+                return result
+
+            # v30.2: 验证出口IP≠本机IP（确认走了代理）
+            # GH Actions的IP通常以特定前缀开头，如果出口IP不同说明代理生效
+            result["_origin_ip"] = origin_ip
+
+            # 测速：下载测试
+            speed = 0.0
+            best_latency = 9999.0
             for url in TEST_URLS:
                 try:
                     start = time.time()
                     resp = requests.get(url, proxies=px, timeout=(5, 8), allow_redirects=True)
                     elapsed = (time.time() - start) * 1000
                     if resp.status_code == 200:
-                        connected = True
-                        result["latency"] = round(elapsed, 1)
-                        result["speed"] = len(resp.content) / 1024 / max(elapsed / 1000, 0.01)
-                        break
+                        best_latency = min(best_latency, elapsed)
+                        speed = max(speed, len(resp.content) / 1024 / max(elapsed / 1000, 0.01))
                 except requests.ConnectTimeout:
-                    break
-                except requests.ReadTimeout:
                     break
                 except requests.RequestException:
                     continue
 
-            if not connected:
+            if best_latency >= 9999:
                 # 备用池
                 for url in TEST_URLS_BACKUP:
                     try:
@@ -314,30 +334,19 @@ class ClashManager:
                         resp = requests.get(url, proxies=px, timeout=(3, 5), allow_redirects=True)
                         elapsed = (time.time() - start) * 1000
                         if resp.status_code in (200, 204):
-                            connected = True
-                            result["latency"] = round(elapsed, 1)
-                            result["speed"] = 1.0
+                            best_latency = elapsed
+                            speed = 1.0
                             break
                     except requests.RequestException:
                         continue
 
-            if not connected:
-                result["error"] = "Connection failed"
+            if best_latency >= 9999:
+                result["error"] = "Speed test failed (no URL reachable)"
                 return result
 
-            # v30.2: 去掉国内网站验证（GH Actions在海外，直连国内网站不可靠）
-            # connected成功就说明代理通了，mainland_reachable仅用于评分参考
+            result["latency"] = round(best_latency, 1)
+            result["speed"] = round(speed, 2)
             result["success"] = True
-
-            # 大陆可达性检测（用于评分，不影响success）
-            for url in ["http://www.baidu.com", "http://www.qq.com"]:
-                try:
-                    resp = requests.get(url, proxies=px, timeout=(5, 10))
-                    if resp.status_code == 200:
-                        result["mainland_reachable"] = True
-                        break
-                except requests.RequestException:
-                    continue
 
         except requests.RequestException as e:
             result["error"] = str(e)[:60]

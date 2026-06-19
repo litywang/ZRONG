@@ -7,7 +7,7 @@ on:
       - 'crawler.py'
 
       - 'sources.yaml'
-      - 'cn_cidr_data.py'
+      - 'network/cn_cidr_data.py'
       - '.github/workflows/update.yml'
       - 'core/**'
       - 'network/**'
@@ -183,8 +183,8 @@ jobs:
             git add .gitignore
           fi
           
-          # 只添加目标文件
-          git add proxies.yaml subscription.txt cn_cidr_data.py
+          # 只添加目标文件（cn_cidr_data.py 已迁移到 network/，crawler 不修改它）
+          git add proxies.yaml subscription.txt
           
           # 检查是否有变更需要提交
           if git diff --staged --quiet; then
@@ -211,8 +211,8 @@ jobs:
             git pull origin main
             
             # 重新应用我们的变更（如果有冲突，优先保留我们的版本）
-            git checkout --theirs proxies.yaml subscription.txt cn_cidr_data.py 2>/dev/null || true
-            git add proxies.yaml subscription.txt cn_cidr_data.py
+            git checkout --theirs proxies.yaml subscription.txt 2>/dev/null || true
+            git add proxies.yaml subscription.txt
             git stash pop || true
           fi
           

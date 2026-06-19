@@ -210,24 +210,21 @@ class ClashManager:
             logging.info("[CLASH] 所有节点缺少必填字段或端口无效，无法生成配置")
             return False
 
-        # v30.5: 用安全短名字避免URL编码问题（|、中文、空格等导致mihomo API路径匹配失败）
-        _safe_names = {}  # 原始名 -> 安全名映射
-        for i, p in enumerate(valid_proxies):
+        # v30.9: 用安全短名字避免URL编码问题，并同步回原始proxy对象
+        # 注意：valid_proxies 是 _clean_proxy_for_clash 返回的新字典，
+        # 必须同时更新原始 proxy 对象（修改 in-place），否则 test_proxy 仍用原始名导致 404
+        self._name_map = {}  # safe_name -> original_name（供调试用）
+        for i, (orig_p, p) in enumerate(zip(filtered, valid_proxies)):
             raw_name = p["name"]
-            # URL解码
-            try:
-                from urllib.parse import unquote
-                raw_name = unquote(raw_name)
-            except Exception:
-                pass
-            # 安全短名字：p + 序号
+            # 安全短名字：p + 序号（纯ASCII，无URL编码问题）
             safe_name = f"p{i}"
-            _safe_names[safe_name] = raw_name  # 保留原始名供后续使用
+            self._name_map[safe_name] = raw_name
             if safe_name in seen:
                 safe_name = f"p{i}-{i}"
             seen.add(safe_name)
             names.append(safe_name)
-            p["name"] = safe_name
+            p["name"] = safe_name          # 修改副本（用于YAML）
+            orig_p["name"] = safe_name    # v30.9: 同步回原始对象（test_proxy用）
 
         # v30.3: 如果启用dialer-proxy，添加上游代理节点并给所有proxy配置dialer-proxy
         if USE_DIALER_PROXY:

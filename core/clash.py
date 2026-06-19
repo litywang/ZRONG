@@ -189,6 +189,7 @@ class ClashManager:
         cleaned_proxies = [self._clean_proxy_for_clash(p) for p in filtered]
 
         # v30.9: valid_proxies 构建 + 原始对象引用收集（合并为一个循环）
+        required_fields = {"name", "type", "server", "port"}
         valid_proxies = []
         _orig_refs = []
         for p in cleaned_proxies:

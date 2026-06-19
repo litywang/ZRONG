@@ -367,12 +367,14 @@ class ClashManager:
             test_url = TEST_URLS[0] if TEST_URLS else "https://www.gstatic.com/generate_204"
             timeout_ms = 8000
             import urllib.parse
-            encoded_name = urllib.parse.quote(name, safe="/@:")
-            # v30.5: Karing模式用Karing API，独立模式用本地mihomo API
+            # v30.9: 不对节点名做 URL 编码，直接用于路径
+            # percent-encoded 名字与 YAML 中的原始名字不一致导致 Clash 404
+            # Clash Meta 原生支持 Unicode name，直接用原名最可靠
+            # 路径中的空格等字符会被 requests 自动处理
             api_base = KARING_API_URL if self._karing_mode else f"http://127.0.0.1:{CLASH_API_PORT}"
             headers = self._karing_headers() if self._karing_mode else {}
             url = (
-                f"{api_base}/proxies/{encoded_name}/delay"
+                f"{api_base}/proxies/{name}/delay"
                 f"?url={urllib.parse.quote(test_url, safe=':')}&timeout={timeout_ms}"
             )
             # v30.6: timeout 30s（dialer-proxy 经 Karing 转发延迟大，10s 太短会误杀大量节点）

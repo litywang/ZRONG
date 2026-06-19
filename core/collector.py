@@ -148,7 +148,12 @@ def collect_nodes(use_async=False, max_fetch_nodes=5000, fetch_workers=150):
     
     if not nodes:
         logger.warning("[FAIL] 无有效节点!")
-        return {}, {}
+        return {}, {
+            'tg_count': len(tg_urls), 'fork_count': len(fork_subs),
+            'fixed_count': len(fixed_urls), 'total_urls': len(all_urls),
+            'yaml_count': yaml_count, 'txt_count': txt_count,
+            'nodes_before_filter': 0, 'nodes_after_filter': 0,
+        }
     
     # 7. 节点质量过滤
     logger.info("[SEARCH] 节点质量过滤...")

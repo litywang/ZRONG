@@ -2,6 +2,7 @@
 # v28.99 Phase A fix: 替换 sys.modules hack，直接从 config.constants 读取
 # 解决运行时循环导入问题，sources 模块不再依赖 crawler.py
 
+import os
 from typing import Any, Dict, List, Optional
 import logging
 
@@ -222,7 +223,14 @@ def is_url_healthy(url: str, timeout: float = 3.0) -> bool:
     
     使用内存缓存（5 分钟有效期），避免重复探测。
     主要用于在批量抓取前过滤明显不可达的 URL。
+    
+    注意：代理订阅源通常不支持 HEAD 方法，在 CI 环境中网络受限，
+    HEAD 探测几乎全部失败导致误杀所有源。因此默认禁用，
+    仅当环境变量 ENABLE_URL_HEALTH_CHECK=1 时启用。
     """
+    if os.getenv('ENABLE_URL_HEALTH_CHECK', '0') != '1':
+        return True  # 默认跳过健康检查，避免 CI 环境误杀
+    
     import time as _t
     now = _t.time()
     cached = _URL_HEALTH_CACHE.get(url)

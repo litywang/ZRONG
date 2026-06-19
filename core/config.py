@@ -77,6 +77,14 @@ TEST_URLS_BACKUP = [
 DIALER_PROXY_SERVER = os.getenv("DIALER_PROXY_SERVER", "127.0.0.1")
 DIALER_PROXY_PORT = int(os.getenv("DIALER_PROXY_PORT", "3066"))  # SOCKS5端口
 USE_DIALER_PROXY = os.getenv("USE_DIALER_PROXY", "1") == "1"
+if USE_DIALER_PROXY:
+    import socket
+    _s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    _s.settimeout(2)
+    if _s.connect_ex((DIALER_PROXY_SERVER, DIALER_PROXY_PORT)) != 0:
+        logging.warning(f"[CONFIG] dialer-proxy {DIALER_PROXY_SERVER}:{DIALER_PROXY_PORT} 不可达，自动禁用")
+        USE_DIALER_PROXY = False
+    _s.close()
 
 # v30.5: Karing 集成（直接用已运行的Karing Clash API测速，无需启动独立mihomo）
 KARING_API_URL = os.getenv("KARING_API_URL", "http://127.0.0.1:3057")

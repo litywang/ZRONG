@@ -55,6 +55,9 @@ jobs:
           CHAT_ID: ${{ secrets.CHAT_ID }}
           USE_ASYNC_FETCH: '1'
 
+          # 🌐 Actions 直连模式（无本地代理，禁用 dialer-proxy）
+          USE_DIALER_PROXY: '0'
+
           # 🌏 v28.58: 大陆可达性测试加分（默认关闭MAINLAND_TEST时不生效）
           MAINLAND_PASS_BONUS: '20'
 

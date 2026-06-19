@@ -16,7 +16,7 @@ from utils import WORK_DIR, MAX_RETRIES, HEADERS_POOL
 # ===== Clash 配置常量（v28.69 从 crawler.py 迁移）=====
 CLASH_PORT = int(os.getenv("CLASH_PORT", "17890"))  # v28.23: 可配置
 CLASH_API_PORT = int(os.getenv("CLASH_API_PORT", "19090"))  # v28.23: 可配置
-CLASH_VERSION = os.getenv("CLASH_VERSION", "v1.19.0")  # v28.23: 可配置
+CLASH_VERSION = os.getenv("CLASH_VERSION", "v1.18.7")  # v30.5: 更新为最新稳定版
 CLASH_PATH = WORK_DIR / "mihomo"
 CONFIG_FILE = WORK_DIR / "config.yaml"
 LOG_FILE = WORK_DIR / "clash.log"
@@ -75,7 +75,16 @@ TEST_URLS_BACKUP = [
 
 # v30.3: 本地dialer-proxy上游代理（让节点流量走本地已有代理出去）
 DIALER_PROXY_SERVER = os.getenv("DIALER_PROXY_SERVER", "127.0.0.1")
-DIALER_PROXY_PORT = int(os.getenv("DIALER_PROXY_PORT", "3067"))
+DIALER_PROXY_PORT = int(os.getenv("DIALER_PROXY_PORT", "3066"))  # SOCKS5端口
 USE_DIALER_PROXY = os.getenv("USE_DIALER_PROXY", "1") == "1"
+
+# v30.5: Karing 集成（直接用已运行的Karing Clash API测速，无需启动独立mihomo）
+KARING_API_URL = os.getenv("KARING_API_URL", "http://127.0.0.1:3057")
+KARING_API_SECRET = os.getenv("KARING_API_SECRET", "6e987380b2efa20a")
+USE_KARING = os.getenv("USE_KARING", "0") == "1"
+
+# HTTP代理（用于采集阶段，让TG/GitHub请求走代理）
+HTTP_PROXY = os.getenv("HTTP_PROXY", "http://127.0.0.1:3067")
+HTTPS_PROXY = os.getenv("HTTPS_PROXY", "http://127.0.0.1:3067")
 
 ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "0") == "1"

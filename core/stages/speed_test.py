@@ -102,23 +102,21 @@ def run_speed_test(nres: list, clash: ClashManager) -> tuple:
         namer = NodeNamer()
 
         try:
-            with ThreadPoolExecutor(max_workers=40) as tex:
+            with ThreadPoolExecutor(max_workers=1) as tex:  # v30.6: 10→1，dialer-proxy经Karing转发不支持并发
                 futures = {tex.submit(test_one, item, clash, namer): item
                            for item in batch_items}
                 done_count = 0
                 batch_success = 0  # v30.1: 跟踪本批成功率
                 for future in as_completed(futures):
                     try:
-                        item, p, r = future.result(timeout=8)
+                        item, p, r = future.result(timeout=20)  # v30.6: 匹配requests 15s timeout
                         done_count += 1
                         k = f"{p['server']}:{p['port']}"
                         # v30.1: 分层合格率判断（避免合格率为0）
                         # 第一层：完全合格（success=True + 延迟达标）
                         # 阈值：通用5000ms，亚洲8000ms（宽松，慢节点>死节点）
-                        latency_ok = (
-                            r["latency"] < 5000
-                            or (is_asia(p) and r["latency"] < 8000)
-                        )
+                        # v30.6: 移除延迟硬上限（dialer-proxy 经 Karing 转发延迟加成大）
+                        latency_ok = 0 < r["latency"] < 30000
                         # v30.1: 放宽速度要求（最低0.5KB/s，避免误杀）
                         speed_ok = r.get("speed", 0) >= 0.5
                         if r["success"] and latency_ok and speed_ok:
@@ -128,24 +126,6 @@ def run_speed_test(nres: list, clash: ClashManager) -> tuple:
                             batch_success += 1
                             update_node_history(p, success=True)
                             logging.info(f"   [OK] {p['name']}")
-                        # v30.1: 第二层：TCP保底（仅亚洲节点，TCP<500ms）
-                        elif is_asia(p) and item.get("latency", 9999) < 500:
-                            # TCP延迟低但代理测速失败，可能是测速URL问题，保留节点
-                            p["name"] = namer.generate(
-                                get_region(p.get("name", ""), server=p.get("server", ""))[0],
-                                lat=int(item["latency"]),
-                                score=mainland_friendly_score(p),
-                                tcp=True,
-                                server=p.get("server", ""),
-                                sni=p.get("sni", "") or p.get("servername", ""),
-                                mainland_reachable=False,
-                                proto=p.get("type", "")
-                            )
-                            p["mainland_reachable"] = False
-                            p["_speed"] = 0.0
-                            final.append(p)
-                            tested.add(k)
-                            logging.info(f"   [TCP-FALLBACK] {p['name']} (代理测速失败但TCP延迟低)")
                         else:
                             update_node_history(p, success=False)
                         if done_count % 20 == 0:

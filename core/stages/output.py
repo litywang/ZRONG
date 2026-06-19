@@ -235,6 +235,41 @@ def write_output(final: list, nres: list, stats: dict, elapsed: float) -> None:
     logging.debug(f"• 耗时：{elapsed:.1f} 秒")
     logging.debug("=" * 180 + "\n")
 
+    # v30.6: 同步 subscription.txt 到 GitHub Gist
+    _sync_to_gist(b64)
+
+
+def _sync_to_gist(b64_content: str) -> None:
+    """v30.6: 同步 subscription.txt 到 GitHub Gist"""
+    gist_id = os.getenv("GIST_ID", "")
+    token = os.getenv("GITHUB_TOKEN", "")
+    if not (gist_id and token):
+        logging.debug("[GIST] 跳过: 缺少 GIST_ID 或 GITHUB_TOKEN")
+        return
+    try:
+        import urllib.request
+        import json
+        url = f"https://api.github.com/gists/{gist_id}"
+        data = json.dumps({
+            "files": {"subscription.txt": {"content": b64_content}}
+        }).encode('utf-8')
+        req = urllib.request.Request(url, data=data, method='PATCH')
+        req.add_header('Authorization', f'token {token}')
+        req.add_header('Accept', 'application/vnd.github.v3+json')
+        # v30.6: 走代理访问 GitHub API
+        proxy = os.getenv('HTTPS_PROXY', '') or os.getenv('HTTP_PROXY', '')
+        if proxy:
+            handler = urllib.request.ProxyHandler({'https': proxy, 'http': proxy})
+            opener = urllib.request.build_opener(handler)
+        else:
+            opener = urllib.request.build_opener()
+        resp = opener.open(req, timeout=30)
+        result = json.loads(resp.read().decode('utf-8'))
+        raw_url = result.get('files', {}).get('subscription.txt', {}).get('raw_url', '')
+        logging.info(f"[GIST] 同步成功: {raw_url[:60]}...")
+    except Exception as e:
+        logging.warning(f"[GIST] 同步失败: {e}")
+
 
 def send_telegram_notify(unique_final: list, nres: list, stats: dict, elapsed: float) -> None:
     """发送 Telegram 通知"""

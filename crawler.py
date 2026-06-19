@@ -193,6 +193,12 @@ CN_IP_RANGES = _CN_IP_RANGES_RAW
 
 # ==================== 入口 ====================
 if __name__ == "__main__":
+    # v30.5: 本地运行时设置代理环境变量，让采集请求走 Karing
+    from core.config import HTTP_PROXY, HTTPS_PROXY
+    if HTTP_PROXY:
+        os.environ.setdefault("HTTP_PROXY", HTTP_PROXY)
+    if HTTPS_PROXY:
+        os.environ.setdefault("HTTPS_PROXY", HTTPS_PROXY)
     try:
         main()
     except KeyboardInterrupt:

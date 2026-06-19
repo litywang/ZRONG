@@ -59,6 +59,10 @@ def discover_github_forks() -> List[str]:
     Returns:
         候选订阅 URL 列表
     """
+    # v30.5: 支持环境变量跳过（避免本地运行时 GitHub API 限流卡死）
+    if os.getenv("SKIP_GITHUB_FORKS", "0") == "1":
+        logging.info("[SEARCH] GitHub Fork 跳过（SKIP_GITHUB_FORKS=1）")
+        return []
     logging.debug("[SEARCH] 动态发现 GitHub Fork...")
 
     session = config.session_fn()

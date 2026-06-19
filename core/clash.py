@@ -1,5 +1,9 @@
 # core/clash.py - ClashManager
-# v28.41 Phase3 重构
+# v30.5: 支持两种测速模式：
+#   1. 独立模式（默认）：启动自己的mihomo进程测速
+#   2. Karing模式（USE_KARING=1）：直接用Karing的Clash API测速，不启动独立进程
+# dialer-proxy方案：独立模式下通过dialer-proxy让节点流量走Karing代理
+
 import gzip
 import logging
 import os
@@ -26,17 +30,28 @@ from core.config import (
     DIALER_PROXY_SERVER,
     DIALER_PROXY_PORT,
     USE_DIALER_PROXY,
+    KARING_API_URL,
+    KARING_API_SECRET,
+    USE_KARING,
 )
 from utils import WORK_DIR
+
 
 class ClashManager:
     def __init__(self):
         self.process = None
         self._geo_cache = {}  # v28.61: 缓存出口IP归属，避免重复调用ip-api.com
         self._exit_ip_cache = {}  # v28.98: 已废弃，保留避免属性引用错误
+        self._karing_mode = USE_KARING  # v30.5: Karing模式标志
         ensure_clash_dir()
 
+    def _karing_headers(self):
+        """v30.5: 返回Karing API的认证头"""
+        return {"Authorization": f"Bearer {KARING_API_SECRET}"} if KARING_API_SECRET else {}
+
     def download_clash(self):
+        if self._karing_mode:
+            return True  # v30.5: Karing模式不需要下载mihomo
         if CLASH_PATH.exists():
             return True
         # ISSUE-3-03: 跨平台 Clash 二进制下载
@@ -45,9 +60,9 @@ class ClashManager:
         arch = platform.machine().lower()
         if sys == "windows":
             if "arm" in arch:
-                clang_name = f"mihomo-windows-arm64-compatible-{CLASH_VERSION}.exe.gz"
+                clang_name = f"mihomo-windows-arm64-compatible-{CLASH_VERSION}.zip"
             else:
-                clang_name = f"mihomo-windows-amd64-compatible-{CLASH_VERSION}.exe.gz"
+                clang_name = f"mihomo-windows-amd64-compatible-{CLASH_VERSION}.zip"
         elif sys == "darwin":
             if "arm" in arch:
                 clang_name = f"mihomo-darwin-arm64-compatible-{CLASH_VERSION}.gz"
@@ -66,28 +81,38 @@ class ClashManager:
             resp = requests.get(url, timeout=120, stream=True)
             if resp.status_code != 200:
                 return False
-            temp = WORK_DIR / "mihomo.gz"
+            temp = WORK_DIR / "mihomo_download"
             with open(temp, "wb") as f:
                 for chunk in resp.iter_content(chunk_size=8192):
                     f.write(chunk)
-            # v28.50: 使用独立变量确保文件句柄可关闭
-            f_in = None
-            f_out = None
-            try:
-                f_in = gzip.open(temp, "rb")
-                f_out = open(CLASH_PATH, "wb")
-                shutil.copyfileobj(f_in, f_out)
-            finally:
-                if f_in:
-                    try:
-                        f_in.close()
-                    except OSError as e:
-                        logging.debug(f"关闭输入文件失败: {e}", exc_info=True)
-                if f_out:
-                    try:
-                        f_out.close()
-                    except OSError as e:
-                        logging.debug(f"关闭输出文件失败: {e}", exc_info=True)
+            # v30.5: Windows用zip格式，Linux/Mac用gz格式
+            if clang_name.endswith('.zip'):
+                import zipfile
+                with zipfile.ZipFile(temp, 'r') as zf:
+                    # 找到exe文件
+                    for member in zf.namelist():
+                        if member.endswith('.exe'):
+                            with zf.open(member) as src, open(CLASH_PATH, 'wb') as dst:
+                                shutil.copyfileobj(src, dst)
+                            break
+            else:
+                f_in = None
+                f_out = None
+                try:
+                    f_in = gzip.open(temp, "rb")
+                    f_out = open(CLASH_PATH, "wb")
+                    shutil.copyfileobj(f_in, f_out)
+                finally:
+                    if f_in:
+                        try:
+                            f_in.close()
+                        except OSError as e:
+                            logging.debug(f"关闭输入文件失败: {e}", exc_info=True)
+                    if f_out:
+                        try:
+                            f_out.close()
+                        except OSError as e:
+                            logging.debug(f"关闭输出文件失败: {e}", exc_info=True)
             if os.name != 'nt':  # Windows 不支持 os.chmod 的 Unix 权限
                 os.chmod(CLASH_PATH, 0o755)
             temp.unlink(missing_ok=True)
@@ -139,6 +164,10 @@ class ClashManager:
 
     def create_config(self, proxies):
         ensure_clash_dir()
+        if self._karing_mode:
+            # v30.5: Karing模式——不需要生成配置文件，节点已在Karing中
+            logging.info("[KARING] 跳过配置生成，直接使用Karing现有节点")
+            return True
         # BUGFIX v28.26: 过滤 Clash 不支持的协议（anytls 等）
         SUPPORTED_TYPES = {
             'ss', 'ssr', 'vmess', 'vless', 'trojan', 'socks5', 'http',
@@ -181,19 +210,30 @@ class ClashManager:
             logging.info("[CLASH] 所有节点缺少必填字段或端口无效，无法生成配置")
             return False
 
+        # v30.5: 用安全短名字避免URL编码问题（|、中文、空格等导致mihomo API路径匹配失败）
+        _safe_names = {}  # 原始名 -> 安全名映射
         for i, p in enumerate(valid_proxies):
-            name = p["name"]
-            if name in seen:
-                name = f"{name}-{i}"
-            seen.add(name)
-            names.append(name)
-            p["name"] = name
+            raw_name = p["name"]
+            # URL解码
+            try:
+                from urllib.parse import unquote
+                raw_name = unquote(raw_name)
+            except Exception:
+                pass
+            # 安全短名字：p + 序号
+            safe_name = f"p{i}"
+            _safe_names[safe_name] = raw_name  # 保留原始名供后续使用
+            if safe_name in seen:
+                safe_name = f"p{i}-{i}"
+            seen.add(safe_name)
+            names.append(safe_name)
+            p["name"] = safe_name
 
-                # v30.3: 如果启用dialer-proxy，添加上游代理节点并给所有proxy配置dialer-proxy
+        # v30.3: 如果启用dialer-proxy，添加上游代理节点并给所有proxy配置dialer-proxy
         if USE_DIALER_PROXY:
             karing = {
                 "name": "KARING",
-                "type": "http",
+                "type": "socks5",
                 "server": DIALER_PROXY_SERVER,
                 "port": DIALER_PROXY_PORT,
             }
@@ -202,7 +242,7 @@ class ClashManager:
                 p["dialer-proxy"] = "KARING"
             names.insert(0, "KARING")
 
-                # v30.0: 简化Clash配置——移除rule-providers/DNS fake-ip（下载耗时不稳定）
+        # v30.0: 简化Clash配置——移除rule-providers/DNS fake-ip（下载耗时不稳定）
         # 测速环境只需：所有流量走TEST代理组，无需路由规则和DNS提供者
         rules = ["MATCH,TEST"]
 
@@ -231,6 +271,23 @@ class ClashManager:
 
     def start(self):
         ensure_clash_dir()
+        if self._karing_mode:
+            # v30.5: Karing模式——验证API可达性
+            try:
+                resp = requests.get(
+                    f"{KARING_API_URL}/version",
+                    headers=self._karing_headers(),
+                    timeout=5,
+                )
+                if resp.status_code == 200:
+                    logging.info("[KARING] API 连接成功")
+                    return True
+                else:
+                    logging.warning(f"[KARING] API 返回 {resp.status_code}")
+                    return False
+            except requests.RequestException as e:
+                logging.warning(f"[KARING] API 不可达: {e}")
+                return False
         if not CLASH_PATH.exists() and not self.download_clash():
             logging.info("[CLASH] mihomo 二进制文件不存在且下载失败")
             return False
@@ -283,6 +340,10 @@ class ClashManager:
             return False
 
     def stop(self):
+        if self._karing_mode:
+            # v30.5: Karing模式——无需停止
+            logging.info("[KARING] 测速完成")
+            return
         if self.process:
             try:
                 # BUGFIX v28.15: os.killpg/signal.SIGTERM 仅 Linux 可用
@@ -297,8 +358,9 @@ class ClashManager:
             self.process = None
 
     def test_proxy(self, name, server=None, port=None, retry=False):
-        """v30.3: 通过Mihomo EC delay API测速（参考sub-crawler v2方式）
-        GET /proxies/{name}/delay?url=...&timeout=... 直接测节点延迟，无需切换代理组或下载测速。
+        """v30.5: 通过Clash API测速
+        Karing模式：直接调用Karing的/proxies/{name}/delay端点
+        独立模式：调用本地mihomo的/proxies/{name}/delay端点
         """
         result = {"success": False, "latency": 9999.0, "speed": 0.0, "error": "", "mainland_reachable": False}
         try:
@@ -306,17 +368,22 @@ class ClashManager:
             timeout_ms = 8000
             import urllib.parse
             encoded_name = urllib.parse.quote(name, safe="")
+            # v30.5: Karing模式用Karing API，独立模式用本地mihomo API
+            api_base = KARING_API_URL if self._karing_mode else f"http://127.0.0.1:{CLASH_API_PORT}"
+            headers = self._karing_headers() if self._karing_mode else {}
             url = (
-                f"http://127.0.0.1:{CLASH_API_PORT}/proxies/{encoded_name}/delay"
+                f"{api_base}/proxies/{encoded_name}/delay"
                 f"?url={urllib.parse.quote(test_url, safe=':')}&timeout={timeout_ms}"
             )
-            resp = requests.get(url, timeout=10)
+            # v30.6: timeout 30s（dialer-proxy 经 Karing 转发延迟大，10s 太短会误杀大量节点）
+            resp = requests.get(url, headers=headers, timeout=15)  # v30.6: 15s timeout（串行模式）
             if resp.status_code == 200:
                 data = resp.json()
                 delay = data.get("delay")
-                if delay is not None and isinstance(delay, (int, float)) and 0 < delay < 5000:
+                # v30.6: 移除了 delay<5000 硬上限（dialer-proxy 经 Karing 转发延迟加成, 免费节点延迟本身就高）
+                if delay is not None and isinstance(delay, (int, float)) and delay > 0:
                     result["latency"] = round(float(delay), 1)
-                    result["speed"] = round(1024 / max(delay / 1000, 0.01), 2)  # 估算速度(KB/s)
+                    result["speed"] = round(1024 / max(delay / 1000, 0.01), 2)
                     result["success"] = True
                     return result
 

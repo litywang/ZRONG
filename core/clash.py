@@ -367,7 +367,7 @@ class ClashManager:
             test_url = TEST_URLS[0] if TEST_URLS else "https://www.gstatic.com/generate_204"
             timeout_ms = 8000
             import urllib.parse
-            encoded_name = urllib.parse.quote(name, safe="")
+            encoded_name = urllib.parse.quote(name, safe="/@:")
             # v30.5: Karing模式用Karing API，独立模式用本地mihomo API
             api_base = KARING_API_URL if self._karing_mode else f"http://127.0.0.1:{CLASH_API_PORT}"
             headers = self._karing_headers() if self._karing_mode else {}

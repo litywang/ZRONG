@@ -62,17 +62,20 @@ session = create_session()
 # v30.0 Phase 6f: 多层级测速URL池
 # 之前false positive的根源是/proxies/TEST而非/proxies/GLOBAL（代理选择器bug），非URL本身
 # 第一层：HTTP 204（最快，无body，全球CDN），第二层：HTTP纯文本（避免TLS开销）
+# v30.3: 测速URL——204页面（轻量、全球CDN可达、适合EC delay API）
 TEST_URLS = [
-    # v30.1: 必须走代理才能访问的 URL（GH Actions 直连会失败/超时）
-    # 这样能确保测速结果真实反映代理是否生效
-    "http://www.baidu.com",
-    "http://www.qq.com",
-    "https://www.google.com.hk",
+    "https://www.gstatic.com/generate_204",
+    "https://cp.cloudflare.com/generate_204",
+    "https://www.google.com/generate_204",
 ]
-# 备用池
 TEST_URLS_BACKUP = [
-    "http://speedtest.tele2.net/1MB.zip",
-    "http://cachefly.cachefly.net/10mb.test",
+    "https://connectivitycheck.gstatic.com/generate_204",
+    "https://www.apple.com/library/test/success.html",
 ]
+
+# v30.3: 本地dialer-proxy上游代理（让节点流量走本地已有代理出去）
+DIALER_PROXY_SERVER = os.getenv("DIALER_PROXY_SERVER", "127.0.0.1")
+DIALER_PROXY_PORT = int(os.getenv("DIALER_PROXY_PORT", "3067"))
+USE_DIALER_PROXY = os.getenv("USE_DIALER_PROXY", "1") == "1"
 
 ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "0") == "1"

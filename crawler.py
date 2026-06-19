@@ -184,7 +184,7 @@ from sources import (
 )
 
 # ==================== CN IP 数据 ====================
-from cn_cidr_data import CN_IP_RANGES as _CN_IP_RANGES_RAW
+from network.cn_cidr_data import CN_IP_RANGES as _CN_IP_RANGES_RAW
 CN_IP_RANGES = _CN_IP_RANGES_RAW
 
 # ==================== 兼容性别名（向后兼容，避免旧代码断裂）====================

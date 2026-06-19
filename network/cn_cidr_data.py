@@ -9,7 +9,7 @@ import ipaddress
 import json
 import pathlib
 
-_CIDR_JSON = pathlib.Path(__file__).parent / "config" / "cn_cidr_data.json"
+_CIDR_JSON = pathlib.Path(__file__).parent.parent / "config" / "cn_cidr_data.json"
 
 
 def _load():

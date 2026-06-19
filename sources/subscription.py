@@ -36,7 +36,7 @@ from .utils import (
 def fetch(url: str) -> str:
     """同步抓取单个 URL（GitHub URL 多镜像池遍历 + HTTP/2 + 重试）"""
     # v28.74: 设置 socket 默认超时，防止 TCP/SSL 无限阻塞
-    import config
+    # config 已在模块顶部 from . import config 导入
     socket.setdefaulttimeout(config.TIMEOUT_fn())
     
     limiter = config.limiter_fn()

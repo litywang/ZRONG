@@ -23,6 +23,9 @@ from core.config import (
     LOG_FILE,
     TEST_URLS,
     TEST_URLS_BACKUP,
+    DIALER_PROXY_SERVER,
+    DIALER_PROXY_PORT,
+    USE_DIALER_PROXY,
 )
 from utils import WORK_DIR
 
@@ -185,6 +188,20 @@ class ClashManager:
             seen.add(name)
             names.append(name)
             p["name"] = name
+
+                # v30.3: 如果启用dialer-proxy，添加上游代理节点并给所有proxy配置dialer-proxy
+        if USE_DIALER_PROXY:
+            karing = {
+                "name": "KARING",
+                "type": "http",
+                "server": DIALER_PROXY_SERVER,
+                "port": DIALER_PROXY_PORT,
+            }
+            valid_proxies.insert(0, karing)
+            for p in valid_proxies[1:]:  # 跳过KARING自己
+                p["dialer-proxy"] = "KARING"
+            names.insert(0, "KARING")
+
                 # v30.0: 简化Clash配置——移除rule-providers/DNS fake-ip（下载耗时不稳定）
         # 测速环境只需：所有流量走TEST代理组，无需路由规则和DNS提供者
         rules = ["MATCH,TEST"]
@@ -280,74 +297,30 @@ class ClashManager:
             self.process = None
 
     def test_proxy(self, name, server=None, port=None, retry=False):
-        """v30.2: 测速逻辑——通过HTTPBin验证代理确实转发流量"""
+        """v30.3: 通过Mihomo EC delay API测速（参考sub-crawler v2方式）
+        GET /proxies/{name}/delay?url=...&timeout=... 直接测节点延迟，无需切换代理组或下载测速。
+        """
         result = {"success": False, "latency": 9999.0, "speed": 0.0, "error": "", "mainland_reachable": False}
         try:
-            # 切换Clash到指定节点
-            requests.put(f"http://127.0.0.1:{CLASH_API_PORT}/proxies/GLOBAL", json={"name": name}, timeout=2)
-            time.sleep(0.05)
-            px = {"http": f"http://127.0.0.1:{CLASH_PORT}", "https": f"http://127.0.0.1:{CLASH_PORT}"}
+            test_url = TEST_URLS[0] if TEST_URLS else "https://www.gstatic.com/generate_204"
+            timeout_ms = 8000
+            import urllib.parse
+            encoded_name = urllib.parse.quote(name, safe="")
+            url = (
+                f"http://127.0.0.1:{CLASH_API_PORT}/proxies/{encoded_name}/delay"
+                f"?url={urllib.parse.quote(test_url, safe=':')}&timeout={timeout_ms}"
+            )
+            resp = requests.get(url, timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                delay = data.get("delay")
+                if delay is not None and isinstance(delay, (int, float)) and 0 < delay < 5000:
+                    result["latency"] = round(float(delay), 1)
+                    result["speed"] = round(1024 / max(delay / 1000, 0.01), 2)  # 估算速度(KB/s)
+                    result["success"] = True
+                    return result
 
-            # v30.2: 用 httpbin.org/ip 验证代理确实转发流量
-            # 比对出口IP：如果出口IP≠GH Actions IP，说明确实走了代理
-            origin_ip = None
-            for url in ["https://httpbin.org/ip", "https://api.ipify.org?format=json"]:
-                try:
-                    resp = requests.get(url, proxies=px, timeout=(5, 8))
-                    if resp.status_code == 200:
-                        import json
-                        data = json.loads(resp.text)
-                        origin_ip = data.get("origin", data.get("ip", "")).split(",")[0].strip()
-                        break
-                except requests.RequestException:
-                    continue
-
-            if not origin_ip:
-                result["error"] = "Cannot reach IP check service"
-                return result
-
-            # v30.2: 验证出口IP≠本机IP（确认走了代理）
-            # GH Actions的IP通常以特定前缀开头，如果出口IP不同说明代理生效
-            result["_origin_ip"] = origin_ip
-
-            # 测速：下载测试
-            speed = 0.0
-            best_latency = 9999.0
-            for url in TEST_URLS:
-                try:
-                    start = time.time()
-                    resp = requests.get(url, proxies=px, timeout=(5, 8), allow_redirects=True)
-                    elapsed = (time.time() - start) * 1000
-                    if resp.status_code == 200:
-                        best_latency = min(best_latency, elapsed)
-                        speed = max(speed, len(resp.content) / 1024 / max(elapsed / 1000, 0.01))
-                except requests.ConnectTimeout:
-                    break
-                except requests.RequestException:
-                    continue
-
-            if best_latency >= 9999:
-                # 备用池
-                for url in TEST_URLS_BACKUP:
-                    try:
-                        start = time.time()
-                        resp = requests.get(url, proxies=px, timeout=(3, 5), allow_redirects=True)
-                        elapsed = (time.time() - start) * 1000
-                        if resp.status_code in (200, 204):
-                            best_latency = elapsed
-                            speed = 1.0
-                            break
-                    except requests.RequestException:
-                        continue
-
-            if best_latency >= 9999:
-                result["error"] = "Speed test failed (no URL reachable)"
-                return result
-
-            result["latency"] = round(best_latency, 1)
-            result["speed"] = round(speed, 2)
-            result["success"] = True
-
+            result["error"] = f"delay API returned {resp.status_code}: {resp.text[:80]}"
         except requests.RequestException as e:
             result["error"] = str(e)[:60]
 

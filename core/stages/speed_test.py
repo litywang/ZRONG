@@ -128,6 +128,9 @@ def run_speed_test(nres: list, clash: ClashManager) -> tuple:
                             logging.info(f"   [OK] {p['name']}")
                         else:
                             update_node_history(p, success=False)
+                            # v30.7: 打印第一个失败原因（调试用）
+                            if batch_success == 0 and done_count == 1:
+                                logging.warning(f"   [DEBUG] 第一个失败: {p.get('name','?')} - success={r.get('success')}, latency={r.get('latency')}, speed={r.get('speed')}, error={r.get('error','')}")
                         if done_count % 20 == 0:
                             logging.info(f"   进度：{done_count}/{len(batch_items)} | 合格：{len(final)} (本批成功:{batch_success})")
                     except (OSError, ValueError, TypeError):

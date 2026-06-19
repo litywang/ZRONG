@@ -386,8 +386,12 @@ class ClashManager:
                     result["speed"] = round(1024 / max(delay / 1000, 0.01), 2)
                     result["success"] = True
                     return result
-
-            result["error"] = f"delay API returned {resp.status_code}: {resp.text[:80]}"
+                else:
+                    # v30.7: 详细日志——delay 字段异常
+                    result["error"] = f"delay field invalid: {data}"
+            else:
+                # v30.7: 详细日志——HTTP 错误
+                result["error"] = f"delay API returned {resp.status_code}: {resp.text[:80]}"
         except requests.RequestException as e:
             result["error"] = str(e)[:60]
 

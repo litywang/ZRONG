@@ -82,7 +82,16 @@ def collect_nodes(use_async=False, max_fetch_nodes=5000, fetch_workers=150):
     # 5. 按动态权重排序订阅源（高权重源优先抓取）
     url_weights = {u: dynamic_source_weight(u) for u in all_urls}
     all_urls.sort(key=lambda u: -url_weights[u])
-    logger.info(f"[STAT] 源权重排序完成（最高权重: {url_weights[all_urls[0]]:.1f})")
+    if all_urls:
+        logger.info(f"[STAT] 源权重排序完成（最高权重: {url_weights[all_urls[0]]:.1f})")
+    else:
+        logger.warning("[WARN] 无可用订阅源")
+        return {}, {
+            'tg_count': len(tg_urls), 'fork_count': len(fork_subs),
+            'fixed_count': len(fixed_urls), 'total_urls': 0,
+            'yaml_count': 0, 'txt_count': 0,
+            'nodes_before_filter': 0, 'nodes_after_filter': 0,
+        }
     
     # 6. 抓取节点
     logger.info("[LOAD] 抓取节点...")

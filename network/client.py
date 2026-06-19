@@ -18,6 +18,31 @@ import time
 import httpx
 
 
+# ========== v30.6: 代理可达性检测 ==========
+
+def _detect_proxy() -> str | None:
+    """检测本地代理是否可达，返回代理URL或None。
+    
+    仅在本地运行时检测 127.0.0.1:3067（Karing HTTP代理），
+    CI 环境（GitHub Actions）中代理不可达，返回 None。
+    """
+    import socket as _socket
+    proxy_url = os.getenv("HTTP_PROXY", "http://127.0.0.1:3067")
+    if not proxy_url:
+        return None
+    host_port = proxy_url.replace("http://", "").replace("https://", "").split(":")
+    if len(host_port) != 2:
+        return None
+    try:
+        s = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+        s.settimeout(1)
+        s.connect((host_port[0], int(host_port[1])))
+        s.close()
+        return proxy_url
+    except (OSError, ValueError):
+        return None
+
+
 # ========== httpx 同步客户端（高性能连接池 + HTTP/2）==========
 
 _http_client = None
@@ -30,11 +55,14 @@ def get_http_client():
     if _http_client is None:
         with _http_client_lock:
             if _http_client is None:  # 双重检查锁定
+                proxy = _detect_proxy()
                 _http_client = httpx.Client(
                     timeout=httpx.Timeout(15.0, connect=8.0),
                     limits=httpx.Limits(max_connections=100, max_keepalive_connections=50),
                     follow_redirects=True,
-                    verify=False  # nosec: B501 - Intentional for proxy testing with self-signed certs
+                    verify=False,  # nosec: B501 - Intentional for proxy testing with self-signed certs
+                    trust_env=False,  # v30.6: 不从环境变量读取代理
+                    proxy=proxy,  # v30.6: 显式传入代理（本地可达时）或None（直连）
                 )
     return _http_client
 
@@ -51,6 +79,7 @@ def get_async_http_client():
     if _async_http_client is None:
         with _async_http_client_lock:
             if _async_http_client is None:  # 双重检查锁定
+                proxy = _detect_proxy()
                 _async_http_client = httpx.AsyncClient(
                     timeout=httpx.Timeout(15.0, connect=8.0),
                     limits=httpx.Limits(
@@ -60,7 +89,9 @@ def get_async_http_client():
                     ),
                     follow_redirects=True,
                     verify=False,  # nosec: B501
-                    http2=True
+                    http2=True,
+                    trust_env=False,  # v30.6: 不从环境变量读取代理
+                    proxy=proxy,  # v30.6: 显式传入代理（本地可达时）或None（直连）
                 )
     return _async_http_client
 

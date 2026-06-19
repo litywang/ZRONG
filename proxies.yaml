@@ -1,48 +1,176 @@
 proxies:
 - client-fingerprint: chrome
-  name: 🇹🇼1-VL
-  network: ws
-  port: 443
-  server: time.is
-  skip-cert-verify: true
-  sni: https.kmj.qzz.io
-  tls: true
-  type: vless
-  udp: true
-  uuid: ce069292-c8bf-40dd-a6b1-87818a1e64e9
-  ws-opts:
-    headers:
-      Host: https.kmj.qzz.io
-    path: /https://118.163.99.115:443
-- client-fingerprint: firefox
   name: '[WEB]1-VL'
   network: ws
   port: 443
-  server: skk.moe
+  server: www.chatgpt.com
   skip-cert-verify: true
-  sni: pon.antalmani.mm.am
+  sni: upload.myvipnet.com
   tls: true
   type: vless
   udp: true
-  uuid: f7e3ff36-276c-4477-b6d4-47257500d869
+  uuid: 5314ab7e-c093-40f1-8798-fd4ac7eab69a
   ws-opts:
     headers:
-      Host: pon.antalmani.mm.am
-    path: /?ed=3000
+      Host: upload.myvipnet.com
+- client-fingerprint: chrome
+  name: '[WEB]2-VL'
+  network: ws
+  port: 443
+  server: chat.openai.com
+  skip-cert-verify: true
+  sni: hhlfy.twiladaphne.ndjp.net
+  tls: true
+  type: vless
+  udp: true
+  uuid: e5cc16a6-ea42-46b2-82ae-ad2157e1641b
+  ws-opts:
+    headers:
+      Host: hhlfy.twiladaphne.ndjp.net
+    path: /fp
+- client-fingerprint: chrome
+  name: '[WEB]6-VL'
+  network: ws
+  port: 443
+  server: dx.mmhh.eu.cc
+  skip-cert-verify: true
+  sni: hhlfy.twiladaphne.ndjp.net
+  tls: true
+  type: vless
+  udp: true
+  uuid: e5cc16a6-ea42-46b2-82ae-ad2157e1641b
+  ws-opts:
+    headers:
+      Host: hhlfy.twiladaphne.ndjp.net
+    path: /fp=chrome
+- name: '[WEB]3-TR'
+  password: fFj7MAGy1VlAWmB_gMBG_27oPYTSHvV6MX
+  port: 443
+  server: 185.137.157.59
+  skip-cert-verify: true
+  sni: www.lateralio.click
+  tls: true
+  type: trojan
+  udp: true
+- client-fingerprint: chrome
+  name: 🇫🇷1-VL
+  network: ws
+  port: 443
+  server: 156.246.93.121
+  skip-cert-verify: true
+  sni: t1s1.rittbo.kdns.fr
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /fp=chrome
+- client-fingerprint: chrome
+  name: 🇫🇷2-VL
+  network: ws
+  port: 443
+  server: 47.80.60.254
+  skip-cert-verify: true
+  sni: t1s1.rittbo.kdns.fr
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- client-fingerprint: chrome
+  name: '[WEB]5-TR'
+  password: tUtK5TKdjxsPnOyritLtv8OQWHAK8f8yNR
+  port: 443
+  server: 130.94.94.15
+  skip-cert-verify: true
+  sni: 130.94.94.15
+  tls: true
+  type: trojan
+  udp: true
+- client-fingerprint: chrome
+  name: '[WEB]7-TR'
+  password: BhNAljna1sXjsY.Nqdl0ksXJ1VsGRqXz1V
+  port: 443
+  server: 130.94.114.217
+  skip-cert-verify: true
+  sni: 130.94.114.217
+  tls: true
+  type: trojan
+  udp: true
+- name: '[WEB]8-TR'
+  password: 4f4d1167-ef14-4304-9bce-0740472503ef
+  port: 41943
+  server: 103.177.136.45
+  skip-cert-verify: true
+  sni: az.01.naiun.bilibili.com
+  tls: true
+  type: trojan
+  udp: true
+- name: '[WEB]9-TR'
+  password: 4f4d1167-ef14-4304-9bce-0740472503ef
+  port: 48697
+  server: 103.177.136.42
+  skip-cert-verify: true
+  sni: gh.01.naiun.bilibili.com
+  tls: true
+  type: trojan
+  udp: true
+- name: '[WEB]10-TR'
+  password: 4f4d1167-ef14-4304-9bce-0740472503ef
+  port: 46424
+  server: 103.177.136.42
+  skip-cert-verify: true
+  sni: de.01.naiun.bilibili.com
+  tls: true
+  type: trojan
+  udp: true
+- cipher: chacha20-ietf-poly1305
+  name: '[WEB]4-SS'
+  password: 7e731ec3-f8e1-43f6-92cf-3978d14705c4
+  port: 50099
+  server: r3mrcg001286ek2.cybervena.com
+  skip-cert-verify: true
+  type: ss
+  udp: true
 proxy-groups:
 - interval: 300
   name: '[START] Auto'
   proxies:
-  - 🇹🇼1-VL
   - '[WEB]1-VL'
+  - '[WEB]2-VL'
+  - '[WEB]6-VL'
+  - '[WEB]3-TR'
+  - 🇫🇷1-VL
+  - 🇫🇷2-VL
+  - '[WEB]5-TR'
+  - '[WEB]7-TR'
+  - '[WEB]8-TR'
+  - '[WEB]9-TR'
+  - '[WEB]10-TR'
+  - '[WEB]4-SS'
   tolerance: 50
   type: url-test
   url: https://myip.ipip.net/json
 - name: '[GEO] Select'
   proxies:
   - '[START] Auto'
-  - 🇹🇼1-VL
   - '[WEB]1-VL'
+  - '[WEB]2-VL'
+  - '[WEB]6-VL'
+  - '[WEB]3-TR'
+  - 🇫🇷1-VL
+  - 🇫🇷2-VL
+  - '[WEB]5-TR'
+  - '[WEB]7-TR'
+  - '[WEB]8-TR'
+  - '[WEB]9-TR'
+  - '[WEB]10-TR'
+  - '[WEB]4-SS'
   type: select
 rules:
 - DOMAIN-SUFFIX,cn,DIRECT

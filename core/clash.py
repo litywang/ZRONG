@@ -188,15 +188,14 @@ class ClashManager:
         seen = set()
         cleaned_proxies = [self._clean_proxy_for_clash(p) for p in filtered]
 
-        # BUG[4-02] 修复：必填字段验证
-        required_fields = {"name", "type", "server", "port"}
+        # v30.9: valid_proxies 构建 + 原始对象引用收集（合并为一个循环）
         valid_proxies = []
+        _orig_refs = []
         for p in cleaned_proxies:
             missing = required_fields - set(p.keys())
             if missing:
                 logging.warning("Clash: 跳过缺少必填字段 %s 的节点 %s", missing, p.get("name", "?"))
                 continue
-            # port 必须是有效数字
             try:
                 port = int(p["port"])
                 if not (1 <= port <= 65535):
@@ -204,27 +203,28 @@ class ClashManager:
             except (ValueError, TypeError):
                 logging.warning("Clash: 跳过端口无效 %s 的节点 %s", p.get("port"), p.get("name", "?"))
                 continue
+            orig_name = p.get("name", "")
+            orig_proxy = next((op for op in filtered if op.get("name") == orig_name), None)
+            _orig_refs.append(orig_proxy)
             valid_proxies.append(p)
 
         if not valid_proxies:
             logging.info("[CLASH] 所有节点缺少必填字段或端口无效，无法生成配置")
             return False
 
-        # v30.9: 用安全短名字避免URL编码问题，并同步回原始proxy对象
-        # 注意：valid_proxies 是 _clean_proxy_for_clash 返回的新字典，
-        # 必须同时更新原始 proxy 对象（修改 in-place），否则 test_proxy 仍用原始名导致 404
+        # v30.9: 分配 safe_name 并同步回原始对象
         self._name_map = {}  # safe_name -> original_name（供调试用）
-        for i, (orig_p, p) in enumerate(zip(filtered, valid_proxies)):
+        for i, p in enumerate(valid_proxies):
             raw_name = p["name"]
-            # 安全短名字：p + 序号（纯ASCII，无URL编码问题）
             safe_name = f"p{i}"
             self._name_map[safe_name] = raw_name
             if safe_name in seen:
                 safe_name = f"p{i}-{i}"
             seen.add(safe_name)
             names.append(safe_name)
-            p["name"] = safe_name          # 修改副本（用于YAML）
-            orig_p["name"] = safe_name    # v30.9: 同步回原始对象（test_proxy用）
+            p["name"] = safe_name               # 修改副本（用于YAML）
+            if _orig_refs[i] is not None:
+                _orig_refs[i]["name"] = safe_name  # v30.9: 同步回原始对象（test_proxy用）
 
         # v30.3: 如果启用dialer-proxy，添加上游代理节点并给所有proxy配置dialer-proxy
         if USE_DIALER_PROXY:

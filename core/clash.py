@@ -249,10 +249,9 @@ class ClashManager:
             "log-level": "error", "external-controller": f"127.0.0.1:{CLASH_API_PORT}",
             "secret": "",
             "ipv6": False, "unified-delay": True, "tcp-concurrent": True,
-            # v30.0: 简化DNS——仅用公共DNS，无需fake-ip和规则提供者
+            # v30.0: 简化DNS——禁用DNS监听（测速环境不需要，避免端口权限问题）
             "dns": {
                 "enable": True,
-                "listen": "0.0.0.0:1053",
                 "enhanced-mode": "normal",
                 "nameserver": [
                     "8.8.8.8",

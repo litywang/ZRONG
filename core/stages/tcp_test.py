@@ -9,7 +9,7 @@ from core.validator import is_asia
 from core.scorer import mainland_friendly_score
 from core.testing import test_tcp_node
 from core.history import update_node_history
-from sources.config import MAX_TCP_TEST_NODES, MAX_LATENCY, ASIA_TCP_RELAX
+from sources.config import MAX_LATENCY
 
 
 def build_tcp_queue(all_nodes_list: list, tcp_workers: int = 200) -> list:

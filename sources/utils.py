@@ -68,30 +68,111 @@ def strip_url(u: str) -> str:
 # ===== 编码/解码工具 =====
 
 def is_base64(s: str) -> bool:
-    """判断是否为 base64 编码"""
+    """判断是否为 base64 编码（增强版：支持标准/base64url/无填充）"""
     try:
         s = s.strip()
-        if len(s) < 10 or not re.match(r'^[A-Za-z0-9+/=]+$', s):
+        if len(s) < 10:
             return False
-        base64.b64decode(s + "=" * (-len(s) % 4), validate=True)
-        return True
+        # v30.11: 同时匹配标准base64和base64url
+        if not re.match(r'^[A-Za-z0-9+/_\-=]+$', s):
+            return False
+        # 尝试标准base64
+        try:
+            base64.b64decode(s + "=" * (-len(s) % 4), validate=True)
+            return True
+        except (ValueError, base64.binascii.Error):
+            pass
+        # 尝试base64url
+        try:
+            base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
+            return True
+        except (ValueError, base64.binascii.Error):
+            pass
+        return False
     except (ValueError, base64.binascii.Error):
         logging.debug("is_base64 failed", exc_info=True)
         return False
 
 
 def decode_b64(c: str) -> str:
-    """Base64 解码"""
-    try:
-        c = c.strip()
+    """Base64 解码（增强版：标准/base64url/多层嵌套/Clash专用格式）"""
+    c = c.strip()
+    for attempt in range(3):  # v30.11: 最多尝试3层嵌套base64
         m = len(c) % 4
-        if m:
-            c += "=" * (4 - m)
-        d = base64.b64decode(c).decode("utf-8", errors="ignore")
-        return d if "://" in d else c
-    except (ValueError, base64.binascii.Error):
-        logging.debug("decode_b64 failed", exc_info=True)
-        return c
+        padded = c + "=" * ((4 - m) % 4) if m else c
+        decoded = None
+        # 尝试标准base64
+        try:
+            decoded = base64.b64decode(padded).decode("utf-8", errors="ignore")
+        except (ValueError, base64.binascii.Error):
+            pass
+        # 尝试base64url（-替换+，_替换/）
+        if decoded is None:
+            try:
+                decoded = base64.urlsafe_b64decode(padded).decode("utf-8", errors="ignore")
+            except (ValueError, base64.binascii.Error):
+                pass
+        if decoded is None:
+            return c  # 无法解码，返回原始内容
+        # 检查解码结果是否包含协议链接
+        if "://" in decoded:
+            return decoded
+        # 检查解码结果是否还是base64（嵌套编码）
+        if is_base64(decoded):
+            c = decoded
+            continue
+        # 解码结果不含协议链接也不是base64，返回
+        return decoded
+    return c  # 超过3层嵌套，返回原始内容
+
+
+def deep_decode_line(line: str) -> list:
+    """v30.11: 深度解码单行——尝试base64解码后提取协议链接
+    处理场景：
+    - 单行base64编码的协议链接（vmess://base64data）
+    - base64嵌套：整行base64解码后得到多个协议链接
+    - Clash订阅中base64编码的节点段
+    """
+    line = line.strip()
+    if not line or line.startswith('#'):
+        return []
+    results = []
+
+    # 场景1：已是协议链接
+    if '://' in line:
+        return [line]
+
+    # 场景2：整行是base64编码
+    if is_base64(line):
+        decoded = decode_b64(line)
+        if decoded and decoded != line:
+            for sub_line in decoded.splitlines():
+                sub_line = sub_line.strip()
+                if sub_line and '://' in sub_line:
+                    results.append(sub_line)
+                elif is_base64(sub_line):
+                    # 二次base64
+                    d2 = decode_b64(sub_line)
+                    if d2 and d2 != sub_line:
+                        for sub2 in d2.splitlines():
+                            sub2 = sub2.strip()
+                            if sub2 and '://' in sub2:
+                                results.append(sub2)
+            if results:
+                return results
+            # base64解码后无协议链接，但解码成功→可能是JSON/其他格式
+            for sub_line in decoded.splitlines():
+                sub_line = sub_line.strip()
+                if sub_line and not sub_line.startswith('#'):
+                    results.append(sub_line)
+            if results:
+                return results
+
+    # 场景3：vmess://后跟base64（标准格式）
+    if line.startswith('vmess://'):
+        return [line]  # vmess解析器内部会处理base64
+
+    return [line] if line else []
 
 
 # ===== YAML 解析 =====

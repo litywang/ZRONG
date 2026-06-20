@@ -149,61 +149,6 @@ def run_speed_test(nres: list, clash: ClashManager) -> tuple:
 
 
 def supplement_tcp(final: list, nres: list, tested: set, proxy_ok: bool) -> tuple:
-    """v30.0 Phase 6h: TCP保底补充（宽松约束版本）
-    
-    约束：
-    - 仅speed_test合格>=15节点时才触发（降低基线，避免0输出）
-    - 亚洲节点优先，非亚洲也可补充
-    - TCP延迟<800ms（GH Actions到海外平均延迟）
-    - 跳过UA/TR/IR等低价值区域
-    """
-    if not proxy_ok:
-        logging.warning("[WARN] Clash测速全部失败，跳过TCP补充")
-        return final, proxy_ok
-    # v30.10: 基线检查——Clash合格<30时跳过TCP补充（低于30说明质量太差，TCP补充无意义）
-    if len(final) < 30:
-        logging.warning(f"[WARN] Clash合格仅{len(final)}个<30，跳过TCP补充，输出{len(final)}个")
-        return final, proxy_ok
-
-    asia_count = sum(1 for p in final if is_asia(p))
-    tcp_needed = min(50, max(0, 150 - len(final)))  # v30.1: 最多补充50个
-    if tcp_needed <= 0:
-        return final, proxy_ok
-
-    lf_score = mainland_friendly_score
-    from core.filter import is_non_friendly_region, final_sort_key
-
-    logging.warning(f"[WARN] 测速合格{len(final)}个(亚洲{asia_count})，TCP补充上限{tcp_needed}（宽松约束）...")
-    namer = NodeNamer()
-    added = 0
-    for item in nres:
-        if added >= tcp_needed:
-            break
-        p = item["proxy"]
-        k = f"{p['server']}:{p['port']}"
-        if k in tested:
-            continue
-        # 亚洲优先，非亚洲但TCP好也可
-        is_item_asia = item.get("is_asia", False)
-        # TCP延迟<800ms（GH Actions海外平均延迟）
-        if item["latency"] >= 800:
-            tested.add(k)
-            continue
-        # 非亚洲节点只接受TCP<300ms
-        if not is_item_asia and item["latency"] >= 300:
-            tested.add(k)
-            continue
-        # 排除低价值区域
-        if is_non_friendly_region(p):
-            tested.add(k)
-            continue
-        # 通过全部约束
-        tested.add(k)
-        _name_node(p, item, namer, tcp=True)
-        final.append(p)
-        added += 1
-        logging.info(f"   [TCP] {p['name']}")
-
-    if added:
-        logging.info(f"   TCP补充完成：+{added} 个")
+    """v30.12: TCP补充已禁用——用户要求不足不补"""
+    logging.info(f"[SKIP] TCP补充已禁用，Clash合格{len(final)}个直接输出")
     return final, proxy_ok

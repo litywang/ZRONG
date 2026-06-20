@@ -23,7 +23,7 @@ GITHUB_BASE_REPOS = []
 MAX_FETCH_NODES = int(os.getenv("MAX_FETCH_NODES", "5000"))
 MAX_TCP_TEST_NODES = int(os.getenv("MAX_TCP_TEST_NODES", "1200"))
 MAX_PROXY_TEST_NODES = int(os.getenv("MAX_PROXY_TEST_NODES", "1000"))
-MAX_FINAL_NODES = int(os.getenv("MAX_FINAL_NODES", "150"))
+MAX_FINAL_NODES = int(os.getenv("MAX_FINAL_NODES", "120"))
 
 # ==================== 延迟阈值 ====================
 MAX_LATENCY = int(os.getenv("MAX_LATENCY", "5000"))

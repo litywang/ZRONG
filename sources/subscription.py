@@ -18,7 +18,7 @@ from . import config
 from .utils import (
     clean_url, is_valid_url, check_subscription_quality,
     strip_url,
-    is_base64, decode_b64,
+    is_base64, decode_b64, deep_decode_line,
     is_yaml_content, parse_yaml_proxies,
     source_weight,
 )
@@ -111,16 +111,18 @@ def fetch_and_parse(url: str) -> Tuple[Dict, bool]:
 
     if is_base64(c):
         c = decode_b64(c)
+    # v30.11: 使用 deep_decode_line 增强解析（多层base64/嵌套编码）
     for line in c.splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        p = parse_node_fn(line)
-        if p:
-            h = ProxyNode_cls.from_dict(p).dedup_key()
-            if h not in local_nodes:
-                p["_src_weight"] = src_weight
-                local_nodes[h] = p
+        for decoded_line in deep_decode_line(line):
+            decoded_line = decoded_line.strip()
+            if not decoded_line or decoded_line.startswith("#"):
+                continue
+            p = parse_node_fn(decoded_line)
+            if p:
+                h = ProxyNode_cls.from_dict(p).dedup_key()
+                if h not in local_nodes:
+                    p["_src_weight"] = src_weight
+                    local_nodes[h] = p
     return local_nodes, False
 
 
@@ -215,16 +217,18 @@ async def async_fetch_and_parse(client: httpx.AsyncClient, url: str) -> Tuple[Di
 
     if is_base64(content):
         content = decode_b64(content)
+    # v30.11: 使用 deep_decode_line 增强解析（多层base64/嵌套编码）
     for line in content.splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        p = parse_node_fn(line)
-        if p:
-            h = ProxyNode_cls.from_dict(p).dedup_key()
-            if h not in local_nodes:
-                p["_src_weight"] = src_weight
-                local_nodes[h] = p
+        for decoded_line in deep_decode_line(line):
+            decoded_line = decoded_line.strip()
+            if not decoded_line or decoded_line.startswith("#"):
+                continue
+            p = parse_node_fn(decoded_line)
+            if p:
+                h = ProxyNode_cls.from_dict(p).dedup_key()
+                if h not in local_nodes:
+                    p["_src_weight"] = src_weight
+                    local_nodes[h] = p
     return local_nodes, False
 
 

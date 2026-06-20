@@ -156,6 +156,7 @@ def main():
                 logging.warning(f"[SKIP] 健康检查（剩余 {_time_left():.0f}s < 300s）")
 
     # ── 阶段8: 配额选择 + 排序 ───────────────────────────────────────
+    logging.info(f"[DEBUG] apply_quota 输入: {len(final)} 个节点")
     final = apply_quota(final)
     logging.info(f"[OK] 最终：{len(final)} 个")
 

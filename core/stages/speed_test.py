@@ -102,7 +102,7 @@ def run_speed_test(nres: list, clash: ClashManager) -> tuple:
         namer = NodeNamer()
 
         try:
-            with ThreadPoolExecutor(max_workers=1) as tex:  # v30.6: 10→1，dialer-proxy经Karing转发不支持并发
+            with ThreadPoolExecutor(max_workers=max(1, int(os.getenv('CLASH_TEST_WORKERS', '3')))) as tex:  # v30.10: Actions直连可用并发
                 futures = {tex.submit(test_one, item, clash, namer): item
                            for item in batch_items}
                 done_count = 0
@@ -118,7 +118,7 @@ def run_speed_test(nres: list, clash: ClashManager) -> tuple:
                         # v30.6: 移除延迟硬上限（dialer-proxy 经 Karing 转发延迟加成大）
                         latency_ok = 0 < r["latency"] < 30000
                         # v30.1: 放宽速度要求（最低0.5KB/s，避免误杀）
-                        speed_ok = r.get("speed", 0) >= 0.5
+                        speed_ok = r.get("speed", 0) >= 0.1  # v30.10: Actions环境代理节点速度低，0.5→0.1
                         if r["success"] and latency_ok and speed_ok:
                             _name_node(p, r, namer, tcp=False)
                             final.append(p)
@@ -160,9 +160,9 @@ def supplement_tcp(final: list, nres: list, tested: set, proxy_ok: bool) -> tupl
     if not proxy_ok:
         logging.warning("[WARN] Clash测速全部失败，跳过TCP补充")
         return final, proxy_ok
-    # 基线检查：Clash合格<100时跳过TCP补充（输出节点以下限100为准）
-    if len(final) < 100:
-        logging.warning(f"[WARN] Clash合格仅{len(final)}个<100，跳过TCP补充，输出{len(final)}个")
+    # v30.10: 基线检查——Clash合格<30时跳过TCP补充（低于30说明质量太差，TCP补充无意义）
+    if len(final) < 30:
+        logging.warning(f"[WARN] Clash合格仅{len(final)}个<30，跳过TCP补充，输出{len(final)}个")
         return final, proxy_ok
 
     asia_count = sum(1 for p in final if is_asia(p))

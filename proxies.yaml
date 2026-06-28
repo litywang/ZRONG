@@ -1,21 +1,19 @@
 proxies:
 - client-fingerprint: chrome
-  name: '[WEB]1-VL'
-  network: ws
+  flow: xtls-rprx-vision
+  name: '[WEB]3-VL'
   port: 443
-  server: ez-421a72.mohamadfarajian09144538950.workers.dev
+  reality-opts:
+    public-key: 4-rbY6ItUutAV13q9VdEcWtCc2H2C382F4Y7IwfCwQw
+  server: 8.209.242.121
   skip-cert-verify: true
-  sni: ez-421a72.mohamadfarajian09144538950.workers.dev
+  sni: developer.mozilla.org
   tls: true
   type: vless
   udp: true
-  uuid: c7b7209f-b449-4092-82b0-1bf877c190e9
-  ws-opts:
-    headers:
-      Host: ez-421a72.mohamadfarajian09144538950.workers.dev
-    path: /
+  uuid: ee7381ee-db2b-404c-b7fc-87f5369a7643
 - client-fingerprint: chrome
-  name: '[WEB]3-VL'
+  name: '[WEB]6-VL'
   network: ws
   port: 443
   server: 45.147.248.115
@@ -29,32 +27,23 @@ proxies:
     headers:
       Host: confighaye.mokhaberatebinzon.workers.dev
     path: /eyJqdW5rIjoiUHVXcXFjYTJGVGI3IiwicHJvdG9jb2wiOiJ2bCIsIm1vZGUiOiJwcmVmaXgiLCJwYW5lbElQcyI6WyJbMmEwMjo4OTg6MTQ2OjY0OjpdIl19
-- name: '[WEB]2-TR'
-  password: fFj7MAGy1VlAWmB_gMBG_27oPYTSHvV6MX
+- client-fingerprint: safari
+  flow: xtls-rprx-vision
+  name: '[WEB]2-VL'
   port: 443
-  server: 185.137.157.59
-  skip-cert-verify: true
-  sni: www.lateralio.click
-  tls: true
-  type: trojan
-  udp: true
-- client-fingerprint: chrome
-  name: 🇷🇺1-VL
-  network: grpc
-  port: 2096
   reality-opts:
-    public-key: mChFHtaRmeuO2aDuDPqZvBFaCz6f34sVJIKuJcAR130
-    short-id: 2e40144ddc07e8e1
-  server: free06.tunnely.ru
+    public-key: EjhgeMkoP9z2aO28kVm8XYLwhBhccHMiLvLZxJxtTkk
+    short-id: 4ec39de0bcea7a59
+  server: 116.206.93.244
+  servername: www.apple.com
   skip-cert-verify: true
-  sni: free06.tunnely.ru
   tls: true
   type: vless
   udp: true
-  uuid: 29365eca-2575-44fb-8199-c865c394e70e
+  uuid: 37c66c65-88fd-4daf-b142-3fe8117333d9
 - client-fingerprint: safari
   flow: xtls-rprx-vision
-  name: '[WEB]5-VL'
+  name: '[WEB]4-VL'
   network: tcp
   port: 443
   reality-opts:
@@ -67,7 +56,64 @@ proxies:
   type: vless
   udp: true
   uuid: 51336138-2480-485a-8723-b6a688b69b14
-- name: 🇫🇷1-VL
+- client-fingerprint: safari
+  flow: xtls-rprx-vision
+  name: '[WEB]5-VL'
+  port: 443
+  reality-opts:
+    public-key: T587xqua0Nrs0YreQRWJAP9Wto94NcbbhKPK4DkSi0c
+    short-id: 2223411c2ad9c55f
+  server: 103.76.85.138
+  servername: www.apple.com
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: ea1c1e20-7263-4b08-a01b-690b29af66b3
+- client-fingerprint: safari
+  flow: xtls-rprx-vision
+  name: '[WEB]9-VL'
+  port: 443
+  reality-opts:
+    public-key: EAxetkUM_1nerrjiX8yM7ceiOZccVFbYRiRt9ALDWzw
+    short-id: 12ec278197ed73d9
+  server: 163.128.98.179
+  servername: www.apple.com
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: f68eda7b-a93a-437e-8b35-3bb6c675b025
+- client-fingerprint: safari
+  flow: xtls-rprx-vision
+  name: '[WEB]10-VL'
+  port: 443
+  reality-opts:
+    public-key: nnUS7C7-QQntfoyBI7_Ym2DYIJX8ULNjHkKk9Zr8dRs
+    short-id: 3a8657890bb824a2
+  server: 163.128.99.219
+  servername: www.apple.com
+  skip-cert-verify: true
+  tls: true
+  type: vless
+  udp: true
+  uuid: 6d06761b-8103-41cb-af1b-5a3b32b0eedc
+- client-fingerprint: chrome
+  flow: xtls-rprx-vision
+  name: 🇷🇺1-VL
+  port: 443
+  reality-opts:
+    public-key: MNTWCLyV7EquFn-J0a6KRlQZ0dt6QY5mmu7Dq8uDkxw
+    short-id: 4c02bbbfa833b3b6
+  server: osre3.jykvpn.com
+  skip-cert-verify: true
+  sni: ads.x5.ru
+  tls: true
+  type: vless
+  udp: true
+  uuid: 14f9c83f-626f-40eb-b9b3-e22b6274ae6a
+- client-fingerprint: chrome
+  name: 🇫🇷1-VL
   network: ws
   port: 443
   server: 138.3.220.224
@@ -82,73 +128,83 @@ proxies:
       Host: t1s1.rittbo.kdns.fr
     path: /
 - client-fingerprint: chrome
-  name: '[WEB]10-VL'
+  name: 🇫🇷2-VL
   network: ws
   port: 443
-  server: 141.193.213.21
+  server: www.cnae.top
   skip-cert-verify: true
-  sni: amoosamiii.net
+  sni: t1s1.rittbo.kdns.fr
   tls: true
   type: vless
   udp: true
-  uuid: 4f013568-a58b-4b04-b5dd-4d52bf1c33a4
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
   ws-opts:
     headers:
-      Host: amoosamiii.net
-    path: /poiuyws
-- client-fingerprint: chrome
-  name: '[WEB]9-VL'
-  network: ws
-  port: 2053
-  server: 188.114.97.6
-  skip-cert-verify: true
-  sni: WAnDERINg-FIelD-030c.HSuSudJFifjDHxCCv.WorkeRS.Dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 5501b359-cd6c-431f-b478-f9ded18e4d6a
-  ws-opts:
-    headers:
-      Host: wandering-field-030c.hsusudjfifjdhxccv.workers.dev
-    path: /eyJqdW5rIjoiZzdoR3kxczdkcUxmIiwicHJvdG9jb2wiOiJ2bCIsIm1vZGUiOiJwcm94eWlwIiwicGFuZWxJUHMiOltdfQ==?ed=2560
-- client-fingerprint: chrome
-  name: '[WEB]7-VL'
-  network: ws
-  port: 9999
-  server: 43.160.247.113
-  skip-cert-verify: true
-  sni: c.eoa.ccwu.cc
-  tls: true
-  type: vless
-  udp: true
-  uuid: 03d73bc8-01a9-46a7-90b9-3d27065ed328
-  ws-opts:
-    headers:
-      Host: c.eoa.ccwu.cc
+      Host: t1s1.rittbo.kdns.fr
     path: /
-- name: 🇫🇷1-TR
-  password: '114514'
+- client-fingerprint: chrome
+  name: 🇫🇷3-VL
+  network: ws
   port: 443
-  server: 172.236.154.50
+  server: cf.008500.xyz
   skip-cert-verify: true
-  sni: tjaaa.hhllfly.kdns.fr
+  sni: t1s1.rittbo.kdns.fr
   tls: true
-  type: trojan
+  type: vless
   udp: true
-- alpn:
-  - http/1.1
-  name: '[WEB]8-TR'
-  password: humanity
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- client-fingerprint: chrome
+  name: 🇫🇷4-VL
+  network: ws
   port: 443
-  server: 188.114.96.4
+  server: 108.160.132.178
   skip-cert-verify: true
-  sni: www.calmloud.com
+  sni: t1s1.rittbo.kdns.fr
   tls: true
-  type: trojan
+  type: vless
   udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /fp=chrome
+- client-fingerprint: chrome
+  name: 🇫🇷5-VL
+  network: ws
+  port: 443
+  server: 104.253.175.16
+  skip-cert-verify: true
+  sni: t1s1.rittbo.kdns.fr
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
+- client-fingerprint: chrome
+  name: 🇫🇷6-VL
+  network: ws
+  port: 443
+  server: 146.235.16.191
+  skip-cert-verify: true
+  sni: t1s1.rittbo.kdns.fr
+  tls: true
+  type: vless
+  udp: true
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
 - alterId: 0
   cipher: auto
-  name: '[WEB]4-VM'
+  name: '[WEB]7-VM'
   network: ws
   port: 443
   server: yg1.ygkkk.dpdns.org
@@ -167,46 +223,22 @@ proxies:
   name: 🇬🇧1-TR
   password: telegram-id-privatevpns
   port: 22222
-  server: 51.45.54.27
-  skip-cert-verify: true
-  sni: trojan.burgerip.co.uk
-  tls: true
-  type: trojan
-  udp: true
-- alpn:
-  - http/1.1
-  name: 🇬🇧2-TR
-  password: telegram-id-privatevpns
-  port: 22222
   server: 35.181.116.34
   skip-cert-verify: true
   sni: trojan.burgerip.co.uk
   tls: true
   type: trojan
   udp: true
-- alpn:
-  - http/1.1
-  name: 🇬🇧3-TR
-  password: telegram-id-privatevpns
-  port: 22222
-  server: 18.159.170.71
+- name: '[WEB]1-TR'
+  password: 4f4d1167-ef14-4304-9bce-0740472503ef
+  port: 47909
+  server: 103.177.136.42
   skip-cert-verify: true
-  sni: trojan.burgerip.co.uk
+  sni: is.01.naiun.bilibili.com
   tls: true
   type: trojan
   udp: true
-- alpn:
-  - http/1.1
-  name: 🇬🇧4-TR
-  password: telegram-id-privatevpns
-  port: 22222
-  server: 63.182.114.24
-  skip-cert-verify: true
-  sni: trojan.burgerip.co.uk
-  tls: true
-  type: trojan
-  udp: true
-- name: '[WEB]6-TR'
+- name: '[WEB]8-TR'
   password: 4f4d1167-ef14-4304-9bce-0740472503ef
   port: 48697
   server: 188.253.12.90
@@ -229,23 +261,24 @@ proxy-groups:
 - interval: 300
   name: '[START] Auto'
   proxies:
-  - '[WEB]1-VL'
   - '[WEB]3-VL'
-  - '[WEB]2-TR'
-  - 🇷🇺1-VL
+  - '[WEB]6-VL'
+  - '[WEB]2-VL'
+  - '[WEB]4-VL'
   - '[WEB]5-VL'
-  - 🇫🇷1-VL
-  - '[WEB]10-VL'
   - '[WEB]9-VL'
-  - '[WEB]7-VL'
-  - 🇫🇷1-TR
-  - '[WEB]8-TR'
-  - '[WEB]4-VM'
+  - '[WEB]10-VL'
+  - 🇷🇺1-VL
+  - 🇫🇷1-VL
+  - 🇫🇷2-VL
+  - 🇫🇷3-VL
+  - 🇫🇷4-VL
+  - 🇫🇷5-VL
+  - 🇫🇷6-VL
+  - '[WEB]7-VM'
   - 🇬🇧1-TR
-  - 🇬🇧2-TR
-  - 🇬🇧3-TR
-  - 🇬🇧4-TR
-  - '[WEB]6-TR'
+  - '[WEB]1-TR'
+  - '[WEB]8-TR'
   - 🇷🇺1-HY2
   tolerance: 50
   type: url-test
@@ -253,23 +286,24 @@ proxy-groups:
 - name: '[GEO] Select'
   proxies:
   - '[START] Auto'
-  - '[WEB]1-VL'
   - '[WEB]3-VL'
-  - '[WEB]2-TR'
-  - 🇷🇺1-VL
+  - '[WEB]6-VL'
+  - '[WEB]2-VL'
+  - '[WEB]4-VL'
   - '[WEB]5-VL'
-  - 🇫🇷1-VL
-  - '[WEB]10-VL'
   - '[WEB]9-VL'
-  - '[WEB]7-VL'
-  - 🇫🇷1-TR
-  - '[WEB]8-TR'
-  - '[WEB]4-VM'
+  - '[WEB]10-VL'
+  - 🇷🇺1-VL
+  - 🇫🇷1-VL
+  - 🇫🇷2-VL
+  - 🇫🇷3-VL
+  - 🇫🇷4-VL
+  - 🇫🇷5-VL
+  - 🇫🇷6-VL
+  - '[WEB]7-VM'
   - 🇬🇧1-TR
-  - 🇬🇧2-TR
-  - 🇬🇧3-TR
-  - 🇬🇧4-TR
-  - '[WEB]6-TR'
+  - '[WEB]1-TR'
+  - '[WEB]8-TR'
   - 🇷🇺1-HY2
   type: select
 rules:

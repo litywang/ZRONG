@@ -68,32 +68,41 @@ def filter_quality(p):
         return False
 
     # v30.2: 协议配置完整性硬筛（避免无效节点通过测速）
+    # v30.4 FIX: 改为降分而非硬筛，避免误杀亚洲/边缘节点
+    # - 有历史记录的节点（稳定来源）：允许不完全配置参与测速
+    # - 缺失TLS的节点在 composite_score 中获得惩罚
     has_tls = p.get("tls", False)
     has_reality = bool(p.get("reality-opts"))
     has_flow = bool(p.get("flow"))
     has_sni = bool(p.get("sni") or p.get("servername"))
 
     if ptype == "vless":
-        # vless+tcp+tls 必须有 flow（xtls-rprx-vision）或 reality-opts
-        # vless+ws+tls 必须有 sni（CDN 伪装域名）
-        if network == "tcp" and has_tls and not has_flow and not has_reality:
-            return False  # vless+tcp+tls无flow无reality → 协议握手会失败
-        if network == "ws" and has_tls and not has_sni:
-            return False  # vless+ws+tls无SNI → CDN无法路由
-        # v30.3: vless+ws无TLS → 裸WS连接，GFW秒识别秒封
+        # vless+ws无TLS：降分标记，不硬筛（部分来源无security=tls参数但服务器支持TLS）
         if network == "ws" and not has_tls:
-            return False  # vless+ws无TLS → 裸连必封
-        # v30.3: vless+tcp无TLS也无reality → 裸连必封
+            p["_incomplete_proto"] = True
+            logging.debug("Score: vless+ws without TLS, -15 proto score: %s", p.get('name', '?'))
+        # vless+tcp无TLS无reality：裸连降分，不硬筛
         if network == "tcp" and not has_tls and not has_reality:
-            return False  # vless+tcp无TLS无reality → 裸连必封
+            p["_incomplete_proto"] = True
+            logging.debug("Score: vless+tcp without TLS/reality, -15 proto score: %s", p.get('name', '?'))
+        # vless+tcp+tls无flow无reality：降分，不硬筛
+        if network == "tcp" and has_tls and not has_flow and not has_reality:
+            p["_incomplete_proto"] = True
+            logging.debug("Score: vless+tcp+tls without flow/reality, -10 proto score: %s", p.get('name', '?'))
+        # vless+ws+tls无sni：降分，不硬筛（auto_fill_sni已自动填充，但显式sni更优）
+        if network == "ws" and has_tls and not has_sni:
+            p["_incomplete_proto"] = True
+            logging.debug("Score: vless+ws+tls without explicit sni, -5 proto score: %s", p.get('name', '?'))
     elif ptype == "vmess":
-        # vmess无tls → 裸连接，GFW秒封（包括ws，CDN中转vmess仍需TLS）
+        # vmess无tls → 裸连接降分，不硬筛（允许参与测速，由测速结果决定）
         if not has_tls:
-            return False  # vmess无TLS → 无论tcp/ws均被GFW识别
+            p["_incomplete_proto"] = True
+            logging.debug("Score: vmess without TLS, -20 proto score: %s", p.get('name', '?'))
     elif ptype == "trojan":
-        # trojan必须有tls
+        # trojan无tls → 协议要求TLS，但降分而非硬筛
         if not has_tls:
-            return False  # trojan无tls → 协议要求TLS
+            p["_incomplete_proto"] = True
+            logging.debug("Score: trojan without TLS, -20 proto score: %s", p.get('name', '?'))
 
     # v30.0: [WEB] CDN 节点数量上限（超过 MAX_WEB_NET_NODES 后过滤）
     global _web_node_count, _web_node_reset_date

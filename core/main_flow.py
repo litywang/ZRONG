@@ -39,7 +39,7 @@ CLASH_API_PORT = 9090
 def main():
     import argparse
     parser = argparse.ArgumentParser(description='ZRONG 代理订阅聚合工具')
-    parser.add_argument('--version', action='version', version='ZRONG v30.0')
+    parser.add_argument('--version', action='version', version='ZRONG v30.4')
     parser.add_argument('--skip-health-check', action='store_true',
                         default=(os.getenv('ENABLE_HEALTH_CHECK', '0') != '1'),
                         help='跳过健康检查（默认跳过）')
@@ -84,7 +84,7 @@ def main():
     _emergency_nodes = []  # v30.0: 渐进式输出——每批测速后暂存，超时时应急输出
 
     logging.info("=" * 50)
-    logging.info("[START] ZRONG v30.0 - 稳定性优化版")
+    logging.info("[START] ZRONG v30.4 - 协议过滤软化版")
     logging.info(f"异步抓取: {'ON' if USE_ASYNC else 'OFF'} | 总超时: {_TIMEOUT_TOTAL/60:.0f}min")
     logging.info("=" * 50)
 

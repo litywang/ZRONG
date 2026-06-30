@@ -289,6 +289,14 @@ def composite_score(p: dict) -> float:
     # Reality/TLS 加分
     reality = 100 if p.get("reality-opts") else (50 if p.get("tls") else 0)
 
+    # v30.4 FIX: 协议不完整惩罚
+    # filter_quality 将无显式TLS/SNI/flow的节点标记为 _incomplete_proto=True
+    # 这些节点允许参与测速，但在综合评分中受到惩罚
+    incomplete_penalty = 0
+    if p.get("_incomplete_proto"):
+        incomplete_penalty = 15  # 协议不完整扣15分（0-100分制）
+        logging.debug("Score: node %s has incomplete proto config, -15 score", p.get('name', '?'))
+
     # 加权合成
     composite = (
         mf * 0.40 +      # 地理+协议+端口
@@ -297,4 +305,5 @@ def composite_score(p: dict) -> float:
         hist_score * 0.10 +  # 历史
         reality * 0.10       # Reality/TLS
     )
-    return round(min(composite, 100), 2)
+    composite -= incomplete_penalty
+    return round(min(max(composite, 0), 100), 2)

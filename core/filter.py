@@ -7,8 +7,8 @@ import logging
 
 from core.validator import is_china_mainland, is_asia, NON_PROXY_PORTS
 
-# v30.0 Phase5: 国旗 emoji 直接识别的低价值非亚洲地区（无 IP 地理信息时无法被 geo_score 扣分，需硬筛）
-_LOW_VALUE_NON_ASIA_FLAGS = {'🇺🇦', '🇹🇷', '🇮🇷'}
+# v30.5 FIX: 删除低价值地区硬筛 - 让测速决定可用性
+# _LOW_VALUE_NON_ASIA_FLAGS = {'🇺🇦', '🇹🇷', '🇮🇷'}  # 已删除
 from core.scorer import mainland_friendly_score, composite_score, PROTOCOL_SCORE
 from network.tls import is_reality_friendly
 from core.history import get_node_history_score as _get_node_history_score
@@ -19,8 +19,8 @@ from utils import is_pure_ip
 ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "0") == "1"
 MAINLAND_PASS_BONUS = int(os.getenv("MAINLAND_PASS_BONUS", "20"))
 
-# v29.1: 限制无法识别地区的 CDN 伪装节点数量
-MAX_WEB_NET_NODES = int(os.getenv("MAX_WEB_NET_NODES", "15"))
+# v30.5 FIX: 放宽 [WEB] 节点上限 - CDN 节点可能包含高质量亚洲节点
+MAX_WEB_NET_NODES = int(os.getenv("MAX_WEB_NET_NODES", "50"))  # 15→50
 
 # v30.0: [WEB] 节点计数器（每日重置，按自然日清零）
 _web_node_count = 0
@@ -67,44 +67,11 @@ def filter_quality(p):
     if ptype == "anytls":
         return False
 
-    # v30.2: 协议配置完整性硬筛（避免无效节点通过测速）
-    # v30.4 FIX: 改为降分而非硬筛，避免误杀亚洲/边缘节点
-    # - 有历史记录的节点（稳定来源）：允许不完全配置参与测速
-    # - 缺失TLS的节点在 composite_score 中获得惩罚
-    has_tls = p.get("tls", False)
-    has_reality = bool(p.get("reality-opts"))
-    has_flow = bool(p.get("flow"))
-    has_sni = bool(p.get("sni") or p.get("servername"))
+    # v30.5 FIX: 删除协议配置完整性硬筛 - 让测速决定可用性
+    # 很多来源的节点缺少显式 tls 字段，但服务器实际支持 TLS
+    # 协议参数不完整 ≠ 不可用，应进入测速阶段验证
 
-    if ptype == "vless":
-        # vless+ws无TLS：降分标记，不硬筛（部分来源无security=tls参数但服务器支持TLS）
-        if network == "ws" and not has_tls:
-            p["_incomplete_proto"] = True
-            logging.debug("Score: vless+ws without TLS, -15 proto score: %s", p.get('name', '?'))
-        # vless+tcp无TLS无reality：裸连降分，不硬筛
-        if network == "tcp" and not has_tls and not has_reality:
-            p["_incomplete_proto"] = True
-            logging.debug("Score: vless+tcp without TLS/reality, -15 proto score: %s", p.get('name', '?'))
-        # vless+tcp+tls无flow无reality：降分，不硬筛
-        if network == "tcp" and has_tls and not has_flow and not has_reality:
-            p["_incomplete_proto"] = True
-            logging.debug("Score: vless+tcp+tls without flow/reality, -10 proto score: %s", p.get('name', '?'))
-        # vless+ws+tls无sni：降分，不硬筛（auto_fill_sni已自动填充，但显式sni更优）
-        if network == "ws" and has_tls and not has_sni:
-            p["_incomplete_proto"] = True
-            logging.debug("Score: vless+ws+tls without explicit sni, -5 proto score: %s", p.get('name', '?'))
-    elif ptype == "vmess":
-        # vmess无tls → 裸连接降分，不硬筛（允许参与测速，由测速结果决定）
-        if not has_tls:
-            p["_incomplete_proto"] = True
-            logging.debug("Score: vmess without TLS, -20 proto score: %s", p.get('name', '?'))
-    elif ptype == "trojan":
-        # trojan无tls → 协议要求TLS，但降分而非硬筛
-        if not has_tls:
-            p["_incomplete_proto"] = True
-            logging.debug("Score: trojan without TLS, -20 proto score: %s", p.get('name', '?'))
-
-    # v30.0: [WEB] CDN 节点数量上限（超过 MAX_WEB_NET_NODES 后过滤）
+    # v30.5 FIX: 放宽 [WEB] 节点上限 - 上限已从 15 提升到 50
     global _web_node_count, _web_node_reset_date
     from datetime import date
     today = str(date.today())
@@ -117,10 +84,8 @@ def filter_quality(p):
             return False
         _web_node_count += 1
 
-    # v30.0 Phase5: 已知低价值非亚洲地区直接过滤（emoji 识别，但无 IP 地理信息，无法被 geo_score 扣分）
-    if any(fl in name for fl in _LOW_VALUE_NON_ASIA_FLAGS):
-        logging.debug("Filter: low-value non-Asia region node %s", p.get('name', '?'))
-        return False
+    # v30.5 FIX: 删除低价值地区硬筛 - 让测速决定可用性
+    # CDN/中转节点可能通过低价值地区提供服务，不应提前过滤
 
 
     # 非代理端口过滤（v24）

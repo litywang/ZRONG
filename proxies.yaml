@@ -1,48 +1,19 @@
 proxies:
-- name: '[WEB]1-TR'
-  password: fFj7MAGy1VlAWmB_gMBG_27oPYTSHvV6MX
-  port: 443
-  server: 185.137.157.59
-  skip-cert-verify: true
-  sni: www.lateralio.click
-  tls: true
-  type: trojan
-  udp: true
-- client-fingerprint: chrome
-  name: '[WEB]4-VL'
-  port: 8882
-  server: gr1.fifapes.monster
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: eab915bc-d2df-73d1-47d0-6eb240497055
-- client-fingerprint: chrome
-  name: 🇷🇺2-VL
-  port: 8443
-  reality-opts:
-    public-key: o5RlLgMEwilD5WxzXjl4BvjUxX4xk4aC5i57yQVfgxw
-  server: nl.cnkstore.ru
-  skip-cert-verify: true
-  sni: iv.kommersant.ru
-  tls: true
-  type: vless
-  udp: true
-  uuid: 79857559-20bb-40d0-a232-1a2fec5c1326
 - client-fingerprint: chrome
   name: 🇺🇸1-VL
   network: ws
   port: 443
   server: support.zoom.us
+  servername: support.zoom.us.yxls.eu.cc
   skip-cert-verify: true
-  sni: support.zoom.us.yxls.eu.cc
   tls: true
   type: vless
   udp: true
-  uuid: 6680846a-8a57-4dfd-9a0e-63209cfc8535
+  uuid: 4d10c997-4781-4cd9-82c3-15453523e12c
   ws-opts:
     headers:
       Host: support.zoom.us.yxls.eu.cc
-    path: /sg-amz
+    path: /sg-melbi
 - client-fingerprint: chrome
   name: 🇫🇷1-VL
   network: ws
@@ -58,174 +29,132 @@ proxies:
     headers:
       Host: t1s1.rittbo.kdns.fr
     path: /
-- client-fingerprint: chrome
-  name: '[WEB]8-VL'
-  network: ws
-  port: 443
-  server: 141.193.213.20
+- cipher: aes-256-gcm
+  name: '[WEB]4-SS'
+  password: 7e1dd4c55bf85da5
+  port: 30129
+  server: 212.192.13.91
+  type: ss
+- name: '[WEB]1-TR'
+  password: 4f4d1167-ef14-4304-9bce-0740472503ef
+  port: 41943
+  server: 103.177.136.42
   skip-cert-verify: true
-  sni: amoosamiii.net
-  tls: true
-  type: vless
-  udp: true
-  uuid: 4f013568-a58b-4b04-b5dd-4d52bf1c33a4
-  ws-opts:
-    headers:
-      Host: amoosamiii.net
-    path: /poiuyws
-- client-fingerprint: chrome
-  name: '[WEB]9-VL'
-  network: ws
-  port: 443
-  server: 104.18.45.137
+  sni: az.01.naiun.bilibili.com
+  type: trojan
+- name: '[WEB]2-TR'
+  password: 4f4d1167-ef14-4304-9bce-0740472503ef
+  port: 41943
+  server: 103.177.136.45
   skip-cert-verify: true
-  sni: amooaliii.net
-  tls: true
-  type: vless
-  udp: true
-  uuid: 72d1797c-cef8-410a-b8fd-db9104dc3cb0
-  ws-opts:
-    headers:
-      Host: amooaliii.net
-    path: /jdhfyws
-- client-fingerprint: chrome
-  name: '[WEB]10-VL'
-  network: ws
-  port: 443
-  server: 8.6.112.0
+  sni: az.01.naiun.bilibili.com
+  type: trojan
+- name: '[WEB]7-TR'
+  password: 4f4d1167-ef14-4304-9bce-0740472503ef
+  port: 47909
+  server: 188.253.12.95
   skip-cert-verify: true
-  sni: shegeftihaaa.net
-  tls: true
-  type: vless
+  sni: is.01.naiun.bilibili.com
+  tls: false
+  type: trojan
   udp: true
-  uuid: 7e544a9d-7667-413b-bbb0-b3bb1aac6d77
-  ws-opts:
-    headers:
-      Host: shegeftihaaa.net
-    path: /rsedgws
+- name: '[WEB]8-TR'
+  password: 4f4d1167-ef14-4304-9bce-0740472503ef
+  port: 48697
+  server: 188.253.12.95
+  skip-cert-verify: true
+  sni: gh.01.naiun.bilibili.com
+  tls: false
+  type: trojan
+  udp: true
+- name: '[WEB]9-TR'
+  password: 4f4d1167-ef14-4304-9bce-0740472503ef
+  port: 41943
+  server: 188.253.12.97
+  skip-cert-verify: true
+  sni: az.01.naiun.bilibili.com
+  tls: false
+  type: trojan
+  udp: true
+- name: '[WEB]10-TR'
+  password: 4f4d1167-ef14-4304-9bce-0740472503ef
+  port: 41943
+  server: 188.253.12.95
+  skip-cert-verify: true
+  sni: az.01.naiun.bilibili.com
+  tls: false
+  type: trojan
+  udp: true
 - alterId: 0
   cipher: auto
-  name: 🇩🇪1-VM
+  name: '[WEB]3-VM'
   network: ws
   port: 80
-  server: 51.254.133.152
-  skip-cert-verify: true
-  sni: fr5.niekotin.de
-  tls: true
-  type: vmess
-  udp: true
-  uuid: ac8bcf5e-bb58-4e8b-b4e4-5fdea010a6c6
-  ws-opts:
-    headers:
-      Host: fr5.niekotin.de
-    path: /vmess
-- client-fingerprint: chrome
-  name: '[WEB]6-VL'
-  port: 80
-  server: 199.232.78.159
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 203fea15-b8f7-46cf-bd6a-a59811589308
-- client-fingerprint: chrome
-  name: '[WEB]3-VL'
-  port: 45678
-  server: 103.252.119.61
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: f978f967-5726-42f1-e023-58e0b01abb93
-- alterId: 0
-  cipher: auto
-  name: '[WEB]7-VM'
-  network: ws
-  port: 80
-  server: 69.84.182.49
+  server: 172.111.146.64
   skip-cert-verify: true
   type: vmess
   udp: true
-  uuid: f8975871-a7a0-4906-8835-a23c1258ca1e
+  uuid: 05b8c783-7f59-47f9-9923-06a465679f6a
   ws-opts:
-    headers:
-      Host: google.whatsapp.snapp.torob.basalam.zula.uplaod-music.ir.
-    path: /
+    path: /vmess/
 - alterId: 0
-  cipher: auto
-  name: 🇷🇺1-VM
-  network: ws
-  port: 80
-  server: test3.flha.ru
-  skip-cert-verify: true
-  type: vmess
-  udp: true
-  uuid: 0730d4e1-3c84-4e06-8b2c-22ab4f591ff6
-  ws-opts:
-    headers:
-      Host: sims-museum-mental-listening.trycloudflare.com
-    path: /0730d4e1-3c84-4e06-8b2c-22ab4f591ff6-vm?ed=2048
-- alterId: 0
-  cipher: auto
-  name: '[WEB]2-VM'
-  network: ws
-  port: 25686
-  server: 140.83.51.161
-  skip-cert-verify: true
-  type: vmess
-  udp: true
-  uuid: 6733c357-ba11-4e9f-f00f-7d87f2776ff9
-  ws-opts:
-    headers:
-      Host: jp02.a0a.xyz
-    path: /cctv13.m3u8
-- alterId: 2
   cipher: auto
   name: '[WEB]5-VM'
-  port: 30807
-  server: v10.hdacd.com
+  network: ws
+  port: 36703
+  server: 47.244.120.197
   skip-cert-verify: true
   type: vmess
   udp: true
-  uuid: cbb3f877-d1fb-344c-87a9-d153bffd5484
+  uuid: 45b83519-9c4f-4052-a11b-02e017b636d4
+  ws-opts:
+    path: /arki?ed=2048
+- alterId: 0
+  cipher: auto
+  name: '[WEB]6-VM'
+  network: ws
+  port: 44867
+  server: 47.244.120.197
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 845e6b08-2919-4290-ade0-5dc7dcea59ca
+  ws-opts:
+    path: /arki?ed=2048
 proxy-groups:
 - interval: 300
   name: '[START] Auto'
   proxies:
-  - '[WEB]1-TR'
-  - '[WEB]4-VL'
-  - 🇷🇺2-VL
   - 🇺🇸1-VL
   - 🇫🇷1-VL
-  - '[WEB]8-VL'
-  - '[WEB]9-VL'
-  - '[WEB]10-VL'
-  - 🇩🇪1-VM
-  - '[WEB]6-VL'
-  - '[WEB]3-VL'
-  - '[WEB]7-VM'
-  - 🇷🇺1-VM
-  - '[WEB]2-VM'
+  - '[WEB]4-SS'
+  - '[WEB]1-TR'
+  - '[WEB]2-TR'
+  - '[WEB]7-TR'
+  - '[WEB]8-TR'
+  - '[WEB]9-TR'
+  - '[WEB]10-TR'
+  - '[WEB]3-VM'
   - '[WEB]5-VM'
+  - '[WEB]6-VM'
   tolerance: 50
   type: url-test
   url: https://myip.ipip.net/json
 - name: '[GEO] Select'
   proxies:
   - '[START] Auto'
-  - '[WEB]1-TR'
-  - '[WEB]4-VL'
-  - 🇷🇺2-VL
   - 🇺🇸1-VL
   - 🇫🇷1-VL
-  - '[WEB]8-VL'
-  - '[WEB]9-VL'
-  - '[WEB]10-VL'
-  - 🇩🇪1-VM
-  - '[WEB]6-VL'
-  - '[WEB]3-VL'
-  - '[WEB]7-VM'
-  - 🇷🇺1-VM
-  - '[WEB]2-VM'
+  - '[WEB]4-SS'
+  - '[WEB]1-TR'
+  - '[WEB]2-TR'
+  - '[WEB]7-TR'
+  - '[WEB]8-TR'
+  - '[WEB]9-TR'
+  - '[WEB]10-TR'
+  - '[WEB]3-VM'
   - '[WEB]5-VM'
+  - '[WEB]6-VM'
   type: select
 rules:
 - DOMAIN-SUFFIX,cn,DIRECT

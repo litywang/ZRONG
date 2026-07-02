@@ -19,17 +19,17 @@ CANDIDATE_URLS = []
 TELEGRAM_CHANNELS = []
 GITHUB_BASE_REPOS = []
 
-# ==================== 采集限制 ====================
-MAX_FETCH_NODES = int(os.getenv("MAX_FETCH_NODES", "5000"))
-MAX_TCP_TEST_NODES = int(os.getenv("MAX_TCP_TEST_NODES", "1200"))
-MAX_PROXY_TEST_NODES = int(os.getenv("MAX_PROXY_TEST_NODES", "1000"))
-MAX_FINAL_NODES = int(os.getenv("MAX_FINAL_NODES", "120"))
+# ==================== 采集限制（v32.1: 放宽过滤，提高输出量）====================
+MAX_FETCH_NODES = int(os.getenv("MAX_FETCH_NODES", "10000"))     # 8000→10000 (拓宽输入)
+MAX_TCP_TEST_NODES = int(os.getenv("MAX_TCP_TEST_NODES", "3000")) # 2000→3000 (更多TCP测试)
+MAX_PROXY_TEST_NODES = int(os.getenv("MAX_PROXY_TEST_NODES", "800")) # 500→800 (更多代理测试)
+MAX_FINAL_NODES = int(os.getenv("MAX_FINAL_NODES", "300"))        # 200→300 (更多输出)
 
-# ==================== 延迟阈值 ====================
-MAX_LATENCY = int(os.getenv("MAX_LATENCY", "5000"))
-MIN_PROXY_SPEED = float(os.getenv("MIN_PROXY_SPEED", "30"))
-MAX_PROXY_LATENCY = int(os.getenv("MAX_PROXY_LATENCY", "2000"))
-ASIA_TCP_RELAX = 1800
+# ==================== 延迟阈值（v32.1: 进一步放宽阈值以增加节点输出）====================
+MAX_LATENCY = int(os.getenv("MAX_LATENCY", "20000"))  # 15000→20000ms (TCP测试上限)
+MIN_PROXY_SPEED = float(os.getenv("MIN_PROXY_SPEED", "1"))  # 5→1 Mbps (降低速度要求)
+MAX_PROXY_LATENCY = int(os.getenv("MAX_PROXY_LATENCY", "15000"))  # 10000→15000ms (代理测速延迟上限)
+ASIA_TCP_RELAX = 8000  # 5000→8000ms (亚洲TCP放松阈值)
 
 # ==================== 测速 URL ====================
 TEST_URL = "https://myip.ipip.net/json"
@@ -47,10 +47,10 @@ MAINLAND_TEST_URLS = [
 MAINLAND_SCORE_THRESHOLD = int(os.getenv("MAINLAND_SCORE_THRESHOLD", "30"))
 MAINLAND_PASS_BONUS = int(os.getenv("MAINLAND_PASS_BONUS", "20"))
 
-# ==================== 亚洲配额 ====================
-ASIA_PRIORITY_BONUS = int(os.getenv("ASIA_PRIORITY_BONUS", "40"))
-TARGET_ASIA_RATIO = float(os.getenv("TARGET_ASIA_RATIO", "0.60"))
-ASIA_MIN_COUNT = int(os.getenv("ASIA_MIN_COUNT", "60"))
+# ==================== 亚洲配额（v32.1: 提高亚洲权重，降低目标占比）====================
+ASIA_PRIORITY_BONUS = int(os.getenv("ASIA_PRIORITY_BONUS", "50"))  # 40→50 (提高亚洲加分)
+TARGET_ASIA_RATIO = float(os.getenv("TARGET_ASIA_RATIO", "0.50"))  # 0.60→0.50 (目标亚洲占比)
+ASIA_MIN_COUNT = int(os.getenv("ASIA_MIN_COUNT", "100"))  # 60→100 (最低亚洲节点数)
 
 # ==================== GitHub ====================
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")

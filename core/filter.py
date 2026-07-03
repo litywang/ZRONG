@@ -106,7 +106,7 @@ def filter_quality(p):
     # v28.39: 大陆友好性评分过滤 - 过滤掉极低友好度的节点
     try:
         mf_score = mainland_friendly_score(p)
-        if mf_score < 10:  # 友好度低于10分的节点大概率不可用
+        if mf_score < 1:  # v32.1: 1→1 (几乎不过滤，保留所有节点)
             logging.debug("Filter: skip low mainland-friendly node %s (score=%s)", p.get('name', '?'), mf_score)
             return False
     except (ValueError, KeyError, TypeError):

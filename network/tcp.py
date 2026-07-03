@@ -36,8 +36,8 @@ def check_node_reachability(server, timeout=3.0):
     return True, "通过"
 
 
-def packet_loss_check(host, port, timeout=2.0, attempts=3):
-    """丢包率检测：多次 TCP ping，统计成功率。"""
+def packet_loss_check(host, port, timeout=5.0, attempts=3):
+    """丢包率检测：多次 TCP ping，统计成功率。v32.4: timeout 2.0→5.0s"""
     if not host:
         return 0, attempts, False
     success = 0
@@ -60,8 +60,8 @@ def _create_socket(host, timeout=None):
     return s
 
 
-def tcp_verify(host, port, timeout=1.5):
-    """TCP 快速握手验证（仅验证端口在监听）。"""
+def tcp_verify(host, port, timeout=3.0):
+    """TCP 快速握手验证（仅验证端口在监听）。v32.4: timeout 1.5→3.0s"""
     if not host:
         return False
     try:
@@ -75,8 +75,8 @@ def tcp_verify(host, port, timeout=1.5):
         return False
 
 
-def _tcp_ping(host, port, timeout=2.5):
-    """TCP 延迟测量（毫秒），失败返回 9999。"""
+def _tcp_ping(host, port, timeout=10.0):
+    """TCP 延迟测量（毫秒），失败返回 9999。v32.4: 默认超时 2.5s→10s，匹配 MAX_LATENCY 放宽策略"""
     if not host:
         return 9999
     try:

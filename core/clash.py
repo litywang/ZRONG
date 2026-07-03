@@ -41,7 +41,6 @@ class ClashManager:
     def __init__(self):
         self.process = None
         self._geo_cache = {}  # v28.61: 缓存出口IP归属，避免重复调用ip-api.com
-        self._exit_ip_cache = {}  # v28.98: 已废弃，保留避免属性引用错误
         self._karing_mode = USE_KARING  # v30.5: Karing模式标志
         ensure_clash_dir()
 

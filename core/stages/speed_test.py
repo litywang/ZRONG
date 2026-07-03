@@ -149,6 +149,67 @@ def run_speed_test(nres: list, clash: ClashManager) -> tuple:
 
 
 def supplement_tcp(final: list, nres: list, tested: set, proxy_ok: bool) -> tuple:
-    """v30.12: TCP补充已禁用——用户要求不足不补"""
-    logging.info(f"[SKIP] TCP补充已禁用，Clash合格{len(final)}个直接输出")
+    """v33.0: TCP保底补充——Clash实测合格节点不足时，从TCP合格列表补充"""
+    if proxy_ok and len(final) >= 100:
+        logging.info(f"[TCP] Clash合格{len(final)}个已达标，无需TCP保底")
+        return final, proxy_ok
+
+    logging.info(f"[TCP] Clash合格{len(final)}个不足，开始TCP保底补充...")
+    # 从 final 列表构建已测节点集合（main_flow 传递的 tested 可能为空）
+    if not tested:
+        tested = {f"{p['server']}:{p['port']}" for p in final if p.get('server')}
+
+    # 从TCP合格列表中找未被Clash测过的节点
+    untested_tcp = [
+        item for item in nres
+        if f"{item['proxy']['server']}:{item['proxy']['port']}" not in tested
+        and item.get("latency", 9999) < 8000
+    ]
+
+    # 优先亚洲节点
+    untested_tcp.sort(key=lambda x: (
+        0 if x.get("is_asia") else 1,
+        x.get("latency", 9999)
+    ))
+
+    # 取排名靠前的作为保底节点（质量由TCP测试保证）
+    need = max(0, 100 - len(final))
+    if untested_tcp:
+        untested_tcp = untested_tcp[:min(need * 2, len(untested_tcp))]
+        logging.info(f"   TCP保底候选：{len(untested_tcp)}个")
+
+        from core.namer import NodeNamer
+        namer = NodeNamer()
+        from network.tls import is_reality_friendly
+        from core.scorer import mainland_friendly_score
+        from utils import get_region
+
+        for item in untested_tcp:
+            p = item["proxy"]
+            srv = p.get("server", "")
+            sni_val = p.get("sni", "") or p.get("servername", "")
+            ws_opts = p.get("ws-opts", {})
+            if isinstance(ws_opts, dict):
+                ws_host = ws_opts.get("headers", {}).get("Host", "")
+                if ws_host:
+                    sni_val = ws_host
+            fl, _ = get_region(p.get("name", ""), server=srv, sni=sni_val)
+            mf_score = mainland_friendly_score(p)
+            p["name"] = namer.generate(
+                fl, lat=int(item["latency"]), score=mf_score, tcp=True,
+                server=srv, sni=sni_val, mainland_reachable=False,
+                proto=p.get("type", "")
+            )
+            p["mainland_reachable"] = False
+            tested.add(f"{srv}:{p.get('port', '')}")
+
+        # 合并 + 重新应用配额
+        combined = final + [item["proxy"] for item in untested_tcp]
+        from core.stages.output import apply_quota as _apply_quota
+        result = _apply_quota(combined)
+        added = len(result) - len(final)
+        logging.info(f"[TCP] 保底补充完成：原始{len(final)}个 + 新增{added}个 = 共{len(result)}个")
+        return result, True
+
+    logging.info(f"[TCP] 无可用的TCP保底节点")
     return final, proxy_ok

@@ -61,16 +61,16 @@ jobs:
           # 🌏 v28.58: 大陆可达性测试加分（默认关闭MAINLAND_TEST时不生效）
           MAINLAND_PASS_BONUS: '20'
 
-          # 🌏 亚洲策略：柔性配额，质量优先（v29调整）
-          MAX_FINAL_NODES: 250
-          TARGET_ASIA_RATIO: '0.45'
-          ASIA_PRIORITY_BONUS: '40'
+          # 🌏 亚洲策略：柔性配额（v32.3放宽）
+          MAX_FINAL_NODES: 400
+          TARGET_ASIA_RATIO: '0.35'
+          ASIA_PRIORITY_BONUS: '60'
           ASIA_MIN_COUNT: '40'
 
-          # ⚡ 四层验证阈值（v29.1进一步收紧）
-          MAX_LATENCY: 2500
-          MAX_PROXY_LATENCY: 3000
-          MIN_PROXY_SPEED: '30'
+          # ⚡ 验证阈值（v32.3放宽）
+          MAX_LATENCY: 5000
+          MAX_PROXY_LATENCY: 6000
+          MIN_PROXY_SPEED: '15'
           PROTO_HANDSHAKE_TIMEOUT: '10'
           SPEED_TEST_MIN_SUCCESS: '1'
 
@@ -80,11 +80,11 @@ jobs:
           # 🔄 重试与容错
           CLASH_TEST_RETRY: '2'
 
-          # 📦 候选池与并发
-          MAX_PROXY_TEST_NODES: 500
-          MAX_FETCH_NODES: 3000
-          # 🏷 v30.0: CDN伪装节点数量上限（收紧到10个）
-          MAX_WEB_NET_NODES: '10'
+          # 📦 候选池与并发（v32.3放宽）
+          MAX_PROXY_TEST_NODES: 800
+          MAX_FETCH_NODES: 5000
+          # 🏷 v32.3: CDN节点数量上限放宽
+          MAX_WEB_NET_NODES: '30'
 
           MAX_FORK_REPOS: 40
           MAX_WORKERS: '40'

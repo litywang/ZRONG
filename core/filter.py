@@ -18,6 +18,8 @@ from utils import is_pure_ip
 
 ENABLE_MAINLAND_TEST = os.getenv("ENABLE_MAINLAND_TEST", "0") == "1"
 MAINLAND_PASS_BONUS = int(os.getenv("MAINLAND_PASS_BONUS", "20"))
+# v33.0: 从 constants 读取评分阈值（与 constants.py 的 MAINLAND_SCORE_THRESHOLD 保持一致）
+_MAINLAND_SCORE_THRESHOLD = int(os.getenv("MAINLAND_SCORE_THRESHOLD", "15"))
 
 # v30.5 FIX: 放宽 [WEB] 节点上限 - CDN 节点可能包含高质量亚洲节点
 MAX_WEB_NET_NODES = int(os.getenv("MAX_WEB_NET_NODES", "50"))  # 15→50
@@ -106,8 +108,8 @@ def filter_quality(p):
     # v28.39: 大陆友好性评分过滤 - 过滤掉极低友好度的节点
     try:
         mf_score = mainland_friendly_score(p)
-        if mf_score < 1:  # v32.1: 1→1 (几乎不过滤，保留所有节点)
-            logging.debug("Filter: skip low mainland-friendly node %s (score=%s)", p.get('name', '?'), mf_score)
+        if mf_score < _MAINLAND_SCORE_THRESHOLD:
+            logging.debug("Filter: skip low mainland-friendly node %s (score=%s < threshold=%s)", p.get('name', '?'), mf_score, _MAINLAND_SCORE_THRESHOLD)
             return False
     except (ValueError, KeyError, TypeError):
         logging.debug("mainland_friendly_score error for %s", p.get('name', '?'), exc_info=True)
@@ -145,10 +147,7 @@ def _geo_score(item):
         score += 30
     return score
 
-def is_non_friendly_region(p):
-    """判断节点是否属于低价值区域（UA/TR/IR等，通过名称中 emoji 旗帜识别）"""
-    name = p.get("name", "")
-    return any(fl in name for fl in _LOW_VALUE_NON_ASIA_FLAGS)
+# is_non_friendly_region 已删除——低价值地区过滤已废弃，由测速决定可用性
 
 
 def final_sort_key(p):

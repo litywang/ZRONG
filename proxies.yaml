@@ -1,19 +1,35 @@
 proxies:
 - client-fingerprint: chrome
-  name: '[WEB]16-VL'
-  port: 49148
+  flow: xtls-rprx-vision
+  name: '[WEB]21-VL'
+  port: 443
   reality-opts:
-    public-key: NEA1IjKlGS6uiQxlx8zk9rERy3TnSl-nBmT4OuefwS0
-  server: sub.mydailystory.xyz
+    public-key: KOBWQaq1-whgKpaTKZbaofFg0t-ct0i3J08a6TCTmAs
+    short-id: 0f5a79f5d7b40a0f
+  server: 150.241.124.205
   skip-cert-verify: true
-  sni: www.yahoo.com
+  sni: www.mozilla.org
   tls: true
   type: vless
   udp: true
-  uuid: 1b3dffb1-1bf6-4e39-8785-58d73a06af0f
+  uuid: b440a476-e65e-4f67-9993-b8c6d1308fd7
 - client-fingerprint: chrome
   flow: xtls-rprx-vision
-  name: '[WEB]19-VL'
+  name: '[WEB]22-VL'
+  port: 443
+  reality-opts:
+    public-key: JZppw-ux1-GsHY6eN1B-sFcVjXNVvb1D6-qKBKCrxAo
+    short-id: 89c7866901c21bce
+  server: 185.191.118.33
+  skip-cert-verify: true
+  sni: de.moktana.app
+  tls: true
+  type: vless
+  udp: true
+  uuid: 696915f2-5ad4-452b-987c-d83d29d0503a
+- client-fingerprint: chrome
+  flow: xtls-rprx-vision
+  name: '[WEB]63-VL'
   port: 443
   reality-opts:
     public-key: zA-R_HtKJR1Hb0c1KXA3Yxh1TH_SPi1oV6cDfWURdQs
@@ -26,7 +42,120 @@ proxies:
   udp: true
   uuid: 6fa9f6ae-877b-4858-b128-a8377fd9038b
 - client-fingerprint: chrome
-  name: '[WEB]3-VL'
+  name: '[WEB]68-VL'
+  port: 9001
+  reality-opts:
+    public-key: Ep_RxUq0kSY2xhXtVRHJNQPgl3V_T4UGhTzOYXVPQEk
+    short-id: 458ff70ea97eeac2
+  server: kr.kefenhuimin.com
+  skip-cert-verify: true
+  sni: www.apple.com
+  tls: true
+  type: vless
+  udp: true
+  uuid: dda82e57-02c8-4d0b-9c6c-c2945e5509e5
+- client-fingerprint: chrome
+  flow: xtls-rprx-vision
+  name: '[WEB]81-VL'
+  port: 443
+  reality-opts:
+    public-key: OCLtjVdRxsou3429LRfjkDYgiAPs24TSgSeFZpChCEw
+    short-id: d67ec5a8fc40ebea
+  server: fl15.myxasecure.space
+  skip-cert-verify: true
+  sni: fl15.myxasecure.space
+  tls: true
+  type: vless
+  udp: true
+  uuid: c04bf2df-2b7f-44da-a893-3792d3910fd8
+- name: 🇯🇵1-TR
+  password: IQ68037294
+  port: 443
+  server: amazed-burro.rooster465.autos
+  skip-cert-verify: true
+  sni: amazed-burro.rooster465.autos
+  tls: true
+  type: trojan
+  udp: true
+- client-fingerprint: chrome
+  name: '[WEB]31-VL'
+  network: ws
+  port: 443
+  server: japan.com
+  skip-cert-verify: true
+  sni: misaka.cndyw.ggff.net
+  tls: true
+  type: vless
+  udp: true
+  uuid: 04c808e2-0b59-47b0-a54b-32fc7ef1c902
+  ws-opts:
+    headers:
+      Host: misaka.cndyw.ggff.net
+    path: /?ed=2560fp=chrome
+- client-fingerprint: chrome
+  name: 🇰🇷1-VL
+  network: ws
+  port: 443
+  server: afrcloud22.mmv.kr
+  skip-cert-verify: true
+  sni: afrcloud22.mmv.kr
+  tls: true
+  type: vless
+  udp: true
+  uuid: 1e681d1b-3f6e-4bd4-9fed-b8976bd1b3be
+  ws-opts:
+    headers:
+      Host: afrcloud22.mmv.kr
+    path: /45.76.192.129=24434
+- client-fingerprint: chrome
+  name: '[WEB]11-VL'
+  network: ws
+  port: 443
+  server: myanmar.visa.com
+  skip-cert-verify: true
+  sni: RAYaN106-9uIaCO-1.rayan-106.wOrKErs.DeV
+  tls: true
+  type: vless
+  udp: true
+  uuid: 226c8b99-407a-4215-b00c-ff44b02b8b63
+  ws-opts:
+    headers:
+      Host: RAYaN106-9uIaCO-1.rayan-106.wOrKErs.DeV
+    path: /?ed=2560
+- alterId: 0
+  cipher: auto
+  name: '[WEB]38-VM'
+  network: ws
+  port: 443
+  server: fullaccesstojapannetsubnode1.azurewebsites.net
+  skip-cert-verify: true
+  sni: fullaccesstojapannetsubnode1.azurewebsites.net
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 274f11c6-f69b-40b9-8966-f39e06e97be7
+  ws-opts:
+    headers:
+      Host: fullaccesstojapannetsubnode1.azurewebsites.net
+    path: /ws
+- alterId: 0
+  cipher: auto
+  name: '[WEB]48-VM'
+  network: ws
+  port: 443
+  server: fullaccesstohongkongnet.azurewebsites.net
+  skip-cert-verify: true
+  sni: fullaccesstohongkongnet.azurewebsites.net
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 274f11c6-f69b-40b9-8966-f39e06e97be7
+  ws-opts:
+    headers:
+      Host: fullaccesstohongkongnet.azurewebsites.net
+    path: /ws
+- client-fingerprint: chrome
+  name: '[WEB]6-VL'
   network: ws
   port: 443
   server: love.ns.cloudflare.com
@@ -41,621 +170,460 @@ proxies:
       Host: gioub.moonleafbox-kilo.info
     path: /sea
 - client-fingerprint: chrome
-  name: '[WEB]63-VL'
-  network: grpc
-  port: 443
-  reality-opts:
-    public-key: MhOa-Fkr656VVRcxXd27gam263cdXF_uyGiHZZEISUA
-    short-id: ce741cbe468babc7
-  server: 45.157.117.180
-  skip-cert-verify: true
-  sni: yahoo.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 74d736fe-8ba6-42be-8a43-2973a18ef2ca
-- client-fingerprint: firefox
-  flow: xtls-rprx-vision
-  name: '[WEB]76-VL'
-  network: tcp
-  port: 443
-  reality-opts:
-    public-key: 1JlspB1qSmCPGjz7c_pnZnmlDYDVY-7i5LJy_iIxuDk
-  server: 138.124.107.132
-  servername: www.trendyol.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 777bcc23-6bc8-5819-a40d-7f2a743419a1
-- client-fingerprint: chrome
-  name: 🇷🇺1-VL
-  port: 443
-  reality-opts:
-    public-key: JaP4bhvIMW-l7T0_RkLra59DeBYI6W9XemKa8MyRPSY
-    short-id: 6c6082a2223c1d03
-  server: 5.129.250.194
-  skip-cert-verify: true
-  sni: rutube.ru
-  tls: true
-  type: vless
-  udp: true
-  uuid: 8a22fde8-e72e-4ce2-96f6-285aeffe66a2
-- client-fingerprint: chrome
-  name: 🇮🇷5-VL
-  port: 443
-  reality-opts:
-    public-key: xIlI7i0C7C6bqamLJV2bXpWQ7tW0WpBng6PM92BE8AI
-  server: naran-mil-ow.fizikade.ir
-  skip-cert-verify: true
-  sni: play.google.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 1ffd6264-c6ce-4ff1-ad30-5329c9cad3d7
-- client-fingerprint: chrome
-  flow: xtls-rprx-vision
-  name: '[WEB]6-VL'
-  port: 443
-  reality-opts:
-    public-key: wo417FrFdjy7ZhccQ-VWGZEKcoCHSEfyWcJT1pIVc1Y
-    short-id: 3d3c1e645f763ee3
-  server: 158.69.112.254
-  skip-cert-verify: true
-  sni: www.speedtest.net
-  tls: true
-  type: vless
-  udp: true
-  uuid: 661f395d-b153-4199-a04b-693f5fe7f261
-- client-fingerprint: chrome
-  name: '[WEB]26-VL'
-  port: 443
-  reality-opts:
-    public-key: dp4zdTaX89_Ls34gM_x8BSBTx50p4X7asR3H1q_jIn4
-    short-id: b00e098b
-  server: france.cloudpath.live
-  skip-cert-verify: true
-  sni: microsoft.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: a1fbffe9-8e5a-5a0e-9333-045d32eccd59
-- client-fingerprint: chrome
-  name: '[WEB]37-VL'
-  port: 443
-  reality-opts:
-    public-key: aW52dpxW-umVvMOHPRCDsnHnJjuM8_S1FScLJQrVrG8
-    short-id: a32e8c4a
-  server: 43.165.186.226
-  skip-cert-verify: true
-  sni: www.sony.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 3dc3b4ef-c3f6-4ef3-9e03-e0a8fd82b7be
-- client-fingerprint: chrome
-  flow: xtls-rprx-vision
-  name: '[WEB]42-VL'
-  port: 443
-  reality-opts:
-    public-key: oGgupP3uX0TNyFwuxNYaFj-IQ8EPhCuKfJdaOHiMnV0
-    short-id: c334408a1056aaf8
-  server: nl15.sodahub.online
-  skip-cert-verify: true
-  sni: nl15.sodahub.online
-  tls: true
-  type: vless
-  udp: true
-  uuid: 8bba3194-4856-46d1-8319-075817d87eb1
-- client-fingerprint: chrome
-  flow: xtls-rprx-vision
-  name: '[WEB]43-VL'
-  port: 443
-  reality-opts:
-    public-key: Ij3Iz1jqht6zLOy9uI0iusTy4n1oIr7gpgTwRTtA8kY
-    short-id: 42b395462da31c0e
-  server: 151.80.147.30
-  skip-cert-verify: true
-  sni: speedtest.net
-  tls: true
-  type: vless
-  udp: true
-  uuid: a1750ade-801f-4e3e-a5d2-de825771205d
-- client-fingerprint: chrome
-  flow: xtls-rprx-vision
-  name: '[WEB]44-VL'
-  port: 443
-  reality-opts:
-    public-key: Mg3ZxHNUFbX96q1HpS3WReeM7rnhEsXXtlEzxALeTDc
-    short-id: d8d3dc6c3ca45dd4
-  server: 159.195.22.155
-  skip-cert-verify: true
-  sni: 2.oncloudnineservicestreang.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 859a537b-09cf-4bce-8da4-ecbb72950e3a
-- client-fingerprint: chrome
-  flow: xtls-rprx-vision
-  name: '[WEB]46-VL'
-  port: 443
-  reality-opts:
-    public-key: L0acYoTxKR5ix7LXAmP10cy06n2JjgkXTojGjtWAqww
-    short-id: ed7b9bdfedb9b8e5
-  server: 144.124.248.186
-  skip-cert-verify: true
-  sni: gateway.icloud.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 40de6299-d792-4868-8a82-411ead0aa943
-- client-fingerprint: chrome
-  flow: xtls-rprx-vision
-  name: '[WEB]50-VL'
-  port: 443
-  reality-opts:
-    public-key: UGKx4Kydrtu6oCJJPXOtR57bzIUIPK9meIy5ubEDHQM
-  server: 195.63.144.164
-  skip-cert-verify: true
-  sni: www.sony.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 157cb288-0b12-445d-a79e-5fed412c841d
-- client-fingerprint: chrome
-  flow: xtls-rprx-vision
-  name: '[WEB]53-VL'
-  port: 443
-  reality-opts:
-    public-key: DHsthrDRMCGcOyJd4xTce_4CCSAJZGwxCdfNrkB_Pgs
-    short-id: 479826bdfc3eb86e
-  server: 54.37.75.187
-  skip-cert-verify: true
-  sni: www.speedtest.net
-  tls: true
-  type: vless
-  udp: true
-  uuid: a0b067ac-162d-4237-956d-10b8b471d3f5
-- client-fingerprint: chrome
-  flow: xtls-rprx-vision
-  name: '[WEB]59-VL'
-  port: 443
-  reality-opts:
-    public-key: JoIT56dCrKkeYJWSPA6-rllSqlXYKPg1rC2w7D_xogU
-    short-id: 212a8beb0ea4817b
-  server: 212.23.222.103
-  skip-cert-verify: true
-  sni: pl1.buycloud.app
-  tls: true
-  type: vless
-  udp: true
-  uuid: bbae962a-b6e9-46e6-990c-6abf13e6b075
-- client-fingerprint: chrome
-  flow: xtls-rprx-vision
-  name: '[WEB]66-VL'
-  port: 443
-  reality-opts:
-    public-key: SbVKOEMjK0sIlbwg4akyBg5mL5KZwwB-ed4eEE7YnRc
-    short-id: 6ba85179e30d4fc2
-  server: 217.217.247.253
-  skip-cert-verify: true
-  sni: enterprisekitten.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 8ca5cbd3-ec16-4728-bedc-2bc0d82f0922
-- client-fingerprint: chrome
-  flow: xtls-rprx-vision
-  name: '[WEB]72-VL'
-  port: 443
-  reality-opts:
-    public-key: zii4nGNapnFKL6SN8GzWNqFlElBvUCUFUThEP0kFH04
-    short-id: 205748bc0f24a747
-  server: 45.196.201.243
-  skip-cert-verify: true
-  sni: storage.yandex.net
-  tls: true
-  type: vless
-  udp: true
-  uuid: 1ddee681-4008-43e5-80cc-69fe44ce96e0
-- client-fingerprint: chrome
-  flow: xtls-rprx-vision
-  name: '[WEB]78-VL'
-  port: 443
-  reality-opts:
-    public-key: vCxfuNNmogA1DlPkjvmKb7_hSgXqe4MboPfi2s1JZG0
-    short-id: b318242471ba4f5b
-  server: 178.236.17.86
-  skip-cert-verify: true
-  sni: google.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 6fdfdb73-51b0-4a14-89a5-c9355a0e0397
-- client-fingerprint: chrome
-  flow: xtls-rprx-vision
-  name: '[WEB]6-VL-1'
-  port: 8443
-  reality-opts:
-    public-key: 1oUeBtHH4DskTM_jCh-6enWRkFMDX9l1OU5kWYl4kxA
-    short-id: f34818a561dfd1fe
-  server: bypass.fr-gt-01.com
-  skip-cert-verify: true
-  sni: storage.yandex.net
-  tls: true
-  type: vless
-  udp: true
-  uuid: 356ccb34-22cc-4446-a137-072bc60d65ca
-- client-fingerprint: chrome
-  name: 🇮🇷8-VL
-  network: grpc
-  port: 56625
-  reality-opts:
-    public-key: sVtMU2ZA5W6TLnBCZdgfXqDnOwWePrGVjSNnueDlYmM
-    short-id: 2acdb7659ae9df84
-  server: 32b1c1385e32bdfd.mbcloudy.ir
-  skip-cert-verify: true
-  sni: icloud.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 3b4529e8-9c14-4541-8388-fe90d737baeb
-- client-fingerprint: chrome
-  name: 🇮🇷10-VL
-  network: grpc
-  port: 56625
-  reality-opts:
-    public-key: sVtMU2ZA5W6TLnBCZdgfXqDnOwWePrGVjSNnueDlYmM
-    short-id: 2619d1af5cad99b0
-  server: 90dde47a7ab24d1e.mbcloudy.ir
-  skip-cert-verify: true
-  sni: icloud.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: ddf34d13-d411-4e60-9a33-0b3b7d439705
-- client-fingerprint: chrome
-  name: 🇮🇷11-VL
-  port: 2087
-  reality-opts:
-    public-key: YzBMpb1dERPYZ523TWUVf9MkqH4_zrnc_t_o2IjF0W4
-    short-id: e898156ae00ddeb8
-  server: vip-de2-unlimited.relqino.ir
-  skip-cert-verify: true
-  sni: yahoo.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 37182b68-6422-4414-9518-7df6776c0150
-- client-fingerprint: chrome
-  name: 🇮🇷1-VL
-  port: 80
-  reality-opts:
-    public-key: uOXWzNhsJ6sMuaZV8zPNZLu0kHNoUmDTRv6P1mlnsXk
-    short-id: bd4d7eb38ffa2ea3
-  server: game.pubgzonee.ir
-  skip-cert-verify: true
-  sni: yahoo.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: dd6018cb-e047-4371-bdca-460bf0045f02
-- client-fingerprint: chrome
-  name: '[WEB]2-VL'
-  port: 41291
-  reality-opts:
-    public-key: jLsy6nWO5HZRnl5lx5AKgBFGLMZxNjzYOHMmLWFH4Fo
-  server: ballast.proxy.rlwy.net
-  skip-cert-verify: true
-  sni: is1-ssl.mzstatic.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: '@MAconnectt'
-- client-fingerprint: chrome
-  name: 🇮🇷2-VL
-  port: 1153
-  reality-opts:
-    public-key: E5n-njx-57MxDzVpCwsqmc9wKeYRjyd2tg2yAUJ_sFU
-    short-id: 28711478c2a20a18
-  server: mreal2.varzesh361.ir
-  skip-cert-verify: true
-  sni: yahoo.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 7691d590-be40-411f-ab11-1e1ab4b03570
-- client-fingerprint: chrome
-  flow: xtls-rprx-vision
-  name: 🇮🇷3-VL
-  port: 31118
-  reality-opts:
-    public-key: LUCLCEE0jswfTEzoonfVHLw_1l-j4uROgNJi12jJsnc
-  server: ukall.lorqina.ir
-  skip-cert-verify: true
-  sni: de.nachrichten.yahoo.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 9d66932d-9eec-47de-972a-e98dee7231c1
-- client-fingerprint: chrome
-  name: '[WEB]4-VL'
-  port: 2026
-  reality-opts:
-    public-key: y0SLcx3lbQgHd8AB5yyGbzOz8yRRVaNJP8viG77ulAw
-    short-id: 4b740a5973235cec
-  server: oman1.auranetir.com
-  skip-cert-verify: true
-  sni: speedtest.net
-  tls: true
-  type: vless
-  udp: true
-  uuid: d63a9365-41a4-4228-91dd-88c25dfc3411
-- client-fingerprint: chrome
-  flow: xtls-rprx-vision
-  name: '[WEB]5-VL'
-  port: 11452
-  reality-opts:
-    public-key: k2hPp0tTW0Da-HK94wYpSCLbuK44LfGqC2MSJIM1Ti0
-    short-id: 48050fab
-  server: 103.75.118.228
-  skip-cert-verify: true
-  sni: www.apple.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 814bd064-544d-4255-a070-5705c03f6da9
-- client-fingerprint: chrome
-  flow: xtls-rprx-vision
-  name: '[WEB]49-VL'
-  port: 5050
-  reality-opts:
-    public-key: wPplbDvBxAQXm5LPrL3obDV29adu-114j1Eeg5cByiM
-    short-id: da1fc754c46af883
-  server: 178.104.85.6
-  skip-cert-verify: true
-  sni: www.play.google.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 35ecec8f-f364-4efb-8c75-dc7390eb2492
-- client-fingerprint: chrome
-  flow: xtls-rprx-vision
-  name: '[WEB]59-VL-1'
-  port: 23576
-  reality-opts:
-    public-key: 1y5h2FGWKXTJ9xLPCqPo6Mw7RxoZzh6fGkEQKNxpZ3s
-  server: 15.204.97.198
-  skip-cert-verify: true
-  sni: fuck.rkn
-  tls: true
-  type: vless
-  udp: true
-  uuid: 48ff2b70-e180-582f-8866-d9a2edeed5f5
-- client-fingerprint: chrome
-  name: 🇫🇷1-VL
+  name: '[WEB]9-VL'
   network: ws
   port: 443
-  server: saas.sin.fan
+  server: 188.114.98.0
   skip-cert-verify: true
-  sni: t1s1.rittbo.kdns.fr
+  sni: dev.twistsparrow.xyz
   tls: true
   type: vless
   udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  uuid: fef4a93d-eb4f-4657-b56b-32a0dc060045
   ws-opts:
+    headers:
+      Host: dev.twistsparrow.xyz
     path: /
 - client-fingerprint: chrome
-  name: 🇫🇷2-VL
+  name: '[WEB]10-VL'
   network: ws
   port: 443
-  server: 141.147.174.243
-  skip-cert-verify: true
-  sni: t1s1.rittbo.kdns.fr
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- client-fingerprint: chrome
-  name: 🇫🇷3-VL
-  network: ws
-  port: 443
-  server: 104.17.122.18
-  skip-cert-verify: true
-  sni: t1s1.rittbo.kdns.fr
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /fp
-- client-fingerprint: chrome
-  name: '[WEB]4-VL-1'
-  network: ws
-  port: 443
-  server: cfd5.466688.xyz
-  skip-cert-verify: true
-  sni: edge-4cb23bf6.pages.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 4feb7818-dc02-46cd-b985-abf3fdd0cdc5
-  ws-opts:
-    headers:
-      Host: edge-4cb23bf6.pages.dev
-    path: /@https://t.me/QiangLieTuiJian?ed=2048fp=chrome
-- client-fingerprint: chrome
-  name: 🇫🇷4-VL
-  network: ws
-  port: 443
-  server: 104.16.72.50
-  skip-cert-verify: true
-  sni: t1s1.rittbo.kdns.fr
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /fp
-- client-fingerprint: chrome
-  name: '[WEB]17-VL'
-  network: ws
-  port: 443
-  server: telegram-free.up.railway.app
-  skip-cert-verify: true
-  sni: telegram-free.up.railway.app
-  tls: true
-  type: vless
-  udp: true
-  uuid: b5febbdf-cb89-6763-e67f-d4ac08e94a18
-  ws-opts:
-    headers:
-      Host: telegram-free.up.railway.app
-    path: /ws/b5febbdf-cb89-6763-e67f-d4ac08e94a18
-- client-fingerprint: chrome
-  name: '[WEB]18-VL'
-  network: ws
-  port: 443
-  server: rokervpn-production-bbae.up.railway.app
-  skip-cert-verify: true
-  sni: rokervpn-production-bbae.up.railway.app
-  tls: true
-  type: vless
-  udp: true
-  uuid: 4ab4d988-dd67-6b70-90d3-3930132f8490
-  ws-opts:
-    headers:
-      Host: rokervpn-production-bbae.up.railway.app
-    path: /ws/4ab4d988-dd67-6b70-90d3-3930132f8490
-- client-fingerprint: chrome
-  name: '[WEB]19-VL-1'
-  network: ws
-  port: 443
-  server: x4g-production-0a61.up.railway.app
-  skip-cert-verify: true
-  sni: x4g-production-0a61.up.railway.app
-  tls: true
-  type: vless
-  udp: true
-  uuid: 1725bfd6-5c74-759f-64d1-2f442f1c5992
-  ws-opts:
-    headers:
-      Host: x4g-production-0a61.up.railway.app
-    path: /ws/1725bfd6-5c74-759f-64d1-2f442f1c5992
-- client-fingerprint: chrome
-  name: '[WEB]23-VL'
-  network: ws
-  port: 443
-  server: 199.232.22.39
+  server: fast.motorbazan.com
   skip-cert-verify: true
   sni: ssl.fastly.com
   tls: true
   type: vless
   udp: true
-  uuid: 891710f4-45f3-41b1-99a6-6f1510f83c10
+  uuid: 0f92ef70-e4c0-4627-8c72-93c3e59b60cf
   ws-opts:
     headers:
-      Host: pan21.global.ssl.fastly.net
-    path: /TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER?ed
+      Host: lsjaoijji.global.ssl.fastly.neT
+    path: /
 - client-fingerprint: chrome
-  name: '[WEB]23-VL-1'
+  name: '[WEB]1-VL'
   network: ws
-  port: 443
-  server: marzban-node-production-7e8a.up.railway.app
+  port: 2096
+  server: 104.16.7.70
   skip-cert-verify: true
-  sni: marzban-node-production-7e8a.up.railway.app
+  sni: sni.jpmj.dev
   tls: true
   type: vless
   udp: true
-  uuid: 15007960-8af9-4417-b64e-2bdd30883643
+  uuid: 6202b230-417c-4d8e-b624-0f71afa9c75d
   ws-opts:
     headers:
-      Host: marzban-node-production-7e8a.up.railway.app
-    path: /vless
-- client-fingerprint: chrome
-  name: '[WEB]25-VL'
+      Host: sni.jpmj.dev
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]13-VM'
   network: ws
   port: 443
+  server: fake.id.workers.dev
+  skip-cert-verify: true
+  sni: fake.id.workers.dev
+  tls: true
+  type: vmess
+  udp: true
+  uuid: F591CE71-33F8-4B12-824A-0167FA839ED9
+  ws-opts:
+    headers:
+      Host: fake.id.workers.dev
+    path: /speedtest
+- alterId: 0
+  cipher: auto
+  name: '[WEB]18-VM'
+  network: ws
+  port: 443
+  server: seoul03.zgjok.com
+  skip-cert-verify: true
+  sni: seoul03.zgjok.com
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 72a0dac4-9689-4a57-b164-5c65bfa94772
+  ws-opts:
+    headers:
+      Host: seoul03.zgjok.com
+    path: /
+- alterId: 1
+  cipher: auto
+  name: '[WEB]25-VM'
+  network: ws
+  port: 443
+  server: ophelia.mom
+  skip-cert-verify: true
+  sni: ophelia.mom
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 03fcc618-b93d-6796-6aed-8a38c975d581
+  ws-opts:
+    headers:
+      Host: ophelia.mom
+    path: linkvws
+- alterId: 0
+  cipher: auto
+  name: '[WEB]34-VM'
+  network: ws
+  port: 443
+  server: fullaccesstokoreannetsubnode1.azurewebsites.net
+  skip-cert-verify: true
+  sni: fullaccesstokoreannetsubnode1.azurewebsites.net
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 274f11c6-f69b-40b9-8966-f39e06e97be7
+  ws-opts:
+    headers:
+      Host: fullaccesstokoreannetsubnode1.azurewebsites.net
+    path: /ws
+- alterId: 0
+  cipher: auto
+  name: '[WEB]61-VM'
+  network: ws
+  port: 443
+  server: kr-arm2.018999.xyz
+  skip-cert-verify: true
+  sni: kr-arm2.018999.xyz
+  tls: true
+  type: vmess
+  udp: true
+  uuid: e98fc1a0-9c52-4091-91a5-c159b0aa274e
+  ws-opts:
+    headers:
+      Host: kr-arm2.018999.xyz
+    path: /e98fc1a0-9c52-4091-91a5-c159b0aa274e
+- alterId: 0
+  cipher: auto
+  name: '[WEB]76-VM'
+  network: ws
+  port: 80
+  server: 3h-philippines1.09vpn.com
+  skip-cert-verify: true
+  sni: 3h-philippines1.09vpn.com
+  tls: true
+  type: vmess
+  udp: true
+  uuid: e7d6a050-e52a-4d85-ac26-95f85e44e8f4
+  ws-opts:
+    headers:
+      Host: 3h-philippines1.09vpn.com
+    path: /vmess/
+- alterId: 0
+  cipher: auto
+  name: '[WEB]19-VM'
+  network: ws
+  port: 443
+  server: tw.xlkjjs.top
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 0a6b7226-2f9c-393c-bc94-5a34859250c0
+  ws-opts:
+    headers:
+      Host: tw.xlkjjs.top
+    path: /
+- alterId: 1
+  cipher: auto
+  name: '[WEB]7-VM'
+  network: ws
+  port: 443
+  server: 188.114.96.58
+  skip-cert-verify: true
+  sni: ophelia.mom
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 03fcc618-b93d-6796-6aed-8a38c975d581
+  ws-opts:
+    headers:
+      Host: ophelia.mom
+    path: linkvws
+- alterId: 0
+  cipher: auto
+  name: '[WEB]15-VM'
+  network: ws
+  port: 443
+  server: www.baldengineer.com
+  skip-cert-verify: true
+  sni: yelan.thelastronin.cloudns.org
+  tls: true
+  type: vmess
+  udp: true
+  uuid: f584de15-2034-4170-a723-f48c2bae5e0f
+  ws-opts:
+    headers:
+      Host: yelan.thelastronin.cloudns.org
+    path: /linkws/afrhms16v.bestxray.buzz
+- alterId: 0
+  cipher: auto
+  name: '[WEB]17-VM'
+  network: ws
+  port: 443
+  server: tradegdt.ai
+  skip-cert-verify: true
+  sni: yelan.thelastronin.cloudns.org
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 39cec18f-a439-427c-9a4e-aeb6fcdf6f53
+  ws-opts:
+    headers:
+      Host: yelan.thelastronin.cloudns.org
+    path: /linkws/linja05.hwcar.sbs
+- alterId: 0
+  cipher: auto
+  name: '[WEB]24-VM'
+  network: ws
+  port: 443
+  server: www.bzfmc.com
+  skip-cert-verify: true
+  sni: yelan.thelastronin.cloudns.org
+  tls: true
+  type: vmess
+  udp: true
+  uuid: fa5b55cd-cafc-4de0-a4c8-722e02a9f58e
+  ws-opts:
+    headers:
+      Host: yelan.thelastronin.cloudns.org
+    path: /linkws/hms03.dongfeng.cfd
+- alterId: 1
+  cipher: auto
+  name: '[WEB]67-VM'
+  network: ws
+  port: 443
+  server: vmessprotocol.telegram-vmessprotocol-channel.space
+  skip-cert-verify: true
+  sni: ophelia.mom
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 03fcc618-b93d-6796-6aed-8a38c975d581
+  ws-opts:
+    headers:
+      Host: ophelia.mom
+    path: linkvws
+- client-fingerprint: chrome
+  name: '[WEB]47-VL'
+  network: grpc
+  port: 8880
+  server: sca30.mysilipdir.com
+  skip-cert-verify: true
+  type: vless
+  udp: true
+  uuid: 8dc7722c-2767-4eea-a28b-2f8daacc07e3
+- alterId: 0
+  cipher: auto
+  name: 🇹🇼1-VM
+  network: ws
+  port: 2086
+  server: icook.tw
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: e9e3cc13-db48-4cc1-8c24-7626439a5339
+  ws-opts:
+    headers:
+      Host: ip1.1789034.xyz
+    path: github.com/Alvin9999
+- alterId: 0
+  cipher: auto
+  name: 🇭🇰1-VM
+  network: ws
+  port: 80
+  server: icook.hk
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 3eb05cb6-d2e1-4a31-9f82-514cfa98fe15
+  ws-opts:
+    headers:
+      Host: icook.hk
+    path: /ray?ed=2048
+- alterId: 0
+  cipher: auto
+  name: '[WEB]2-VM'
+  network: ws
+  port: 2086
+  server: japan.com
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: e9e3cc13-db48-4cc1-8c24-7626439a5339
+  ws-opts:
+    headers:
+      Host: ip1.1789034.xyz
+    path: github.com/Alvin9999
+- alterId: 0
+  cipher: auto
+  name: '[WEB]16-VM'
+  network: ws
+  port: 2086
+  server: singapore.com
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: e9e3cc13-db48-4cc1-8c24-7626439a5339
+  ws-opts:
+    headers:
+      Host: ip1.1789034.xyz
+    path: github.com/Alvin9999
+- alterId: 0
+  cipher: auto
+  name: '[WEB]14-VM'
+  network: ws
+  port: 2083
+  server: techplanet.today
+  skip-cert-verify: true
+  sni: xui.mycf.ml
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 8a21b84d-183e-450d-ec82-8d45855d8180
+  ws-opts:
+    headers:
+      Host: xui.mycf.ml
+    path: /
+- client-fingerprint: chrome
+  name: 🇲🇴1-VL
+  network: ws
+  port: 80
   server: 104.17.148.22
   skip-cert-verify: true
-  sni: octopusss.net
-  tls: true
   type: vless
   udp: true
-  uuid: 073d1d50-8478-47bf-a828-7a1b381931d5
+  uuid: e759b599-8bf2-4fec-a2e9-97052d88c155
   ws-opts:
     headers:
-      Host: octopusss.net
-    path: /odiyfws
+      Host: shhproxy.com.www.speedtest.net.www.zula.ir.cloudflare.com.mozdfree.bUzz.
+    path: /telegram-@Shh_Proxy-@Shh_Proxy,telegram-@Shh_Proxy,telegram-@Shh_Proxy,telegram-@Shh_Proxy?ed=2560
 - client-fingerprint: chrome
-  name: '[WEB]26-VL-1'
+  name: '[WEB]4-VL'
   network: ws
-  port: 443
-  server: 167.82.77.173
+  port: 80
+  server: 172.67.148.26
   skip-cert-verify: true
-  sni: ssl.fastly.com
-  tls: true
   type: vless
   udp: true
-  uuid: 891710f4-45f3-41b1-99a6-6f1510f83c10
+  uuid: 95de071f-747c-dc07-36ac-5c0854a9e50e
   ws-opts:
     headers:
-      Host: pan21.global.ssl.fastly.net
-    path: /TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER?ed0
+      Host: restless-boat-ebf2.moha102030.workers.dev
+    path: /sync
 - client-fingerprint: chrome
-  name: '[WEB]27-VL'
+  name: '[WEB]12-VL'
   network: ws
-  port: 443
-  server: 104.17.121.110
+  port: 8880
+  server: skk.moe
   skip-cert-verify: true
-  sni: terazhediii.info
-  tls: true
   type: vless
   udp: true
-  uuid: b2f6aa3a-2550-4a1c-b2c0-1c94b1207217
+  uuid: dc53f855-5025-45c8-9a85-981036839c5c
   ws-opts:
     headers:
-      Host: terazhediii.info
-    path: /hdgrbws
+      Host: summer-breeze-0574.279.workers.dev
+    path: /pyip=ProxyIP.JP.CMLiussss.net
 - client-fingerprint: chrome
-  name: '[WEB]29-VL'
+  name: '[WEB]20-VL'
   network: ws
-  port: 443
-  server: staticdelivery.nexusmods.com
+  port: 80
+  server: 193.70.90.159
   skip-cert-verify: true
-  sni: vp1.cc.cd
-  tls: true
   type: vless
   udp: true
-  uuid: 663cf772-829c-4bc6-893d-b7d021d42f5b
+  uuid: f4859fc9-dc44-11ee-b9ba-00505603e70d
   ws-opts:
     headers:
-      Host: vp1.cc.cd
+      Host: vkvd127.mycdn.me
+    path: /websocket
+- client-fingerprint: chrome
+  name: '[WEB]33-VL'
+  port: 2087
+  server: ger.motorbazan.com
+  skip-cert-verify: true
+  type: vless
+  udp: true
+  uuid: 9ffcb940-cbf9-43ef-a077-20e26b2bde8c
+- alterId: 0
+  cipher: auto
+  name: 🇮🇩1-VM
+  network: ws
+  port: 80
+  server: lms.uin-antasari.ac.id
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 46bfdb59-83c6-4710-877e-c809b5a90dff
+  ws-opts:
+    headers:
+      Host: exa.nextvpn.cc
     path: /
-- client-fingerprint: chrome
-  name: '[WEB]31-VL'
+- alterId: 0
+  cipher: auto
+  name: '[WEB]26-VM'
   network: ws
-  port: 443
-  server: safi-production-ac34.up.railway.app
+  port: 2086
+  server: malaysia.com
   skip-cert-verify: true
-  sni: safi-production-ac34.up.railway.app
-  tls: true
-  type: vless
+  type: vmess
   udp: true
-  uuid: 556795ed-785e-5d82-9188-3706d4c8fd1d
+  uuid: e9e3cc13-db48-4cc1-8c24-7626439a5339
   ws-opts:
     headers:
-      Host: safi-production-ac34.up.railway.app
-    path: /ws/556795ed-785e-5d82-9188-3706d4c8fd1d
+      Host: ip1.1789034.xyz
+    path: github.com/Alvin9999
 - client-fingerprint: chrome
   name: '[WEB]35-VL'
+  port: 58748
+  server: ara.public.lat
+  skip-cert-verify: true
+  type: vless
+  udp: true
+  uuid: 21e22226-0b96-4b4e-9a91-5c7f9e3f1760
+- alterId: 0
+  cipher: auto
+  name: '[WEB]5-VM'
+  network: ws
+  port: 80
+  server: skk.moe
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 65b17c0b-0a52-4b54-9bc9-60e31397b841
+  ws-opts:
+    headers:
+      Host: accklsj.bufu.us.ci
+    path: /65b17c0b-0a52-4b54-9bc9-60e31397b841-vmess
+- alterId: 0
+  cipher: auto
+  name: '[WEB]8-VM'
+  network: ws
+  port: 8080
+  server: skk.moe
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 54d4d640-731c-4572-d0d4-e8a617816470
+  ws-opts:
+    headers:
+      Host: icu4.mac2win.top
+    path: /
+- client-fingerprint: chrome
+  name: 🇮🇷3-VL
+  network: grpc
+  port: 443
+  reality-opts:
+    public-key: YlDfPynfSCScT4WG0K37lusY94qBaHdoo8YCyUtCCmM
+  server: ninja.monak2.ir
+  skip-cert-verify: true
+  sni: www.yahoo.com
+  tls: true
+  type: vless
+  udp: true
+  uuid: 69c0e64c-363f-46da-865c-88d5075a9356
+- client-fingerprint: chrome
+  name: '[WEB]9-VL-1'
   network: ws
   port: 443
   server: 104.17.147.22
@@ -670,422 +638,43 @@ proxies:
       Host: octopusss.net
     path: /odiyfws
 - client-fingerprint: chrome
-  name: '[WEB]38-VL'
-  network: ws
-  port: 443
-  server: 104.20.13.116
-  skip-cert-verify: true
-  sni: ourfast.ccwu.cc
-  tls: true
-  type: vless
-  udp: true
-  uuid: fb978279-0a28-4045-8258-e9ab97deaf2b
-  ws-opts:
-    headers:
-      Host: ourfast.ccwu.cc
-    path: /
-- client-fingerprint: chrome
-  name: '[WEB]42-VL-1'
-  network: ws
-  port: 443
-  server: 199.232.29.204
-  skip-cert-verify: true
-  sni: ssl.fastly.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 891710f4-45f3-41b1-99a6-6f1510f83c10
-  ws-opts:
-    headers:
-      Host: pan21.global.ssl.fastly.net
-    path: /TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER?ed
-- client-fingerprint: chrome
-  name: '[WEB]51-VL'
-  network: ws
-  port: 443
-  server: medium.com
-  skip-cert-verify: true
-  sni: rAyAn-007.mAxImA.DpDnS.OrG
-  tls: true
-  type: vless
-  udp: true
-  uuid: f2a73750-3087-48ff-a763-1348c15dce68
-  ws-opts:
-    headers:
-      Host: rAyAn-007.mAxImA.DpDnS.OrG
-    path: /?ed=2560
-- client-fingerprint: chrome
-  name: '[WEB]52-VL'
-  network: ws
-  port: 443
-  server: www.speedtest.net
-  skip-cert-verify: true
-  sni: octopusss.net
-  tls: true
-  type: vless
-  udp: true
-  uuid: 073d1d50-8478-47bf-a828-7a1b381931d5
-  ws-opts:
-    headers:
-      Host: octopusss.net
-    path: /odiyfws
-- client-fingerprint: chrome
-  name: '[WEB]53-VL-1'
-  network: ws
-  port: 443
-  server: www.shopify.com
-  skip-cert-verify: true
-  sni: gddy.hhlfy.de5.net
-  tls: true
-  type: vless
-  udp: true
-  uuid: 5b9fa73b-b549-480b-add9-c45e650d236f
-  ws-opts:
-    headers:
-      Host: gddy.hhlfy.de5.net
-    path: /
-- client-fingerprint: chrome
-  name: '[WEB]54-VL'
-  network: ws
-  port: 443
-  server: 199.232.249.110
-  skip-cert-verify: true
-  sni: ssl.fastly.com
-  tls: true
-  type: vless
-  udp: true
-  uuid: 891710f4-45f3-41b1-99a6-6f1510f83c10
-  ws-opts:
-    headers:
-      Host: pan21.global.ssl.fastly.net
-    path: /TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER,TELEGRAM_NUFiLTER?ed
-- client-fingerprint: chrome
-  name: '[WEB]56-VL'
-  network: ws
-  port: 443
-  server: chatgpt.com
-  skip-cert-verify: true
-  sni: tvv98wmo.2xxmomfn8t5fmb22g32w.workers.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: c0f081af-7d91-4c68-84ac-4a36e0034633
-  ws-opts:
-    headers:
-      Host: tvv98wmo.2xxmomfn8t5fmb22g32w.workers.dev
-    path: /eyJqdW5rIjoiYWwzY3dmZmtmMDNvYnAzNiIsInByb3RvY29sIjoidmwiLCJtb2RlIjoicHJveHlpcCIsInBhbmVsSVBzIjpbXX0=?ed=636
-- client-fingerprint: chrome
-  name: '[WEB]58-VL'
-  network: ws
-  port: 443
-  server: 66.33.22.73
-  skip-cert-verify: true
-  sni: rr-production-4e3f.up.railway.app
-  tls: true
-  type: vless
-  udp: true
-  uuid: 237ac65e-da33-93c3-7e70-a2dd60d54f4a
-  ws-opts:
-    headers:
-      Host: rr-production-4e3f.up.railway.app
-    path: /ws/237ac65e-da33-93c3-7e70-a2dd60d54f4a
-- client-fingerprint: chrome
-  name: 🇫🇷1-VL-1
+  name: '[WEB]10-VL-1'
   network: ws
   port: 8443
-  server: 104.16.72.101
+  server: ad-010.vector9nmb3.info
   skip-cert-verify: true
-  sni: t1s1.rittbo.kdns.fr
-  tls: true
-  type: vless
-  udp: true
-  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
-  ws-opts:
-    headers:
-      Host: t1s1.rittbo.kdns.fr
-    path: /
-- client-fingerprint: chrome
-  name: 🇮🇷5-VL-1
-  network: ws
-  port: 2087
-  server: ip-data.turkserver.ir
-  skip-cert-verify: true
-  sni: all-tm1.netsnap.ir.
-  tls: true
-  type: vless
-  udp: true
-  uuid: 3b7ec44b-66d8-4822-b772-f1f50c3fec95
-  ws-opts:
-    headers:
-      Host: all-tm1.netsnap.ir.
-    path: /
-- client-fingerprint: chrome
-  name: '[WEB]24-VL'
-  network: ws
-  port: 8443
-  server: ad-010.vector2llqn.info
-  skip-cert-verify: true
-  sni: ad-010.vector2llqn.info
+  sni: ad-010.vector9nmb3.info
   tls: true
   type: vless
   udp: true
   uuid: 9047efd2-5aa4-4c9c-a58f-a5791b06c79e
-  ws-opts:
-    headers:
-      Host: ad-010.vector2llqn.info
-    path: /
 - client-fingerprint: chrome
-  name: '[WEB]25-VL-1'
-  network: ws
-  port: 2053
-  server: zeus-panel-rdil7t.zeus-qm5lw3.workers.dev
-  skip-cert-verify: true
-  sni: zeus-panel-rdil7t.zeus-qm5lw3.workers.dev
-  tls: true
-  type: vless
-  udp: true
-  uuid: 50414e45-4c5f-5a45-5553-13fe7db46a3e
-  ws-opts:
-    headers:
-      Host: zeus-panel-rdil7t.zeus-qm5lw3.workers.dev
-    path: /stream/PANEL_ZEUS/50414e45
-- client-fingerprint: chrome
-  name: '[WEB]29-VL-1'
-  network: ws
-  port: 2096
-  server: 8.35.211.72
-  skip-cert-verify: true
-  sni: vp6.cc.cd
-  tls: true
-  type: vless
-  udp: true
-  uuid: 663cf772-829c-4bc6-893d-b7d021d42f5b
-  ws-opts:
-    headers:
-      Host: vp6.cc.cd
-    path: /
-- client-fingerprint: chrome
-  name: '[WEB]37-VL-1'
-  network: ws
-  port: 2096
-  server: 8.35.211.81
-  skip-cert-verify: true
-  sni: vp37.cc.cd
-  tls: true
-  type: vless
-  udp: true
-  uuid: 7b102311-43fd-4e8f-877e-8090623c101d
-  ws-opts:
-    headers:
-      Host: vp37.cc.cd
-    path: /
-- client-fingerprint: firefox
-  name: '[WEB]40-VL'
-  network: ws
-  port: 2083
-  server: 8.39.125.74
-  skip-cert-verify: true
-  sni: vp2.cc.cd
-  tls: true
-  type: vless
-  udp: true
-  uuid: 663cf772-829c-4bc6-893d-b7d021d42f5b
-- client-fingerprint: chrome
-  name: '[WEB]46-VL-1'
-  network: ws
-  port: 8443
-  server: 188.114.97.8
-  skip-cert-verify: true
-  sni: dRy-GLITTer-ef10.gFRYubCdrYujVRtH.WorkErS.DEV
-  tls: true
-  type: vless
-  udp: true
-  uuid: 9c63fd59-f9ee-446e-97ec-0bf2de21ed7b
-  ws-opts:
-    headers:
-      Host: dry-glitter-ef10.gfryubcdryujvrth.workers.dev
-    path: /eyJqdW5rIjoiVVhGU1pOZ1oxaTFUUldyVCIsInByb3RvY29sIjoidmwiLCJtb2RlIjoicHJveHlpcCIsInBhbmVsSVBzIjpbXX0=?ed=2560
-- client-fingerprint: chrome
-  name: '[WEB]68-VL'
+  name: 🇷🇺1-VL
   network: grpc
-  port: 443
-  server: gbos2.osvp.online
+  port: 444
+  reality-opts:
+    public-key: lxq7uAa7l0ozobBgTRrQIF_aCxDeJqZZFaNv8CFA9TQ
+    short-id: 8622176789abcdef
+  server: hk.vrsvpn.com
   skip-cert-verify: true
-  sni: gbos2.osvp.online
+  sni: web.max.ru
   tls: true
   type: vless
   udp: true
-  uuid: 367ff772-a8f4-4895-8e99-3702a868f0c6
+  uuid: 0b9bcbc1-b289-4a64-86fa-a5b731b65384
 - client-fingerprint: chrome
-  name: 🇷🇺1-VL-1
-  network: grpc
-  port: 2083
-  server: using.neobo-tooth.ru
+  name: 🇮🇷1-VL
+  port: 443
+  reality-opts:
+    public-key: PjR-SM4fOm2fY4mTqWoqZDRyxontvpailM0gBqUxlUQ
+  server: gb-play.montago-shop.ir
   skip-cert-verify: true
-  sni: using.neobo-tooth.ru
+  sni: play.google.com
   tls: true
   type: vless
   udp: true
-  uuid: 0c6b632a-cd96-4b74-9b51-151e3b5697db
-- client-fingerprint: chrome
-  name: '[WEB]20-VL'
-  port: 443
-  server: web-production-64d00.up.railway.app
-  skip-cert-verify: true
-  sni: web-production-64d00.up.railway.app
-  tls: true
-  type: vless
-  udp: true
-  uuid: 73ea01c0-fd3f-408c-9144-d98916a30cca
-- client-fingerprint: chrome
-  name: '[WEB]32-VL'
-  port: 443
-  server: timazadi-production-2ee1.up.railway.app
-  skip-cert-verify: true
-  sni: timazadi-production-2ee1.up.railway.app
-  tls: true
-  type: vless
-  udp: true
-  uuid: 483925db-cb98-bc07-f6f8-a7009722a455
-- client-fingerprint: chrome
-  name: '[WEB]41-VL'
-  port: 443
-  server: amirroker-production.up.railway.app
-  skip-cert-verify: true
-  sni: amirroker-production.up.railway.app
-  tls: true
-  type: vless
-  udp: true
-  uuid: b13610ef-57a3-bc52-fd0f-97733f90ba06
-- name: '[WEB]13-TR'
-  password: IQ68037294
-  port: 443
-  server: sincere-man.rooster465.autos
-  skip-cert-verify: true
-  sni: sincere-man.rooster465.autos
-  tls: true
-  type: trojan
-  udp: true
-- name: '[WEB]57-TR'
-  password: IQ68037294
-  port: 443
-  server: major-duckling.rooster465.autos
-  skip-cert-verify: true
-  sni: major-duckling.rooster465.autos
-  tls: true
-  type: trojan
-  udp: true
-- name: '[WEB]65-TR'
-  password: IQ68037294
-  port: 443
-  server: desired-pony.rooster465.autos
-  skip-cert-verify: true
-  sni: desired-pony.rooster465.autos
-  tls: true
-  type: trojan
-  udp: true
-- name: '[WEB]71-TR'
-  password: IQ68037294
-  port: 443
-  server: artistic-pigeon.rooster465.autos
-  skip-cert-verify: true
-  sni: artistic-pigeon.rooster465.autos
-  tls: true
-  type: trojan
-  udp: true
-- name: '[WEB]80-TR'
-  password: IQ68037294
-  port: 443
-  server: endless-kiwi.rooster465.autos
-  skip-cert-verify: true
-  sni: endless-kiwi.rooster465.autos
-  tls: true
-  type: trojan
-  udp: true
-- client-fingerprint: chrome
-  name: '[WEB]2-TR'
-  password: NQ26071394
-  port: 443
-  server: correct-starfish.rooster465.autos
-  skip-cert-verify: true
-  sni: correct-starfish.rooster465.autos
-  tls: true
-  type: trojan
-  udp: true
-- name: '[WEB]5-TR'
-  password: 11559103-9993-4d00-b599-d6bcd8db2197
-  port: 443
-  server: free-v7-09.elbrusway.online
-  skip-cert-verify: true
-  sni: free-v7-09.elbrusway.online
-  tls: true
-  type: trojan
-  udp: true
-- name: '[WEB]7-TR'
-  password: IQ68037294
-  port: 443
-  server: optimal-dane.rooster465.autos
-  skip-cert-verify: true
-  sni: optimal-dane.rooster465.autos
-  tls: true
-  type: trojan
-  udp: true
-- name: '[WEB]10-TR'
-  password: SX95078263
-  port: 443
-  server: legal-glider.rooster465.autos
-  skip-cert-verify: true
-  sni: legal-glider.rooster465.autos
-  tls: true
-  type: trojan
-  udp: true
-- client-fingerprint: chrome
-  name: '[WEB]11-TR'
-  password: BxceQaOe
-  port: 443
-  server: 119.246.1.143
-  skip-cert-verify: true
-  sni: 119.246.1.143
-  tls: true
-  type: trojan
-  udp: true
-- name: '[WEB]12-TR'
-  password: IQ68037294
-  port: 443
-  server: stirred-sunbeam.rooster465.autos
-  skip-cert-verify: true
-  sni: stirred-sunbeam.rooster465.autos
-  tls: true
-  type: trojan
-  udp: true
-- name: '[WEB]13-TR-1'
-  password: IQ68037294
-  port: 443
-  server: whole-perch.rooster465.autos
-  skip-cert-verify: true
-  sni: whole-perch.rooster465.autos
-  tls: true
-  type: trojan
-  udp: true
-- name: '[WEB]18-TR'
-  password: IQ68037294
-  port: 443
-  server: full-mackerel.rooster465.autos
-  skip-cert-verify: true
-  sni: full-mackerel.rooster465.autos
-  tls: true
-  type: trojan
-  udp: true
-- name: '[WEB]20-TR'
-  password: IQ68037294
-  port: 443
-  server: amazed-burro.rooster465.autos
-  skip-cert-verify: true
-  sni: amazed-burro.rooster465.autos
-  tls: true
-  type: trojan
-  udp: true
-- name: '[WEB]21-TR'
+  uuid: e9bef83e-0b41-4c60-b1bf-fab9821472d1
+- name: '[WEB]3-TR'
   password: IQ68037294
   port: 443
   server: enhanced-dassie.rooster465.autos
@@ -1094,187 +683,107 @@ proxies:
   tls: true
   type: trojan
   udp: true
-- name: '[WEB]21-TR-1'
-  password: WF42809561
+- name: '[WEB]6-TR'
+  password: HW85960347
   port: 443
-  server: nearby-muskrat.rooster465.autos
+  server: eminent-lamb.rooster465.autos
   skip-cert-verify: true
-  sni: nearby-muskrat.rooster465.autos
+  sni: eminent-lamb.rooster465.autos
   tls: true
   type: trojan
   udp: true
-- name: '[WEB]22-TR'
+- name: '[WEB]7-TR'
   password: IQ68037294
   port: 443
-  server: together-insect.rooster465.autos
+  server: pleased-sawfly.rooster465.autos
   skip-cert-verify: true
-  sni: together-insect.rooster465.autos
-  tls: true
-  type: trojan
-  udp: true
-- name: '[WEB]33-TR'
-  password: 02e653c9-7c93-46a9-999d-11834bd0c577
-  port: 443
-  server: 132.145.51.172
-  skip-cert-verify: true
-  sni: 132.145.51.172
-  tls: true
-  type: trojan
-  udp: true
-- client-fingerprint: chrome
-  name: '[WEB]51-TR'
-  password: PD07395842
-  port: 443
-  server: endless-crappie.rooster465.autos
-  skip-cert-verify: true
-  sni: endless-crappie.rooster465.autos
-  tls: true
-  type: trojan
-  udp: true
-- name: '[WEB]56-TR'
-  password: XG59623478
-  port: 443
-  server: classic-duckling.rooster465.autos
-  skip-cert-verify: true
-  sni: classic-duckling.rooster465.autos
-  tls: true
-  type: trojan
-  udp: true
-- name: '[WEB]61-TR'
-  password: XG59623478
-  port: 443
-  server: tough-shark.rooster465.autos
-  skip-cert-verify: true
-  sni: tough-shark.rooster465.autos
-  tls: true
-  type: trojan
-  udp: true
-- name: '[WEB]69-TR'
-  password: SyOxpKxC8u5jgNa3DCZ34y3D9CRenFcaABpYATEeqI2RSaXD76zS8YF0Owl3lZ
-  port: 443
-  server: 219.76.13.181
-  skip-cert-verify: true
-  sni: arbettp.freetrade.link
-  tls: true
-  type: trojan
-  udp: true
-- name: '[WEB]73-TR'
-  password: M08tvzYWtUEJNtbpHp
-  port: 443
-  server: nl-4.tr202512.com
-  skip-cert-verify: true
-  sni: nl-4.tr202512.com
+  sni: pleased-sawfly.rooster465.autos
   tls: true
   type: trojan
   udp: true
 - alterId: 0
   cipher: auto
-  name: '[WEB]1-VM'
+  name: '[WEB]2-VM-1'
   network: ws
   port: 443
-  server: buyvm.sharecentre.online
+  server: oplg1.cfcdn2.xyz
   skip-cert-verify: true
-  sni: buyvm.sharecentre.online
+  sni: oplg1.cfcdn2.xyz
   tls: true
   type: vmess
   udp: true
-  uuid: 20e92881-5fb4-4b05-bc77-57929476dc69
+  uuid: c5a2d7b8-bf84-4f97-8577-b9b87f2baaf7
   ws-opts:
     headers:
-      Host: buyvm.sharecentre.online
-    path: /shirker
+      Host: oplg1.cfcdn2.xyz
+    path: /AUIKN8AU
 - alterId: 0
   cipher: auto
   name: '[WEB]3-VM'
   network: ws
   port: 443
-  server: cvywfavasdc.cymlr.xyz
+  server: afrhms16v.bestxray.buzz
   skip-cert-verify: true
-  sni: cvywfavasdc.cymlr.xyz
+  sni: afrhms16v.bestxray.buzz
   tls: true
   type: vmess
   udp: true
-  uuid: 23f4bc80-3b0a-4aa3-cbe5-b8be4e8c32fc
+  uuid: f584de15-2034-4170-a723-f48c2bae5e0f
   ws-opts:
     headers:
-      Host: cvywfavasdc.cymlr.xyz
-    path: /ksebupo
-- name: '[WEB]4-TR'
-  password: 800eb26c-cd0c-4269-aae7-e63d75de4edd
-  port: 80
-  server: 135.148.148.4
-  skip-cert-verify: true
-  sni: us3.trojanvh.xyz
-  tls: true
-  type: trojan
-  udp: true
-- alterId: 0
+      Host: afrhms16v.bestxray.buzz
+    path: /linkws
+- alterId: 64
   cipher: auto
-  name: '[WEB]8-VM'
+  name: '[WEB]5-VM-1'
   network: ws
   port: 443
-  server: api.qiscus.com
+  server: 217.138.197.171
   skip-cert-verify: true
-  sni: bn-id01.ipv2ray.xyz
+  sni: www.29870011.xyz
   tls: true
   type: vmess
   udp: true
-  uuid: 8f9b60e6-1db3-42e4-97b9-1e311f427649
+  uuid: 435c978e-2f48-4194-8d04-38cc79a24421
   ws-opts:
     headers:
-      Host: bn-id01.ipv2ray.xyz
-    path: /
+      Host: www.29870011.xyz
+    path: /path/191019072927
 - alterId: 0
   cipher: auto
-  name: '[WEB]9-VM'
+  name: '[WEB]7-VM-1'
   network: ws
   port: 443
-  server: wto.org
+  server: in-full.privateip.net
   skip-cert-verify: true
-  sni: us01.secntre.com
+  sni: in-full.privateip.net
   tls: true
   type: vmess
   udp: true
-  uuid: d57ac173-5615-43db-a3f4-dd1aebb2c6e8
+  uuid: bbc7813a-5d9d-4e97-807c-3aed8189c4cb
   ws-opts:
     headers:
-      Host: us01.secntre.com
-    path: /d57ac173-5615-43db-a3f4-dd1aebb2c6e8-vm?ed=2048
-- alterId: 0
+      Host: in-full.privateip.net
+    path: /RACEVPN
+- alterId: 64
   cipher: auto
-  name: 🇮🇷13-VM
+  name: '[WEB]8-VM-1'
   network: ws
   port: 443
-  server: linkxt.gozar8.ir
+  server: 178.175.135.155
   skip-cert-verify: true
-  sni: linkxt.gozar8.ir
+  sni: www.22860692.xyz
   tls: true
   type: vmess
   udp: true
-  uuid: 6ad27411-ee45-46ed-a33a-5f67e3d13d6a
+  uuid: 7e4219ae-8bf1-4f79-902b-4f259c64533d
   ws-opts:
     headers:
-      Host: linkxt.gozar8.ir
-    path: /
+      Host: www.22860692.xyz
+    path: /path/191019072927
 - alterId: 0
   cipher: auto
-  name: '[WEB]15-VM'
-  network: ws
-  port: 443
-  server: powerservice.com
-  skip-cert-verify: true
-  sni: uk2.v2rayserv.com
-  tls: true
-  type: vmess
-  udp: true
-  uuid: 0764a598-82c4-4b41-ba10-551a625beed5
-  ws-opts:
-    headers:
-      Host: uk2.v2rayserv.com
-    path: /
-- alterId: 0
-  cipher: auto
-  name: '[WEB]16-VM'
+  name: '[WEB]11-VM'
   network: ws
   port: 443
   server: zt-ai.cloud
@@ -1287,42 +796,10 @@ proxies:
   ws-opts:
     headers:
       Host: zt-ai.cloud
-    path: /
+    path: /v2ray
 - alterId: 0
   cipher: auto
-  name: '[WEB]22-VM'
-  network: ws
-  port: 443
-  server: sy4.620720.xyz
-  skip-cert-verify: true
-  sni: sy4.620720.xyz
-  tls: true
-  type: vmess
-  udp: true
-  uuid: 516d8a7a-3f0b-41d3-bad0-246116381516
-  ws-opts:
-    headers:
-      Host: sy4.620720.xyz
-    path: /
-- alterId: 0
-  cipher: auto
-  name: '[WEB]27-VM'
-  network: ws
-  port: 443
-  server: lg10.cfcdn1.xyz
-  skip-cert-verify: true
-  sni: lg10.cfcdn1.xyz
-  tls: true
-  type: vmess
-  udp: true
-  uuid: 17b2a313-37a0-4945-a8e4-e63375506b4a
-  ws-opts:
-    headers:
-      Host: lg10.cfcdn1.xyz
-    path: /A2DJOPFT
-- alterId: 0
-  cipher: auto
-  name: '[WEB]28-VM'
+  name: '[WEB]11-VM-1'
   network: ws
   port: 443
   server: 55.72img.xyz
@@ -1338,96 +815,23 @@ proxies:
     path: /
 - alterId: 0
   cipher: auto
-  name: '[WEB]30-VM'
+  name: '[WEB]12-VM'
   network: ws
   port: 443
-  server: kampong.org
+  server: 134.195.198.147
   skip-cert-verify: true
-  sni: kampong.org
+  sni: inna.cfd
   tls: true
   type: vmess
   udp: true
   uuid: 03fcc618-b93d-6796-6aed-8a38c975d581
   ws-opts:
     headers:
-      Host: kampong.org
-    path: linkvws
+      Host: inna.cfd
+    path: /linkvws
 - alterId: 0
   cipher: auto
-  name: '[WEB]35-VM'
-  network: ws
-  port: 443
-  server: 57.128.189.211
-  skip-cert-verify: true
-  sni: yichueng.org
-  tls: true
-  type: vmess
-  udp: true
-  uuid: 03fcc618-b93d-6796-6aed-8a38c975d581
-  ws-opts:
-    headers:
-      Host: yichueng.org
-    path: linkvws
-- alterId: 0
-  cipher: auto
-  name: '[WEB]48-VM'
-  network: ws
-  port: 443
-  server: 57.129.64.163
-  skip-cert-verify: true
-  sni: yichueng.org
-  tls: true
-  type: vmess
-  udp: true
-  uuid: 03fcc618-b93d-6796-6aed-8a38c975d581
-  ws-opts:
-    headers:
-      Host: yichueng.org
-    path: linkvws
-- alterId: 0
-  cipher: auto
-  name: '[WEB]55-VM'
-  network: ws
-  port: 443
-  server: sg1-v.sshmax.xyz
-  skip-cert-verify: true
-  sni: sg1-v.sshmax.xyz
-  tls: true
-  type: vmess
-  udp: true
-  uuid: b655be0e-4b1a-4e3e-b63f-22a928a6e808
-  ws-opts:
-    headers:
-      Host: sg1-v.sshmax.xyz
-    path: /vmess
-- name: '[WEB]67-TR'
-  password: 555034c8-6420-45d0-893c-905c02342150
-  port: 80
-  server: 51.83.186.142
-  skip-cert-verify: true
-  sni: pl1.trojanvh.xyz
-  tls: true
-  type: trojan
-  udp: true
-- alterId: 0
-  cipher: auto
-  name: '[WEB]75-VM'
-  network: ws
-  port: 443
-  server: beyonddsz.cfd
-  skip-cert-verify: true
-  sni: beyonddsz.cfd
-  tls: true
-  type: vmess
-  udp: true
-  uuid: 9b456c2a-f2c1-45e1-87a9-b7628b04bb24
-  ws-opts:
-    headers:
-      Host: beyonddsz.cfd
-    path: /linkws
-- alterId: 0
-  cipher: auto
-  name: '[WEB]77-VM'
+  name: '[WEB]12-VM-1'
   network: ws
   port: 443
   server: 185.48.136.150
@@ -1443,23 +847,39 @@ proxies:
     path: /
 - alterId: 0
   cipher: auto
-  name: '[WEB]79-VM'
+  name: '[WEB]13-VM-1'
   network: ws
   port: 443
-  server: ua-full.privateip.net
+  server: 4cdn.njkrpl.com
   skip-cert-verify: true
-  sni: ua-full.privateip.net
+  sni: 4cdn.njkrpl.com
   tls: true
   type: vmess
   udp: true
-  uuid: 7a7d1976-87dd-44b1-b290-b815770bff35
+  uuid: a0449b33-d7f6-42a5-8bdc-3b5e727ec9f8
   ws-opts:
     headers:
-      Host: ua-full.privateip.net
+      Host: 4cdn.njkrpl.com
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]14-VM-1'
+  network: ws
+  port: 443
+  server: nl2-full.privateip.net
+  skip-cert-verify: true
+  sni: nl2-full.privateip.net
+  tls: true
+  type: vmess
+  udp: true
+  uuid: b7a0cf39-99fa-47a4-8d9f-5263806e8cce
+  ws-opts:
+    headers:
+      Host: nl2-full.privateip.net
     path: /RACEVPN
 - alterId: 0
   cipher: auto
-  name: '[WEB]7-VM'
+  name: '[WEB]2-VM-2'
   network: ws
   port: 8443
   server: 150.109.240.179
@@ -1473,65 +893,19 @@ proxies:
     path: /wsproxy
 - alterId: 0
   cipher: auto
-  name: '[WEB]12-VM'
-  network: ws
-  port: 8443
-  server: t1.620720.xyz
+  name: '[WEB]6-VM'
+  network: grpc
+  port: 443
+  server: America.com
   skip-cert-verify: true
-  sni: t1.620720.xyz
+  sni: America.com
   tls: true
   type: vmess
   udp: true
-  uuid: 516d8a7a-3f0b-41d3-bad0-246116381516
-  ws-opts:
-    headers:
-      Host: t1.620720.xyz
-    path: /
-- alpn:
-  - http/1.1
-  client-fingerprint: chrome
-  name: '[WEB]14-TR'
-  password: 0_Oms89nH82l_Ki813_Nxmw81_Rbt_Jq190Kl_m
-  port: 450
-  server: 167.150.100.133
-  skip-cert-verify: true
-  sni: grape-power-sg.roxa.org
-  tls: true
-  type: trojan
-  udp: true
+  uuid: 33f6d8b0-81f8-4fce-b3df-79dc8fd6d8c5
 - alterId: 0
   cipher: auto
-  name: '[WEB]14-VM'
-  network: ws
-  port: 2087
-  server: backend.app-browser.org
-  skip-cert-verify: true
-  sni: backend.app-browser.org
-  tls: true
-  type: vmess
-  udp: true
-  uuid: 520a5f45-d354-42f4-a658-18dbc3754645
-  ws-opts:
-    headers:
-      Host: backend.app-browser.org
-    path: /fws
-- alterId: 0
-  cipher: auto
-  name: '[WEB]38-VM'
-  network: ws
-  port: 8443
-  server: 51.15.19.206
-  skip-cert-verify: true
-  sni: 51.15.19.206
-  tls: true
-  type: vmess
-  udp: true
-  uuid: 3a3ac0c0-31f4-11ee-b337-205c6d5f5d78
-  ws-opts:
-    path: /V2RayyNGvpn
-- alterId: 0
-  cipher: auto
-  name: '[WEB]41-VM'
+  name: '[WEB]8-VM-2'
   network: ws
   port: 8443
   server: 104.17.77.77
@@ -1545,45 +919,25 @@ proxies:
     headers:
       Host: v2ray1.dozapp.xyz
     path: /lMnsZUN4/
-- client-fingerprint: chrome
-  name: 🇮🇷1-TR
-  password: '------BanV2ray-------'
-  port: 51104
-  server: oooooooooooooooo-00000000000000000.poki-pakipon.ir
-  skip-cert-verify: true
-  sni: yahoo.com
-  tls: true
-  type: trojan
-  udp: true
-- client-fingerprint: chrome
-  name: 🇮🇷3-TR
-  password: '--------BanV2ray---------'
-  port: 11332
-  server: mmmmmmmmmmmmmmmm-11111111111111111111111.poki-pakipon.ir
-  skip-cert-verify: true
-  sni: yahoo.com
-  tls: true
-  type: trojan
-  udp: true
 - alterId: 0
   cipher: auto
-  name: 🇮🇷4-VM
+  name: '[WEB]16-VM-1'
   network: ws
-  port: 2082
-  server: anten.ir
+  port: 2053
+  server: cf.fovi.tk
   skip-cert-verify: true
-  sni: 9.ir.cdn.mypings.ir
+  sni: foxpol.fovi.tk
   tls: true
   type: vmess
   udp: true
-  uuid: 93e982d2-e2f9-460f-a6b4-ccc629038426
+  uuid: bf67437e-6c90-45ca-abc2-c7240a5ce2aa
   ws-opts:
     headers:
-      Host: 9.ir.cdn.mypings.ir
-    path: /s2BSpP6uUOPQ499phpYH87TsXl
+      Host: cf.fovi.tk
+    path: /eisasqa
 - alterId: 0
   cipher: auto
-  name: '[WEB]54-VM'
+  name: '[WEB]4-VM'
   network: ws
   port: 80
   server: 159.89.29.136
@@ -1597,398 +951,47 @@ proxies:
     headers:
       Host: cx.com
     path: /vmess
-- name: '[WEB]55-TR'
-  password: kkzh2prsyr2ik47as615
-  port: 57142
-  server: 64.94.95.118
-  skip-cert-verify: true
-  sni: 64.94.95.118
-  tls: true
-  type: trojan
-  udp: true
-- name: '[WEB]58-TR'
-  password: y3b03zx3tznhyo538p4c
-  port: 53261
-  server: 86.106.84.195
-  skip-cert-verify: true
-  sni: 86.106.84.195
-  tls: true
-  type: trojan
-  udp: true
 - client-fingerprint: chrome
-  name: '[WEB]64-TR'
-  password: 2eutknankxtbgkwcajzt
-  port: 52794
-  server: 193.148.19.213
-  skip-cert-verify: true
-  sni: 193.148.19.213
-  tls: true
-  type: trojan
-  udp: true
-- client-fingerprint: chrome
-  name: '[WEB]74-TR'
-  password: 5fdbc5336f81ee6
-  port: 58900
-  server: ifo.configfast.site
-  skip-cert-verify: true
-  sni: google.com
-  tls: true
-  type: trojan
-  udp: true
-- client-fingerprint: chrome
-  name: 🇮🇷14-VL
+  name: 🇫🇷1-VL
   network: ws
   port: 443
-  server: holand2.tehran-game.ir
+  server: cloudflare-ip.mofashi.ltd
   skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 52cca18a-74d5-4bac-bda8-80465ae5f3dc
-  ws-opts:
-    headers:
-      Host: tehran-game.ir
-    path: /
-- client-fingerprint: chrome
-  name: '[WEB]1-VL'
-  network: ws
-  port: 8880
-  server: 104.16.72.101
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: ddef628e-e3a8-43c4-85eb-bd767a5f3b13
-  ws-opts:
-    headers:
-      Host: autumn-forest-3479.121-488.workers.dev
-    path: /pyip
-- client-fingerprint: chrome
-  name: '[WEB]2-VL-1'
-  network: ws
-  port: 8880
-  server: 104.16.72.41
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 1bc8fb2a-3bee-4ae0-aa12-957885e63e18
-  ws-opts:
-    headers:
-      Host: super-mud-8b38.114-a90.workers.dev
-    path: /pyip
-- client-fingerprint: chrome
-  name: '[WEB]24-VL-1'
-  network: ws
-  port: 80
-  server: 167.82.101.210
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 2c2073b9-9303-45a8-82ec-76a8832d950b
-  ws-opts:
-    headers:
-      Host: SvnTeam.global.ssl.fastly.neT.
-- client-fingerprint: chrome
-  name: '[WEB]28-VL'
-  network: ws
-  port: 8080
-  server: 172.67.197.181
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 50414e45-4c5f-5a45-5553-983fd9b90e78
-  ws-opts:
-    headers:
-      Host: zeus-panel-a136la.gh-ghanbari62.workers.dev
-    path: /stream/PANEL_ZEUS/50414e45
-- client-fingerprint: chrome
-  name: '[WEB]30-VL'
-  network: ws
-  port: 80
-  server: 91.193.58.13
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: f2d55510-fa3c-4e3b-adfc-2d96fa399c19
-  ws-opts:
-    headers:
-      Host: plain-darkness-90ea.259.workers.dev
-    path: /pyip=Telegram🇨🇳 @WangCai2
-- client-fingerprint: chrome
-  name: '[WEB]31-VL-1'
-  network: ws
-  port: 8880
-  server: 104.17.58.113
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 6d6b7a8d-a9fa-4889-a5f4-d112c6b6f494
-  ws-opts:
-    headers:
-      Host: small-cake-e99b.390-a20.workers.dev
-    path: /pyip=ProxyIP.SG.CMLiussss.net
-- client-fingerprint: chrome
-  name: '[WEB]32-VL-1'
-  network: ws
-  port: 8880
-  server: 104.16.106.213
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 82a3c394-55b7-4780-93a0-5f45c0e89625
-  ws-opts:
-    headers:
-      Host: square-brook-e650.353-3ac.workers.dev
-    path: /pyip=ProxyIP.SG.CMLiussss.net
-- client-fingerprint: chrome
-  name: '[WEB]33-VL'
-  network: ws
-  port: 8880
-  server: 104.21.88.129
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 18a7834f-bf89-4c87-ad57-49927a56deed
-  ws-opts:
-    headers:
-      Host: holy-violet-858e.471.workers.dev
-    path: /pyip=proxyip.sg.cmliussss.net
-- client-fingerprint: chrome
-  name: '[WEB]34-VL'
-  network: ws
-  port: 8880
-  server: 104.16.72.21
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 26fb53e4-fd49-4b34-b605-b6cc1b1a06a8
-  ws-opts:
-    headers:
-      Host: royal-shape-3771.93-728.workers.dev
-    path: /pyip
-- client-fingerprint: chrome
-  name: '[WEB]36-VL'
-  network: ws
-  port: 8880
-  server: 192.0.63.30
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 6202b230-417c-4d8e-b624-0f71afa9c75d
-  ws-opts:
-    headers:
-      Host: vms.lifetime36.workers.dev
-    path: /
-- client-fingerprint: chrome
-  name: '[WEB]39-VL'
-  network: ws
-  port: 8880
-  server: 185.148.107.40
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 6202b230-417c-4d8e-b624-0f71afa9c75d
-  ws-opts:
-    headers:
-      Host: vms.lifetime55.workers.dev
-    path: /?ed=2560
-- client-fingerprint: chrome
-  name: '[WEB]43-VL-1'
-  network: ws
-  port: 8880
-  server: 162.159.46.0
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: b19b768d-bc57-4d03-9bea-61129ed5fef9
-  ws-opts:
-    headers:
-      Host: new.106-79e.workers.dev
-    path: /pyip=ProxyIP.SG.CMLiussss.net
-- client-fingerprint: chrome
-  name: '[WEB]44-VL-1'
-  network: ws
-  port: 80
-  server: 104.18.237.216
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 69d38faa-21a1-4d18-82cb-796a942c181b
-  ws-opts:
-    headers:
-      Host: sfsl.ardomains1.dpdns.org
-    path: /
-- client-fingerprint: chrome
-  name: '[WEB]45-VL'
-  network: ws
-  port: 8880
-  server: 104.26.13.40
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 16586b3b-9e26-4fe9-b137-389ea48f088c
-  ws-opts:
-    headers:
-      Host: ancient-glade-34d6.6-07d.workers.dev
-    path: /pyip=ProxyIP.US.CMLiussss.net
-- client-fingerprint: chrome
-  name: '[WEB]47-VL'
-  network: ws
-  port: 8880
-  server: 45.131.209.30
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 6202b230-417c-4d8e-b624-0f71afa9c75d
-  ws-opts:
-    headers:
-      Host: vms.lifetime04.workers.dev
-    path: /
-- client-fingerprint: chrome
-  name: '[WEB]48-VL'
-  network: ws
-  port: 8880
-  server: 104.17.181.19
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 3bc49320-3dcd-4f30-9215-a4fa964e54c7
-  ws-opts:
-    headers:
-      Host: tight-moon-2d50.457.workers.dev
-    path: /pyip=ProxyIP.JP.CMLiussss.net
-- client-fingerprint: chrome
-  name: '[WEB]49-VL-1'
-  network: ws
-  port: 8880
-  server: 45.142.120.30
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 6202b230-417c-4d8e-b624-0f71afa9c75d
-  ws-opts:
-    headers:
-      Host: vms.lifetime08.workers.dev
-    path: /
-- client-fingerprint: chrome
-  name: '[WEB]50-VL-1'
-  network: ws
-  port: 8880
-  server: 194.76.18.2
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: bb5f4b63-0b91-4f2c-8a02-66c3f99c1aaa
-  ws-opts:
-    headers:
-      Host: yellow-mouse-fcce.400-318.workers.dev
-    path: /pyip=Telegram🇨🇳 @WangCai2
-- client-fingerprint: chrome
-  name: '[WEB]57-VL'
-  network: ws
-  port: 80
-  server: 91.193.58.166
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: d566d849-ab28-4695-b01f-dcd284b67f5c
-  ws-opts:
-    headers:
-      Host: dry-frog-8793.454-dc4.workers.dev
-    path: /pyip=Telegram🇨🇳 @WangCai2
-- alterId: 0
-  cipher: auto
-  name: '[WEB]40-VM'
-  port: 2053
-  server: fr.connfull.org
-  skip-cert-verify: true
-  sni: fr.connfull.org
+  sni: t1s1.rittbo.kdns.fr
   tls: true
-  type: vmess
+  type: vless
   udp: true
-  uuid: 500e29aa-c40b-43e1-905c-e6e7ac4a5b83
+  uuid: eeb6823c-b926-4ea2-866a-5542edd26e59
+  ws-opts:
+    headers:
+      Host: t1s1.rittbo.kdns.fr
+    path: /
 - client-fingerprint: chrome
-  name: '[WEB]60-VL'
-  network: grpc
-  port: 8880
-  server: 151.115.166.69
+  name: '[WEB]10-VL-2'
+  port: 13561
+  server: 87.242.85.201
   skip-cert-verify: true
   type: vless
   udp: true
-  uuid: 8dc7722c-2767-4eea-a28b-2f8daacc07e3
+  uuid: 566f8818-17fe-4ca9-8035-c9081ece6f68
 - client-fingerprint: chrome
-  name: '[WEB]34-VL-1'
-  port: 443
-  server: ssl.hostirann.xyz
+  name: '[WEB]97-VL'
+  network: ws
+  port: 2083
+  server: 104.16.80.73
   skip-cert-verify: true
+  sni: mnv1.gozargahping.top
+  tls: true
   type: vless
   udp: true
-  uuid: cf2f7b94-f5a8-4782-8ad7-e70097e12d1c
-- client-fingerprint: chrome
-  name: 🇮🇷2-VL-1
-  port: 2052
-  server: suolar.yellowsky.ir
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: a4548d7f-8e0f-4780-9f5a-30cbd2754550
-- client-fingerprint: chrome
-  name: 🇮🇷4-VL
-  port: 8880
-  server: cf-mci.coixconqwe1.ir
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: b18edde3-12d1-4e5d-820e-5e13a89e27a5
-- client-fingerprint: chrome
-  name: 🇮🇷6-VL
-  port: 3031
-  server: panel3.nanaweb.ir
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 1b73f053-2709-4698-bbec-cb20e8a5f288
-- client-fingerprint: chrome
-  name: 🇮🇷7-VL
-  port: 6985
-  server: yamal.sav-savteam.ir
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 44e8b804-6b08-4468-baa4-950944ba5976
-- client-fingerprint: chrome
-  name: 🇮🇷9-VL
-  port: 1323
-  server: jdhdjdjdjm.belamona.ir
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 613de70c-f1d7-4176-968d-86d0f20e8786
-- client-fingerprint: chrome
-  name: '[WEB]36-VL-1'
-  port: 1418
-  server: proooo---xyz-com-app.nininet.xyz
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 613de70c-f1d7-4176-968d-86d0f20e8786
-- client-fingerprint: chrome
-  name: '[WEB]39-VL-1'
-  port: 22222
-  server: 15.188.114.69
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: e4514801-0d5a-42ba-869f-39bd605aef9e
-- client-fingerprint: chrome
-  name: '[WEB]45-VL-1'
-  port: 39200
-  server: 94.143.231.53
-  skip-cert-verify: true
-  type: vless
-  udp: true
-  uuid: 9e1b3859-634f-4dc9-8f59-848a1216f47c
+  uuid: ebe44c2c-96ed-4a36-8456-2e9ee60c859c
+  ws-opts:
+    headers:
+      Host: mnv1.gozargahping.top
+    path: /wss14139?ed=2048
 - alterId: 0
   cipher: auto
-  name: '[WEB]8-VM-1'
+  name: '[WEB]5-VM-2'
   network: ws
   port: 443
   server: 152.67.218.38
@@ -1998,39 +1001,37 @@ proxies:
   uuid: b5e9480a-b7aa-40a4-f9a7-5299b5e363b4
   ws-opts:
     path: /
-- name: '[WEB]9-TR'
-  network: tcp
-  password: BxceQaOe
-  port: 11035
-  server: 43.198.15.160
-  skip-cert-verify: true
-  sni: t.me%2Fripaojiedian
-  type: trojan
-- name: '[WEB]10-TR-1'
-  network: tcp
-  password: BxceQaOe
-  port: 9149
-  server: 43.199.146.29
-  skip-cert-verify: true
-  sni: t.me%252Fripaojiedian
-  type: trojan
 - alterId: 0
   cipher: auto
-  name: '[WEB]1-VM-1'
+  name: '[WEB]15-VM-1'
   network: ws
-  port: 80
-  server: www.digitalocean.com
+  port: 443
+  server: renderer-stream-1-411.mirra.now
   skip-cert-verify: true
   type: vmess
   udp: true
-  uuid: c0622eb2-4259-4170-be71-d978e037358c
+  uuid: df9c9355-b02c-4c12-909d-0dbeb725d52b
   ws-opts:
     headers:
-      Host: www.digitalocean.com
+      Host: renderer-stream-1-411.mirra.now
+    path: /api/v1/gpu-stream/socket
+- alterId: 0
+  cipher: auto
+  name: '[WEB]1-VM'
+  network: ws
+  port: 80
+  server: 185.143.233.114
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: cf7f2d7c-d4f8-469a-bfd5-97484bb98d2c
+  ws-opts:
+    headers:
+      Host: 185.143.233.114
     path: /
 - alterId: 0
   cipher: auto
-  name: '[WEB]3-VM-1'
+  name: '[WEB]9-VM'
   network: ws
   port: 80
   server: hk80.sanfen001.pics
@@ -2042,101 +1043,19 @@ proxies:
     headers:
       Host: hk80.sanfen001.pics
     path: /zh-cn/
-- alterId: 0
-  cipher: auto
-  name: '[WEB]5-VM'
-  network: ws
-  port: 80
-  server: runheng.cloud
+- client-fingerprint: chrome
+  name: 🇮🇷2-VL
+  port: 443
+  server: vipf1.phoenixgamer.ir
   skip-cert-verify: true
-  type: vmess
+  sni: vipf1.phoenixgamer.ir
+  tls: true
+  type: vless
   udp: true
-  uuid: 64bd7d62-7c00-4463-954b-3dd20320dded
-  ws-opts:
-    headers:
-      Host: runheng.cloud
-    path: /
+  uuid: 35504274-bdd4-455f-b4f3-13ded33a7ad2
 - alterId: 0
   cipher: auto
-  name: '[WEB]11-VM'
-  network: ws
-  port: 80
-  server: 137.184.164.233
-  skip-cert-verify: true
-  type: vmess
-  udp: true
-  uuid: 5cee90e3-b915-4f1e-bb8d-efadad0c6feb
-  ws-opts:
-    path: /vmess
-- alterId: 0
-  cipher: auto
-  name: 🇮🇷12-VM
-  network: ws
-  port: 80
-  server: 118ejob.ir
-  skip-cert-verify: true
-  type: vmess
-  udp: true
-  uuid: 47d0805b-6b81-49f1-9813-776032d2c076
-  ws-opts:
-    headers:
-      Host: at1-vmess.sshmax.xyz
-    path: /vmess
-- alterId: 0
-  cipher: auto
-  name: '[WEB]17-VM'
-  network: ws
-  port: 80
-  server: 172.111.146.64
-  skip-cert-verify: true
-  type: vmess
-  udp: true
-  uuid: 05b8c783-7f59-47f9-9923-06a465679f6a
-  ws-opts:
-    path: /vmess/
-- alterId: 0
-  cipher: auto
-  name: '[WEB]47-VM'
-  network: ws
-  port: 80
-  server: 162.19.224.175
-  skip-cert-verify: true
-  type: vmess
-  udp: true
-  uuid: 42ba278d-65e0-4743-8707-e18ed98cfed5
-  ws-opts:
-    headers:
-      Host: 162.19.224.175
-    path: /vmess
-- alterId: 0
-  cipher: auto
-  name: '[WEB]70-VM'
-  network: ws
-  port: 80
-  server: 38.150.13.64
-  skip-cert-verify: true
-  type: vmess
-  udp: true
-  uuid: caa995ed-86a9-4968-a332-9c11e7e13107
-  ws-opts:
-    path: /
-- alterId: 0
-  cipher: auto
-  name: '[WEB]81-VM'
-  network: ws
-  port: 80
-  server: 7cRom.c6tu5uwk9.buzz
-  skip-cert-verify: true
-  type: vmess
-  udp: true
-  uuid: 53598401-31e1-4ce3-bb2e-6c00a8fc3e01
-  ws-opts:
-    headers:
-      Host: sg03.d9ab-22af-fc39ef1d39a0.cfd
-    path: /
-- alterId: 0
-  cipher: auto
-  name: '[WEB]6-VM'
+  name: '[WEB]1-VM-1'
   network: ws
   port: 4010
   server: 45.76.202.45
@@ -2148,388 +1067,1644 @@ proxies:
     path: /liksuzcp
 - alterId: 0
   cipher: auto
-  name: '[WEB]15-VM-1'
+  name: '[WEB]4-VM-1'
   network: ws
-  port: 43063
-  server: 47.250.45.234
+  port: 44867
+  server: 47.244.120.197
   skip-cert-verify: true
   type: vmess
   udp: true
-  uuid: c77f48f5-4be3-4461-b52b-49998e7b897b
+  uuid: 845e6b08-2919-4290-ade0-5dc7dcea59ca
   ws-opts:
     path: /arki?ed=2048
+- client-fingerprint: chrome
+  name: '[WEB]118-VL'
+  network: ws
+  port: 443
+  server: 104.17.148.22
+  skip-cert-verify: true
+  sni: octopusss.net
+  tls: true
+  type: vless
+  udp: true
+  uuid: 073d1d50-8478-47bf-a828-7a1b381931d5
+  ws-opts:
+    headers:
+      Host: octopusss.net
+    path: /odiyfws
+- client-fingerprint: chrome
+  name: '[WEB]124-VL'
+  network: ws
+  port: 2096
+  server: zeus-panel-j5lpfw.zeus-y83u0j.workers.dev
+  skip-cert-verify: true
+  sni: zeus-panel-j5lpfw.zeus-y83u0j.workers.dev
+  tls: true
+  type: vless
+  udp: true
+  uuid: 50414e45-4c5f-5a45-5553-36baf86b8fa7
+  ws-opts:
+    headers:
+      Host: zeus-panel-j5lpfw.zeus-y83u0j.workers.dev
+    path: /stream/PANEL_ZEUS/50414e45
+- client-fingerprint: firefox
+  name: '[WEB]126-VL'
+  network: ws
+  port: 2083
+  server: 8.39.125.74
+  skip-cert-verify: true
+  sni: vp2.cc.cd
+  tls: true
+  type: vless
+  udp: true
+  uuid: 663cf772-829c-4bc6-893d-b7d021d42f5b
+- alterId: 0
+  cipher: auto
+  name: '[WEB]23-VM'
+  network: ws
+  port: 443
+  server: 172.104.78.98
+  skip-cert-verify: true
+  sni: 172.104.78.98
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 927094d3-d678-4763-8591-e240d0bcae87
+  ws-opts:
+    path: /chat
+- alterId: 0
+  cipher: auto
+  name: '[WEB]29-VM'
+  network: ws
+  port: 443
+  server: 47.245.42.92
+  skip-cert-verify: true
+  sni: n1753598452.wpg27.xyz
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 4f23eb7c-ef2f-43b0-90dd-f2b8a75954a5
+  ws-opts:
+    headers:
+      Host: n1753598452.wpg27.xyz
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]32-VM'
+  network: ws
+  port: 443
+  server: 131.186.57.111
+  skip-cert-verify: true
+  sni: e130917c-1b58-4136-b2d9-76dc920e0add.add97ee8-0f14-48a3-b2cd-979c56742e64.loseyourip.com
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 05641cf5-58d2-4ba4-a9f1-b3cda0b1fb1d
+  ws-opts:
+    headers:
+      Host: e130917c-1b58-4136-b2d9-76dc920e0add.add97ee8-0f14-48a3-b2cd-979c56742e64.loseyourip.com
+    path: /
+- alterId: 64
+  cipher: auto
+  name: '[WEB]39-VM'
+  network: ws
+  port: 443
+  server: 211.22.180.68
+  skip-cert-verify: true
+  sni: www.82131333.xyz
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 418048af-a293-4b99-9b0c-98ca3580dd24
+  ws-opts:
+    headers:
+      Host: www.82131333.xyz
+    path: /path/191019072927
+- alterId: 64
+  cipher: auto
+  name: '[WEB]46-VM'
+  network: ws
+  port: 443
+  server: 202.79.172.53
+  skip-cert-verify: true
+  sni: 202.79.172.53
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 30216206-14b7-40e7-995d-61c1219ba584
+  ws-opts:
+    path: /path/220128071100
+- alterId: 64
+  cipher: auto
+  name: '[WEB]49-VM'
+  network: ws
+  port: 443
+  server: 202.79.171.157
+  skip-cert-verify: true
+  sni: 202.79.171.157
+  tls: true
+  type: vmess
+  udp: true
+  uuid: fb3583a3-7717-4fe5-9146-3301861f9f41
+  ws-opts:
+    path: /path/243535322906
+- alterId: 64
+  cipher: auto
+  name: '[WEB]50-VM'
+  network: ws
+  port: 443
+  server: 104.37.215.102
+  skip-cert-verify: true
+  sni: www.31733109.xyz
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 418048af-a293-4b99-9b0c-98ca3580dd24
+  ws-opts:
+    headers:
+      Host: www.31733109.xyz
+    path: /path/191019072927
+- alterId: 0
+  cipher: auto
+  name: '[WEB]51-VM'
+  network: ws
+  port: 443
+  server: 146.190.82.241
+  skip-cert-verify: true
+  sni: 146.190.82.241
+  tls: true
+  type: vmess
+  udp: true
+  uuid: ee76cecf-1219-42be-ae3f-6b8077e4cacc
+  ws-opts:
+    path: /
+- alterId: 64
+  cipher: auto
+  name: '[WEB]56-VM'
+  network: ws
+  port: 443
+  server: 118.107.46.173
+  skip-cert-verify: true
+  sni: 118.107.46.173
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 418048af-a293-4b99-9b0c-98ca3580dd24
+  ws-opts:
+    path: /path/080712342310
+- alterId: 0
+  cipher: auto
+  name: '[WEB]73-VM'
+  network: ws
+  port: 443
+  server: 180.149.90.66
+  skip-cert-verify: true
+  sni: tabyan777.sytes.net
+  tls: true
+  type: vmess
+  udp: true
+  uuid: f5c137d1-ca89-42c0-b604-db39aef60a73
+  ws-opts:
+    headers:
+      Host: tabyan777.sytes.net
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]84-VM'
+  network: ws
+  port: 443
+  server: n1747624260.4u9ma.icu
+  skip-cert-verify: true
+  sni: n1747624260.4u9ma.icu
+  tls: true
+  type: vmess
+  udp: true
+  uuid: eee8cb72-7eab-4034-a308-ed06cb07e003
+  ws-opts:
+    headers:
+      Host: n1747624260.4u9ma.icu
+    path: /
+- alterId: 0
+  cipher: auto
+  name: 🇺🇦1-VM
+  network: ws
+  port: 8443
+  server: 141.101.121.34
+  skip-cert-verify: true
+  sni: 1743919978.speed.laxha.cccp.freefly.pp.ua
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 3bb3c730-e107-49c5-a0b2-b576d1b26a5e
+  ws-opts:
+    headers:
+      Host: 1743919978.speed.laxha.cccp.freefly.pp.ua
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]27-VM'
+  network: ws
+  port: 80
+  server: 168.138.43.75
+  skip-cert-verify: true
+  sni: jp01.a0a.xyz
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 11c3627f-31e8-4695-dfbd-34076e2f1f5d
+  ws-opts:
+    headers:
+      Host: jp01.a0a.xyz
+    path: /cctv13.m3u8
+- alterId: 0
+  cipher: auto
+  name: '[WEB]36-VM'
+  network: ws
+  port: 80
+  server: 132.145.80.230
+  skip-cert-verify: true
+  sni: kr02.a0a.xyz
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 5155860e-d07d-46c3-9128-3afbd84626c7
+  ws-opts:
+    headers:
+      Host: kr02.a0a.xyz
+    path: /cctv13.m3u8
+- alterId: 0
+  cipher: auto
+  name: 🇺🇦2-VM
+  network: ws
+  port: 11655
+  server: 131.186.63.89
+  skip-cert-verify: true
+  sni: hk.nbee.pp.ua
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 4bf075f5-4d5e-4d39-f5ab-b32a86250f0e
+  ws-opts:
+    headers:
+      Host: hk.nbee.pp.ua
+    path: /aa
+- alterId: 0
+  cipher: auto
+  name: '[WEB]28-VM'
+  network: ws
+  port: 58905
+  server: 161.33.139.138
+  skip-cert-verify: true
+  sni: 161.33.139.138
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 1610f8dc-0661-4032-ac6a-a7250603f608
+  ws-opts:
+    headers:
+      Host: 161.33.139.138
+    path: /1610f8dc-0661-4032-ac6a-a7250603f608-vm
+- alterId: 0
+  cipher: auto
+  name: '[WEB]30-VM'
+  network: ws
+  port: 25686
+  server: 140.83.51.161
+  skip-cert-verify: true
+  sni: jp02.a0a.xyz
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 6733c357-ba11-4e9f-f00f-7d87f2776ff9
+  ws-opts:
+    headers:
+      Host: jp02.a0a.xyz
+    path: /cctv13.m3u8
+- alterId: 64
+  cipher: auto
+  name: '[WEB]43-VM'
+  network: ws
+  port: 48885
+  server: 134.122.184.88
+  skip-cert-verify: true
+  sni: www.13146165.xyz
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 418048af-a293-4b99-9b0c-98ca3580dd24
+  ws-opts:
+    headers:
+      Host: www.13146165.xyz
+    path: /path/191019072927
+- alterId: 64
+  cipher: auto
+  name: '[WEB]44-VM'
+  network: ws
+  port: 34001
+  server: 104.219.208.195
+  skip-cert-verify: true
+  sni: www.56982071.xyz
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 418048af-a293-4b99-9b0c-98ca3580dd24
+  ws-opts:
+    headers:
+      Host: www.56982071.xyz
+    path: /path/191019072927
+- alterId: 64
+  cipher: auto
+  name: '[WEB]45-VM'
+  network: ws
+  port: 30000
+  server: 104.37.215.83
+  skip-cert-verify: true
+  sni: www.19289243.xyz
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 418048af-a293-4b99-9b0c-98ca3580dd24
+  ws-opts:
+    headers:
+      Host: www.19289243.xyz
+    path: /path/191019072927
+- alterId: 64
+  cipher: auto
+  name: '[WEB]69-VM'
+  network: ws
+  port: 30001
+  server: 119.59.98.39
+  skip-cert-verify: true
+  sni: www.98666598.xyz
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 4d24fbde-cb0e-4025-98ec-222933847d3d
+  ws-opts:
+    headers:
+      Host: www.98666598.xyz
+    path: /path/191019072927
+- alterId: 0
+  cipher: auto
+  name: '[WEB]114-VM'
+  network: ws
+  port: 443
+  server: 141.193.213.20
+  skip-cert-verify: true
+  sni: opfr1.v2rayfree1.xyz
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 4612618c-24cd-4379-9924-cfdf3d61fa5a
+  ws-opts:
+    headers:
+      Host: opfr1.v2rayfree1.xyz
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]131-VM'
+  network: ws
+  port: 443
+  server: 104.17.101.35
+  skip-cert-verify: true
+  sni: 104.17.101.35
+  tls: true
+  type: vmess
+  udp: true
+  uuid: 824c58b1-65ba-4680-a609-663a000dbb92
+  ws-opts:
+    path: /wss13889
+- alterId: 0
+  cipher: auto
+  name: '[WEB]108-VM'
+  network: ws
+  port: 2086
+  server: 162.159.140.33
+  skip-cert-verify: true
+  sni: ip1.1789034.xyz
+  tls: true
+  type: vmess
+  udp: true
+  uuid: e9e3cc13-db48-4cc1-8c24-7626439a5339
+  ws-opts:
+    headers:
+      Host: ip1.1789034.xyz
+    path: github.com/Alvin9999
+- client-fingerprint: chrome
+  name: '[WEB]106-VL'
+  network: ws
+  port: 8880
+  server: 172.64.88.168
+  skip-cert-verify: true
+  type: vless
+  udp: true
+  uuid: 6f876b28-1b3e-4088-85c0-d299e56bfccd
+  ws-opts:
+    headers:
+      Host: throbbing-haze-fbde.388-6c4.workers.dev
+    path: /pyip=ProxyIP.JP.CMLiussss.net
+- client-fingerprint: chrome
+  name: '[WEB]107-VL'
+  network: ws
+  port: 80
+  server: 172.67.212.210
+  skip-cert-verify: true
+  type: vless
+  udp: true
+  uuid: 752a3a41-8430-4dd3-99cc-36b14d3800d6
+  ws-opts:
+    headers:
+      Host: empty-water-4dd1.qara-atayi-3.workers.dev
+    path: /eyJqdW5rIjoiYm0zWkp6N1UiLCJwcm90b2NvbCI6InZsIiwibW9kZSI6InByZWZpeCIsInBhbmVsSVBzIjpbIlsyNjAyOmZjNTk6YjA6NjQ6Ol0iXX0=
+- client-fingerprint: chrome
+  name: '[WEB]120-VL'
+  network: ws
+  port: 80
+  server: 172.64.159.64
+  skip-cert-verify: true
+  type: vless
+  udp: true
+  uuid: 977bac99-33d4-408a-91f5-0ce737793a00
+  ws-opts:
+    headers:
+      Host: britain.vipserver14.workers.dev
+    path: /?ed=2048
+- client-fingerprint: chrome
+  name: '[WEB]121-VL'
+  network: ws
+  port: 8880
+  server: 104.18.11.118
+  skip-cert-verify: true
+  type: vless
+  udp: true
+  uuid: 17b2ed22-5fd0-47ad-b5f0-658379379ced
+  ws-opts:
+    headers:
+      Host: black-wildflower-dd92.72-1e8.workers.dev
+    path: /pyip=ProxyIP.KR.CMLiussss.net
+- client-fingerprint: chrome
+  name: '[WEB]125-VL'
+  network: ws
+  port: 8880
+  server: 162.159.156.214
+  skip-cert-verify: true
+  type: vless
+  udp: true
+  uuid: 8991a496-1baa-486f-9948-ffe44e68c072
+  ws-opts:
+    headers:
+      Host: soft-band-8da6.426.workers.dev
+    path: /pyip=ProxyIP.SG.CMLiussss.net
+- alterId: 0
+  cipher: auto
+  name: '[WEB]85-VM'
+  network: ws
+  port: 443
+  server: n1747624274.4u9ma.icu
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: d8daf507-a4ac-4eea-8399-8f0cd071eb52
+  ws-opts:
+    headers:
+      Host: n1747624274.4u9ma.icu
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]3-VM-1'
+  network: ws
+  port: 2052
+  server: 206.238.236.36
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: f584de15-2034-4170-a723-f48c2bae5e0f
+  ws-opts:
+    headers:
+      Host: mysan2.jaquay22.workers.dev
+    path: /afrhms16v.bestxray.buzz/linkws
 - alterId: 0
   cipher: auto
   name: '[WEB]52-VM'
-  port: 443
-  server: 167.235.136.155
+  network: ws
+  port: 80
+  server: 139.59.255.209
   skip-cert-verify: true
   type: vmess
   udp: true
-  uuid: 6b7cbc41-fb80-41a8-8eb6-b5bdb0e86147
+  uuid: 5c609459-82f5-430d-8e1b-84a8527cfb22
+  ws-opts:
+    headers:
+      Host: 4gvpn.akamaized.net
+    path: /cloudfast
+- alterId: 0
+  cipher: auto
+  name: '[WEB]53-VM'
+  network: ws
+  port: 80
+  server: 15.235.192.196
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 3701ded3-09ba-4154-970d-a9f4a090a382
+  ws-opts:
+    path: /vmess
+- alterId: 0
+  cipher: auto
+  name: '[WEB]54-VM'
+  network: ws
+  port: 80
+  server: 157.245.152.136
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 5c609459-82f5-430d-8e1b-84a8527cfb22
+  ws-opts:
+    headers:
+      Host: 4gvpn.akamaized.net
+    path: /kvw0870h/
+- alterId: 0
+  cipher: auto
+  name: '[WEB]55-VM'
+  network: ws
+  port: 80
+  server: 157.230.36.235
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: b484d576-b3e3-4ac5-b108-88a300dfe7e3
+  ws-opts:
+    path: /graphql
+- alterId: 0
+  cipher: auto
+  name: '[WEB]57-VM'
+  network: ws
+  port: 80
+  server: 139.99.61.154
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 932a1f0d-f5ce-418d-8560-c88f53c534b9
+  ws-opts:
+    headers:
+      Host: 139.99.61.154
+    path: /vmess
+- alterId: 64
+  cipher: auto
+  name: '[WEB]58-VM'
+  network: ws
+  port: 80
+  server: 159.223.94.156
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 533724ad-58ef-4147-88dc-9da523c15fc4
+  ws-opts:
+    path: /anti13.zingfast.vn
+- alterId: 0
+  cipher: auto
+  name: '[WEB]59-VM'
+  network: ws
+  port: 80
+  server: 143.198.219.182
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: e9c4ce52-9a78-4381-b6f8-23350bc4d606
+  ws-opts:
+    path: /v2ray
+- alterId: 0
+  cipher: auto
+  name: '[WEB]60-VM'
+  network: ws
+  port: 80
+  server: 8.219.123.35
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 7e7f8398-bd39-49d8-9ce6-e48ffef463dd
+  ws-opts:
+    path: /2TokGE9A/
 - alterId: 0
   cipher: auto
   name: '[WEB]62-VM'
-  port: 443
-  server: 94.130.25.155
+  network: ws
+  port: 80
+  server: 15.235.147.186
   skip-cert-verify: true
   type: vmess
   udp: true
-  uuid: 6b7cbc41-fb80-41a8-8eb6-b5bdb0e86147
+  uuid: 6fea1649-425b-4092-bf53-29792152c925
+  ws-opts:
+    path: /sshkit/Ertusg86/635014638c264/
+- alterId: 0
+  cipher: auto
+  name: '[WEB]64-VM'
+  network: ws
+  port: 80
+  server: 146.190.82.241
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: ee76cecf-1219-42be-ae3f-6b8077e4cacc
+  ws-opts:
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]65-VM'
+  network: ws
+  port: 80
+  server: 120.28.10.46
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: ecba5b33-f768-4d8a-b004-b29e8e5c676f
+  ws-opts:
+    headers:
+      Host: sazgar.serveirc.com
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]66-VM'
+  network: ws
+  port: 80
+  server: 109.123.237.41
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 03a77360-808d-11ed-b736-205c6d5f5d78
+  ws-opts:
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]70-VM'
+  network: ws
+  port: 80
+  server: 103.166.183.226
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: ef919c67-6638-4416-91af-9a13ffe5b9ca
+  ws-opts:
+    path: /tandung288.click
+- alterId: 0
+  cipher: auto
+  name: '[WEB]71-VM'
+  network: ws
+  port: 80
+  server: 103.82.25.106
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: ec7c94b5-6ca6-4289-b44b-c6583f2c5f6c
+  ws-opts:
+    path: /fuzzyng?ed=2048
+- alterId: 0
+  cipher: auto
+  name: '[WEB]72-VM'
+  network: ws
+  port: 80
+  server: 103.75.185.221
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 9e5999ba-870a-46b1-8500-37c640371ec6
+  ws-opts:
+    headers:
+      Host: 103.75.185.221
+    path: /bs
+- alterId: 0
+  cipher: auto
+  name: '[WEB]74-VM'
+  network: ws
+  port: 80
+  server: 103.56.160.184
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: ef919c67-6638-4416-91af-9a13ffe5b9ca
+  ws-opts:
+    path: /tandung288.click
+- alterId: 0
+  cipher: auto
+  name: '[WEB]77-VM'
+  network: ws
+  port: 80
+  server: 103.75.186.153
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: ef919c67-6638-4416-91af-9a13ffe5b9ca
+  ws-opts:
+    path: /tandung288.click
+- alterId: 0
+  cipher: auto
+  name: '[WEB]79-VM'
+  network: ws
+  port: 80
+  server: ee.oppo.quest
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: f9247df4-02d5-4b31-acc5-4022652c5953
+  ws-opts:
+    headers:
+      Host: ee.oppo.quest
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]80-VM'
+  network: ws
+  port: 80
+  server: cfhk.oppo.quest
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 2508cb1d-bd54-47c0-aead-1b8f55090427
+  ws-opts:
+    headers:
+      Host: scw.cloudflare.quest
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]94-VM'
+  network: ws
+  port: 80
+  server: 104.21.12.87
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 0b65bb06-6b28-487a-8e3c-820dda51e977
+  ws-opts:
+    path: /dT9s3HqgZeD3eApzDAfhOHq
+- alterId: 0
+  cipher: auto
+  name: '[WEB]95-VM'
+  network: ws
+  port: 2095
+  server: 172.64.85.189
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 417d27fb-cb93-3bd8-9bf7-71cd91319821
+  ws-opts:
+    path: /hgcefomn
+- alterId: 0
+  cipher: auto
+  name: '[WEB]96-VM'
+  network: ws
+  port: 80
+  server: 104.31.16.52
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 8abe9496-5e24-4e49-b566-dcf86116017d
+  ws-opts:
+    path: /i99LgvSaslbsPLLQQ7j6Z
+- alterId: 0
+  cipher: auto
+  name: '[WEB]98-VM'
+  network: ws
+  port: 80
+  server: 154.92.9.83
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: dd41b5cb-b72e-4a8c-c75a-3ecc928d6eb3
+  ws-opts:
+    path: /blue
+- alterId: 0
+  cipher: auto
+  name: '[WEB]99-VM'
+  network: ws
+  port: 80
+  server: 154.92.9.133
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: dd41b5cb-b72e-4a8c-c75a-3ecc928d6eb3
+  ws-opts:
+    path: /blue
+- alterId: 0
+  cipher: auto
+  name: '[WEB]100-VM'
+  network: ws
+  port: 2082
+  server: 104.31.16.46
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 58fe1542-5290-40ad-815a-77707a81afe5
+  ws-opts:
+    path: /IOebhLMhl1CTbFHbL95myfRX2
+- client-fingerprint: chrome
+  name: '[WEB]101-VL'
+  port: 2052
+  server: 172.64.152.23
+  skip-cert-verify: true
+  type: vless
+  udp: true
+  uuid: 2271c50f-ac7a-4d7f-8b04-64085b0daa56
+- client-fingerprint: chrome
+  name: '[WEB]102-VL'
+  port: 80
+  server: 104.17.147.22
+  skip-cert-verify: true
+  type: vless
+  udp: true
+  uuid: bd134ebe-650c-4bd6-a208-2463b226adb2
+- client-fingerprint: chrome
+  name: '[WEB]119-VL'
+  port: 2095
+  server: 104.21.55.47
+  skip-cert-verify: true
+  type: vless
+  udp: true
+  uuid: 213426db-afb7-48d1-ae51-5093317212df
+- alterId: 0
+  cipher: auto
+  name: '[WEB]40-VM'
+  network: ws
+  port: 8998
+  server: cc26.goingside.site
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 3d82c222-c34a-4522-b4ec-cdc90bcc0b84
+  ws-opts:
+    headers:
+      Host: cc26.goingside.site
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]41-VM'
+  network: ws
+  port: 36703
+  server: 47.244.120.197
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 45b83519-9c4f-4052-a11b-02e017b636d4
+  ws-opts:
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]42-VM'
+  network: ws
+  port: 14954
+  server: 91.200.242.187
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: efb748ec-c921-42a1-ac9e-1d5485d6c447
+  ws-opts:
+    headers:
+      Host: download.windowsupdate.com
+    path: /download
+- alterId: 0
+  cipher: auto
+  name: '[WEB]78-VM'
+  network: ws
+  port: 12890
+  server: cs.ktmcn.net
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 4941aa8d-07d2-408c-be2c-117debecba30
+  ws-opts:
+    headers:
+      Host: baidu.com
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]82-VM'
+  network: ws
+  port: 25228
+  server: cu.awslcn.info
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 93ec7261-1c92-4149-848a-26b6fb9fc4ce
+  ws-opts:
+    headers:
+      Host: cu.awslcn.info
+    path: /
+- alterId: 2
+  cipher: auto
+  name: '[WEB]83-VM'
+  network: ws
+  port: 60852
+  server: hkgb707.ifastcdncache.com
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: f8eca8df-a1a5-4918-a194-d34112a3673f
+  ws-opts:
+    headers:
+      Host: hkgb707.ifastcdncache.com
+    path: /
+- alterId: 2
+  cipher: auto
+  name: '[WEB]86-VM'
+  network: ws
+  port: 18243
+  server: imghk302.igcaches.com
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: f8eca8df-a1a5-4918-a194-d34112a3673f
+  ws-opts:
+    headers:
+      Host: imghk302.igcaches.com
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]87-VM'
+  network: ws
+  port: 9111
+  server: st-1.dnspro.icu
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 13ef5f2c-d002-36a2-9e96-a13d5e3ae03b
+  ws-opts:
+    headers:
+      Host: st-1.dnspro.icu
+    path: /iso
+- alterId: 0
+  cipher: auto
+  name: '[WEB]88-VM'
+  network: ws
+  port: 12901
+  server: cs.ktmcn.net
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 4941aa8d-07d2-408c-be2c-117debecba30
+  ws-opts:
+    headers:
+      Host: baidu.com
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]89-VM'
+  network: ws
+  port: 12883
+  server: cs.ktmcn.net
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 78f2e8f0-68ea-438e-84ec-d58c9416c680
+  ws-opts:
+    headers:
+      Host: baidu.com
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]90-VM'
+  network: ws
+  port: 12883
+  server: gtm1.ktmwan.net
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 4941aa8d-07d2-408c-be2c-117debecba30
+  ws-opts:
+    headers:
+      Host: baidu.com
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]91-VM'
+  network: ws
+  port: 12886
+  server: gtm1.ktmwan.net
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 4941aa8d-07d2-408c-be2c-117debecba30
+  ws-opts:
+    headers:
+      Host: baidu.com
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]92-VM'
+  network: ws
+  port: 12901
+  server: gtm1.ktmwan.net
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 4941aa8d-07d2-408c-be2c-117debecba30
+  ws-opts:
+    headers:
+      Host: baidu.com
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]93-VM'
+  network: ws
+  port: 12890
+  server: gtm1.ktmwan.net
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 4941aa8d-07d2-408c-be2c-117debecba30
+  ws-opts:
+    headers:
+      Host: baidu.com
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]37-VM'
+  port: 80
+  server: 217.142.138.61
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: ac1b933d-afff-4487-93ef-f57130a55dff
+- alterId: 0
+  cipher: auto
+  name: '[WEB]75-VM'
+  port: 27467
+  server: 103.166.184.134
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 93637105-bcea-4a68-b089-1bb6091f0b16
+- alterId: 0
+  cipher: auto
+  name: '[WEB]103-VM'
+  network: ws
+  port: 8880
+  server: 104.19.40.48
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 57e0cb4d-eae5-48ec-8091-149dc2b309e0
+  ws-opts:
+    path: /d/65dd503.TG.WangCai2.WangCai_8:107690
+- alterId: 0
+  cipher: auto
+  name: '[WEB]104-VM'
+  network: ws
+  port: 80
+  server: 154.92.9.253
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: dd41b5cb-b72e-4a8c-c75a-3ecc928d6eb3
+  ws-opts:
+    path: /blue
+- alterId: 0
+  cipher: auto
+  name: '[WEB]105-VM'
+  network: ws
+  port: 8880
+  server: 104.16.108.100
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 4b5e4565-322f-4223-a891-78a84f189726
+  ws-opts:
+    path: /RpT6kZjkw45EenmTcDYWs
+- alterId: 0
+  cipher: auto
+  name: '[WEB]109-VM'
+  network: ws
+  port: 2086
+  server: 104.19.21.230
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: e9e3cc13-db48-4cc1-8c24-7626439a5339
+  ws-opts:
+    headers:
+      Host: ip14.freegradely.xyz
+    path: github.com/Alvin9999
+- alterId: 0
+  cipher: auto
+  name: '[WEB]110-VM'
+  network: ws
+  port: 2086
+  server: 104.26.8.156
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: e9e3cc13-db48-4cc1-8c24-7626439a5339
+  ws-opts:
+    headers:
+      Host: ip1.1789034.xyz
+    path: github.com/Alvin9999
+- alterId: 0
+  cipher: auto
+  name: '[WEB]111-VM'
+  network: ws
+  port: 2082
+  server: 198.41.193.110
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 0afb8b2c-149a-49a8-e90f-d77884ac922f
+  ws-opts:
+    path: /blue
+- alterId: 0
+  cipher: auto
+  name: '[WEB]112-VM'
+  network: ws
+  port: 2095
+  server: 172.67.212.68
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 417d27fb-cb93-3bd8-9bf7-71cd91319821
+  ws-opts:
+    path: /hgcefomn
+- alterId: 0
+  cipher: auto
+  name: '[WEB]113-VM'
+  network: ws
+  port: 80
+  server: 104.31.16.47
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 8abe9496-5e24-4e49-b566-dcf86116017d
+  ws-opts:
+    path: /i99LgvSaslbsPLLQQ7j6Z
+- alterId: 0
+  cipher: auto
+  name: '[WEB]115-VM'
+  network: ws
+  port: 80
+  server: 104.16.61.8
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 4804f14b-c1f8-452d-a6ec-eff1490aeac9
+  ws-opts:
+    headers:
+      Host: hdfy6d3.freelines.net
+    path: /lRkGCkYS9X5GDNJYMWXN7kCm3lL
+- alterId: 0
+  cipher: auto
+  name: '[WEB]116-VM'
+  network: ws
+  port: 80
+  server: 154.92.9.115
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: dd41b5cb-b72e-4a8c-c75a-3ecc928d6eb3
+  ws-opts:
+    path: /blue
+- alterId: 0
+  cipher: auto
+  name: '[WEB]117-VM'
+  network: ws
+  port: 80
+  server: 104.31.16.29
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 8abe9496-5e24-4e49-b566-dcf86116017d
+  ws-opts:
+    path: /i99LgvSaslbsPLLQQ7j6Z
+- alterId: 0
+  cipher: auto
+  name: '[WEB]122-VM'
+  network: ws
+  port: 2086
+  server: 104.19.47.79
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: e9e3cc13-db48-4cc1-8c24-7626439a5339
+  ws-opts:
+    headers:
+      Host: ip14.freegradely.xyz
+    path: github.com/Alvin9999
+- alterId: 0
+  cipher: auto
+  name: '[WEB]123-VM'
+  network: ws
+  port: 2095
+  server: 162.159.194.135
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 417d27fb-cb93-3bd8-9bf7-71cd91319821
+  ws-opts:
+    path: /hgcefomn
+- alterId: 0
+  cipher: auto
+  name: '[WEB]127-VM'
+  network: ws
+  port: 2086
+  server: 104.19.46.39
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: e9e3cc13-db48-4cc1-8c24-7626439a5339
+  ws-opts:
+    headers:
+      Host: ip13.freegradely.xyz
+    path: github.com/Alvin9999
+- alterId: 0
+  cipher: auto
+  name: '[WEB]128-VM'
+  network: ws
+  port: 80
+  server: 104.17.171.34
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 60be5ddb-c9f1-48ec-b0ee-f6bd4364b3ce
+  ws-opts:
+    headers:
+      Host: ccs.hostmjj.com
+    path: /
+- alterId: 0
+  cipher: auto
+  name: '[WEB]129-VM'
+  network: ws
+  port: 2086
+  server: 162.159.140.93
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: e9e3cc13-db48-4cc1-8c24-7626439a5339
+  ws-opts:
+    headers:
+      Host: ip1.1789034.xyz
+    path: github.com/Alvin9999
+- alterId: 0
+  cipher: auto
+  name: '[WEB]130-VM'
+  network: ws
+  port: 2095
+  server: 172.67.193.125
+  skip-cert-verify: true
+  type: vmess
+  udp: true
+  uuid: 417d27fb-cb93-3bd8-9bf7-71cd91319821
+  ws-opts:
+    path: /hgcefomn
 proxy-groups:
 - interval: 300
   name: '[START] Auto'
   proxies:
-  - '[WEB]16-VL'
-  - '[WEB]19-VL'
-  - '[WEB]3-VL'
+  - '[WEB]21-VL'
+  - '[WEB]22-VL'
   - '[WEB]63-VL'
-  - '[WEB]76-VL'
-  - 🇷🇺1-VL
-  - 🇮🇷5-VL
-  - '[WEB]6-VL'
-  - '[WEB]26-VL'
-  - '[WEB]37-VL'
-  - '[WEB]42-VL'
-  - '[WEB]43-VL'
-  - '[WEB]44-VL'
-  - '[WEB]46-VL'
-  - '[WEB]50-VL'
-  - '[WEB]53-VL'
-  - '[WEB]59-VL'
-  - '[WEB]66-VL'
-  - '[WEB]72-VL'
-  - '[WEB]78-VL'
-  - '[WEB]6-VL-1'
-  - 🇮🇷8-VL
-  - 🇮🇷10-VL
-  - 🇮🇷11-VL
-  - 🇮🇷1-VL
-  - '[WEB]2-VL'
-  - 🇮🇷2-VL
-  - 🇮🇷3-VL
-  - '[WEB]4-VL'
-  - '[WEB]5-VL'
-  - '[WEB]49-VL'
-  - '[WEB]59-VL-1'
-  - 🇫🇷1-VL
-  - 🇫🇷2-VL
-  - 🇫🇷3-VL
-  - '[WEB]4-VL-1'
-  - 🇫🇷4-VL
-  - '[WEB]17-VL'
-  - '[WEB]18-VL'
-  - '[WEB]19-VL-1'
-  - '[WEB]23-VL'
-  - '[WEB]23-VL-1'
-  - '[WEB]25-VL'
-  - '[WEB]26-VL-1'
-  - '[WEB]27-VL'
-  - '[WEB]29-VL'
-  - '[WEB]31-VL'
-  - '[WEB]35-VL'
-  - '[WEB]38-VL'
-  - '[WEB]42-VL-1'
-  - '[WEB]51-VL'
-  - '[WEB]52-VL'
-  - '[WEB]53-VL-1'
-  - '[WEB]54-VL'
-  - '[WEB]56-VL'
-  - '[WEB]58-VL'
-  - 🇫🇷1-VL-1
-  - 🇮🇷5-VL-1
-  - '[WEB]24-VL'
-  - '[WEB]25-VL-1'
-  - '[WEB]29-VL-1'
-  - '[WEB]37-VL-1'
-  - '[WEB]40-VL'
-  - '[WEB]46-VL-1'
   - '[WEB]68-VL'
-  - 🇷🇺1-VL-1
-  - '[WEB]20-VL'
-  - '[WEB]32-VL'
-  - '[WEB]41-VL'
-  - '[WEB]13-TR'
-  - '[WEB]57-TR'
-  - '[WEB]65-TR'
-  - '[WEB]71-TR'
-  - '[WEB]80-TR'
-  - '[WEB]2-TR'
-  - '[WEB]5-TR'
-  - '[WEB]7-TR'
-  - '[WEB]10-TR'
-  - '[WEB]11-TR'
-  - '[WEB]12-TR'
-  - '[WEB]13-TR-1'
-  - '[WEB]18-TR'
-  - '[WEB]20-TR'
-  - '[WEB]21-TR'
-  - '[WEB]21-TR-1'
-  - '[WEB]22-TR'
-  - '[WEB]33-TR'
-  - '[WEB]51-TR'
-  - '[WEB]56-TR'
-  - '[WEB]61-TR'
-  - '[WEB]69-TR'
-  - '[WEB]73-TR'
-  - '[WEB]1-VM'
-  - '[WEB]3-VM'
-  - '[WEB]4-TR'
-  - '[WEB]8-VM'
-  - '[WEB]9-VM'
-  - 🇮🇷13-VM
+  - '[WEB]81-VL'
+  - 🇯🇵1-TR
+  - '[WEB]31-VL'
+  - 🇰🇷1-VL
+  - '[WEB]11-VL'
+  - '[WEB]38-VM'
+  - '[WEB]48-VM'
+  - '[WEB]6-VL'
+  - '[WEB]9-VL'
+  - '[WEB]10-VL'
+  - '[WEB]1-VL'
+  - '[WEB]13-VM'
+  - '[WEB]18-VM'
+  - '[WEB]25-VM'
+  - '[WEB]34-VM'
+  - '[WEB]61-VM'
+  - '[WEB]76-VM'
+  - '[WEB]19-VM'
+  - '[WEB]7-VM'
   - '[WEB]15-VM'
+  - '[WEB]17-VM'
+  - '[WEB]24-VM'
+  - '[WEB]67-VM'
+  - '[WEB]47-VL'
+  - 🇹🇼1-VM
+  - 🇭🇰1-VM
+  - '[WEB]2-VM'
   - '[WEB]16-VM'
-  - '[WEB]22-VM'
+  - '[WEB]14-VM'
+  - 🇲🇴1-VL
+  - '[WEB]4-VL'
+  - '[WEB]12-VL'
+  - '[WEB]20-VL'
+  - '[WEB]33-VL'
+  - 🇮🇩1-VM
+  - '[WEB]26-VM'
+  - '[WEB]35-VL'
+  - '[WEB]5-VM'
+  - '[WEB]8-VM'
+  - 🇮🇷3-VL
+  - '[WEB]9-VL-1'
+  - '[WEB]10-VL-1'
+  - 🇷🇺1-VL
+  - 🇮🇷1-VL
+  - '[WEB]3-TR'
+  - '[WEB]6-TR'
+  - '[WEB]7-TR'
+  - '[WEB]2-VM-1'
+  - '[WEB]3-VM'
+  - '[WEB]5-VM-1'
+  - '[WEB]7-VM-1'
+  - '[WEB]8-VM-1'
+  - '[WEB]11-VM'
+  - '[WEB]11-VM-1'
+  - '[WEB]12-VM'
+  - '[WEB]12-VM-1'
+  - '[WEB]13-VM-1'
+  - '[WEB]14-VM-1'
+  - '[WEB]2-VM-2'
+  - '[WEB]6-VM'
+  - '[WEB]8-VM-2'
+  - '[WEB]16-VM-1'
+  - '[WEB]4-VM'
+  - 🇫🇷1-VL
+  - '[WEB]10-VL-2'
+  - '[WEB]97-VL'
+  - '[WEB]5-VM-2'
+  - '[WEB]15-VM-1'
+  - '[WEB]1-VM'
+  - '[WEB]9-VM'
+  - 🇮🇷2-VL
+  - '[WEB]1-VM-1'
+  - '[WEB]4-VM-1'
+  - '[WEB]118-VL'
+  - '[WEB]124-VL'
+  - '[WEB]126-VL'
+  - '[WEB]23-VM'
+  - '[WEB]29-VM'
+  - '[WEB]32-VM'
+  - '[WEB]39-VM'
+  - '[WEB]46-VM'
+  - '[WEB]49-VM'
+  - '[WEB]50-VM'
+  - '[WEB]51-VM'
+  - '[WEB]56-VM'
+  - '[WEB]73-VM'
+  - '[WEB]84-VM'
+  - 🇺🇦1-VM
   - '[WEB]27-VM'
+  - '[WEB]36-VM'
+  - 🇺🇦2-VM
   - '[WEB]28-VM'
   - '[WEB]30-VM'
-  - '[WEB]35-VM'
-  - '[WEB]48-VM'
+  - '[WEB]43-VM'
+  - '[WEB]44-VM'
+  - '[WEB]45-VM'
+  - '[WEB]69-VM'
+  - '[WEB]114-VM'
+  - '[WEB]131-VM'
+  - '[WEB]108-VM'
+  - '[WEB]106-VL'
+  - '[WEB]107-VL'
+  - '[WEB]120-VL'
+  - '[WEB]121-VL'
+  - '[WEB]125-VL'
+  - '[WEB]85-VM'
+  - '[WEB]3-VM-1'
+  - '[WEB]52-VM'
+  - '[WEB]53-VM'
+  - '[WEB]54-VM'
   - '[WEB]55-VM'
-  - '[WEB]67-TR'
-  - '[WEB]75-VM'
+  - '[WEB]57-VM'
+  - '[WEB]58-VM'
+  - '[WEB]59-VM'
+  - '[WEB]60-VM'
+  - '[WEB]62-VM'
+  - '[WEB]64-VM'
+  - '[WEB]65-VM'
+  - '[WEB]66-VM'
+  - '[WEB]70-VM'
+  - '[WEB]71-VM'
+  - '[WEB]72-VM'
+  - '[WEB]74-VM'
   - '[WEB]77-VM'
   - '[WEB]79-VM'
-  - '[WEB]7-VM'
-  - '[WEB]12-VM'
-  - '[WEB]14-TR'
-  - '[WEB]14-VM'
-  - '[WEB]38-VM'
-  - '[WEB]41-VM'
-  - 🇮🇷1-TR
-  - 🇮🇷3-TR
-  - 🇮🇷4-VM
-  - '[WEB]54-VM'
-  - '[WEB]55-TR'
-  - '[WEB]58-TR'
-  - '[WEB]64-TR'
-  - '[WEB]74-TR'
-  - 🇮🇷14-VL
-  - '[WEB]1-VL'
-  - '[WEB]2-VL-1'
-  - '[WEB]24-VL-1'
-  - '[WEB]28-VL'
-  - '[WEB]30-VL'
-  - '[WEB]31-VL-1'
-  - '[WEB]32-VL-1'
-  - '[WEB]33-VL'
-  - '[WEB]34-VL'
-  - '[WEB]36-VL'
-  - '[WEB]39-VL'
-  - '[WEB]43-VL-1'
-  - '[WEB]44-VL-1'
-  - '[WEB]45-VL'
-  - '[WEB]47-VL'
-  - '[WEB]48-VL'
-  - '[WEB]49-VL-1'
-  - '[WEB]50-VL-1'
-  - '[WEB]57-VL'
+  - '[WEB]80-VM'
+  - '[WEB]94-VM'
+  - '[WEB]95-VM'
+  - '[WEB]96-VM'
+  - '[WEB]98-VM'
+  - '[WEB]99-VM'
+  - '[WEB]100-VM'
+  - '[WEB]101-VL'
+  - '[WEB]102-VL'
+  - '[WEB]119-VL'
   - '[WEB]40-VM'
-  - '[WEB]60-VL'
-  - '[WEB]34-VL-1'
-  - 🇮🇷2-VL-1
-  - 🇮🇷4-VL
-  - 🇮🇷6-VL
-  - 🇮🇷7-VL
-  - 🇮🇷9-VL
-  - '[WEB]36-VL-1'
-  - '[WEB]39-VL-1'
-  - '[WEB]45-VL-1'
-  - '[WEB]8-VM-1'
-  - '[WEB]9-TR'
-  - '[WEB]10-TR-1'
-  - '[WEB]1-VM-1'
-  - '[WEB]3-VM-1'
-  - '[WEB]5-VM'
-  - '[WEB]11-VM'
-  - 🇮🇷12-VM
-  - '[WEB]17-VM'
-  - '[WEB]47-VM'
-  - '[WEB]70-VM'
-  - '[WEB]81-VM'
-  - '[WEB]6-VM'
-  - '[WEB]15-VM-1'
-  - '[WEB]52-VM'
-  - '[WEB]62-VM'
+  - '[WEB]41-VM'
+  - '[WEB]42-VM'
+  - '[WEB]78-VM'
+  - '[WEB]82-VM'
+  - '[WEB]83-VM'
+  - '[WEB]86-VM'
+  - '[WEB]87-VM'
+  - '[WEB]88-VM'
+  - '[WEB]89-VM'
+  - '[WEB]90-VM'
+  - '[WEB]91-VM'
+  - '[WEB]92-VM'
+  - '[WEB]93-VM'
+  - '[WEB]37-VM'
+  - '[WEB]75-VM'
+  - '[WEB]103-VM'
+  - '[WEB]104-VM'
+  - '[WEB]105-VM'
+  - '[WEB]109-VM'
+  - '[WEB]110-VM'
+  - '[WEB]111-VM'
+  - '[WEB]112-VM'
+  - '[WEB]113-VM'
+  - '[WEB]115-VM'
+  - '[WEB]116-VM'
+  - '[WEB]117-VM'
+  - '[WEB]122-VM'
+  - '[WEB]123-VM'
+  - '[WEB]127-VM'
+  - '[WEB]128-VM'
+  - '[WEB]129-VM'
+  - '[WEB]130-VM'
   tolerance: 50
   type: url-test
   url: https://myip.ipip.net/json
 - name: '[GEO] Select'
   proxies:
   - '[START] Auto'
-  - '[WEB]16-VL'
-  - '[WEB]19-VL'
-  - '[WEB]3-VL'
+  - '[WEB]21-VL'
+  - '[WEB]22-VL'
   - '[WEB]63-VL'
-  - '[WEB]76-VL'
-  - 🇷🇺1-VL
-  - 🇮🇷5-VL
-  - '[WEB]6-VL'
-  - '[WEB]26-VL'
-  - '[WEB]37-VL'
-  - '[WEB]42-VL'
-  - '[WEB]43-VL'
-  - '[WEB]44-VL'
-  - '[WEB]46-VL'
-  - '[WEB]50-VL'
-  - '[WEB]53-VL'
-  - '[WEB]59-VL'
-  - '[WEB]66-VL'
-  - '[WEB]72-VL'
-  - '[WEB]78-VL'
-  - '[WEB]6-VL-1'
-  - 🇮🇷8-VL
-  - 🇮🇷10-VL
-  - 🇮🇷11-VL
-  - 🇮🇷1-VL
-  - '[WEB]2-VL'
-  - 🇮🇷2-VL
-  - 🇮🇷3-VL
-  - '[WEB]4-VL'
-  - '[WEB]5-VL'
-  - '[WEB]49-VL'
-  - '[WEB]59-VL-1'
-  - 🇫🇷1-VL
-  - 🇫🇷2-VL
-  - 🇫🇷3-VL
-  - '[WEB]4-VL-1'
-  - 🇫🇷4-VL
-  - '[WEB]17-VL'
-  - '[WEB]18-VL'
-  - '[WEB]19-VL-1'
-  - '[WEB]23-VL'
-  - '[WEB]23-VL-1'
-  - '[WEB]25-VL'
-  - '[WEB]26-VL-1'
-  - '[WEB]27-VL'
-  - '[WEB]29-VL'
-  - '[WEB]31-VL'
-  - '[WEB]35-VL'
-  - '[WEB]38-VL'
-  - '[WEB]42-VL-1'
-  - '[WEB]51-VL'
-  - '[WEB]52-VL'
-  - '[WEB]53-VL-1'
-  - '[WEB]54-VL'
-  - '[WEB]56-VL'
-  - '[WEB]58-VL'
-  - 🇫🇷1-VL-1
-  - 🇮🇷5-VL-1
-  - '[WEB]24-VL'
-  - '[WEB]25-VL-1'
-  - '[WEB]29-VL-1'
-  - '[WEB]37-VL-1'
-  - '[WEB]40-VL'
-  - '[WEB]46-VL-1'
   - '[WEB]68-VL'
-  - 🇷🇺1-VL-1
-  - '[WEB]20-VL'
-  - '[WEB]32-VL'
-  - '[WEB]41-VL'
-  - '[WEB]13-TR'
-  - '[WEB]57-TR'
-  - '[WEB]65-TR'
-  - '[WEB]71-TR'
-  - '[WEB]80-TR'
-  - '[WEB]2-TR'
-  - '[WEB]5-TR'
-  - '[WEB]7-TR'
-  - '[WEB]10-TR'
-  - '[WEB]11-TR'
-  - '[WEB]12-TR'
-  - '[WEB]13-TR-1'
-  - '[WEB]18-TR'
-  - '[WEB]20-TR'
-  - '[WEB]21-TR'
-  - '[WEB]21-TR-1'
-  - '[WEB]22-TR'
-  - '[WEB]33-TR'
-  - '[WEB]51-TR'
-  - '[WEB]56-TR'
-  - '[WEB]61-TR'
-  - '[WEB]69-TR'
-  - '[WEB]73-TR'
-  - '[WEB]1-VM'
-  - '[WEB]3-VM'
-  - '[WEB]4-TR'
-  - '[WEB]8-VM'
-  - '[WEB]9-VM'
-  - 🇮🇷13-VM
+  - '[WEB]81-VL'
+  - 🇯🇵1-TR
+  - '[WEB]31-VL'
+  - 🇰🇷1-VL
+  - '[WEB]11-VL'
+  - '[WEB]38-VM'
+  - '[WEB]48-VM'
+  - '[WEB]6-VL'
+  - '[WEB]9-VL'
+  - '[WEB]10-VL'
+  - '[WEB]1-VL'
+  - '[WEB]13-VM'
+  - '[WEB]18-VM'
+  - '[WEB]25-VM'
+  - '[WEB]34-VM'
+  - '[WEB]61-VM'
+  - '[WEB]76-VM'
+  - '[WEB]19-VM'
+  - '[WEB]7-VM'
   - '[WEB]15-VM'
+  - '[WEB]17-VM'
+  - '[WEB]24-VM'
+  - '[WEB]67-VM'
+  - '[WEB]47-VL'
+  - 🇹🇼1-VM
+  - 🇭🇰1-VM
+  - '[WEB]2-VM'
   - '[WEB]16-VM'
-  - '[WEB]22-VM'
+  - '[WEB]14-VM'
+  - 🇲🇴1-VL
+  - '[WEB]4-VL'
+  - '[WEB]12-VL'
+  - '[WEB]20-VL'
+  - '[WEB]33-VL'
+  - 🇮🇩1-VM
+  - '[WEB]26-VM'
+  - '[WEB]35-VL'
+  - '[WEB]5-VM'
+  - '[WEB]8-VM'
+  - 🇮🇷3-VL
+  - '[WEB]9-VL-1'
+  - '[WEB]10-VL-1'
+  - 🇷🇺1-VL
+  - 🇮🇷1-VL
+  - '[WEB]3-TR'
+  - '[WEB]6-TR'
+  - '[WEB]7-TR'
+  - '[WEB]2-VM-1'
+  - '[WEB]3-VM'
+  - '[WEB]5-VM-1'
+  - '[WEB]7-VM-1'
+  - '[WEB]8-VM-1'
+  - '[WEB]11-VM'
+  - '[WEB]11-VM-1'
+  - '[WEB]12-VM'
+  - '[WEB]12-VM-1'
+  - '[WEB]13-VM-1'
+  - '[WEB]14-VM-1'
+  - '[WEB]2-VM-2'
+  - '[WEB]6-VM'
+  - '[WEB]8-VM-2'
+  - '[WEB]16-VM-1'
+  - '[WEB]4-VM'
+  - 🇫🇷1-VL
+  - '[WEB]10-VL-2'
+  - '[WEB]97-VL'
+  - '[WEB]5-VM-2'
+  - '[WEB]15-VM-1'
+  - '[WEB]1-VM'
+  - '[WEB]9-VM'
+  - 🇮🇷2-VL
+  - '[WEB]1-VM-1'
+  - '[WEB]4-VM-1'
+  - '[WEB]118-VL'
+  - '[WEB]124-VL'
+  - '[WEB]126-VL'
+  - '[WEB]23-VM'
+  - '[WEB]29-VM'
+  - '[WEB]32-VM'
+  - '[WEB]39-VM'
+  - '[WEB]46-VM'
+  - '[WEB]49-VM'
+  - '[WEB]50-VM'
+  - '[WEB]51-VM'
+  - '[WEB]56-VM'
+  - '[WEB]73-VM'
+  - '[WEB]84-VM'
+  - 🇺🇦1-VM
   - '[WEB]27-VM'
+  - '[WEB]36-VM'
+  - 🇺🇦2-VM
   - '[WEB]28-VM'
   - '[WEB]30-VM'
-  - '[WEB]35-VM'
-  - '[WEB]48-VM'
+  - '[WEB]43-VM'
+  - '[WEB]44-VM'
+  - '[WEB]45-VM'
+  - '[WEB]69-VM'
+  - '[WEB]114-VM'
+  - '[WEB]131-VM'
+  - '[WEB]108-VM'
+  - '[WEB]106-VL'
+  - '[WEB]107-VL'
+  - '[WEB]120-VL'
+  - '[WEB]121-VL'
+  - '[WEB]125-VL'
+  - '[WEB]85-VM'
+  - '[WEB]3-VM-1'
+  - '[WEB]52-VM'
+  - '[WEB]53-VM'
+  - '[WEB]54-VM'
   - '[WEB]55-VM'
-  - '[WEB]67-TR'
-  - '[WEB]75-VM'
+  - '[WEB]57-VM'
+  - '[WEB]58-VM'
+  - '[WEB]59-VM'
+  - '[WEB]60-VM'
+  - '[WEB]62-VM'
+  - '[WEB]64-VM'
+  - '[WEB]65-VM'
+  - '[WEB]66-VM'
+  - '[WEB]70-VM'
+  - '[WEB]71-VM'
+  - '[WEB]72-VM'
+  - '[WEB]74-VM'
   - '[WEB]77-VM'
   - '[WEB]79-VM'
-  - '[WEB]7-VM'
-  - '[WEB]12-VM'
-  - '[WEB]14-TR'
-  - '[WEB]14-VM'
-  - '[WEB]38-VM'
-  - '[WEB]41-VM'
-  - 🇮🇷1-TR
-  - 🇮🇷3-TR
-  - 🇮🇷4-VM
-  - '[WEB]54-VM'
-  - '[WEB]55-TR'
-  - '[WEB]58-TR'
-  - '[WEB]64-TR'
-  - '[WEB]74-TR'
-  - 🇮🇷14-VL
-  - '[WEB]1-VL'
-  - '[WEB]2-VL-1'
-  - '[WEB]24-VL-1'
-  - '[WEB]28-VL'
-  - '[WEB]30-VL'
-  - '[WEB]31-VL-1'
-  - '[WEB]32-VL-1'
-  - '[WEB]33-VL'
-  - '[WEB]34-VL'
-  - '[WEB]36-VL'
-  - '[WEB]39-VL'
-  - '[WEB]43-VL-1'
-  - '[WEB]44-VL-1'
-  - '[WEB]45-VL'
-  - '[WEB]47-VL'
-  - '[WEB]48-VL'
-  - '[WEB]49-VL-1'
-  - '[WEB]50-VL-1'
-  - '[WEB]57-VL'
+  - '[WEB]80-VM'
+  - '[WEB]94-VM'
+  - '[WEB]95-VM'
+  - '[WEB]96-VM'
+  - '[WEB]98-VM'
+  - '[WEB]99-VM'
+  - '[WEB]100-VM'
+  - '[WEB]101-VL'
+  - '[WEB]102-VL'
+  - '[WEB]119-VL'
   - '[WEB]40-VM'
-  - '[WEB]60-VL'
-  - '[WEB]34-VL-1'
-  - 🇮🇷2-VL-1
-  - 🇮🇷4-VL
-  - 🇮🇷6-VL
-  - 🇮🇷7-VL
-  - 🇮🇷9-VL
-  - '[WEB]36-VL-1'
-  - '[WEB]39-VL-1'
-  - '[WEB]45-VL-1'
-  - '[WEB]8-VM-1'
-  - '[WEB]9-TR'
-  - '[WEB]10-TR-1'
-  - '[WEB]1-VM-1'
-  - '[WEB]3-VM-1'
-  - '[WEB]5-VM'
-  - '[WEB]11-VM'
-  - 🇮🇷12-VM
-  - '[WEB]17-VM'
-  - '[WEB]47-VM'
-  - '[WEB]70-VM'
-  - '[WEB]81-VM'
-  - '[WEB]6-VM'
-  - '[WEB]15-VM-1'
-  - '[WEB]52-VM'
-  - '[WEB]62-VM'
+  - '[WEB]41-VM'
+  - '[WEB]42-VM'
+  - '[WEB]78-VM'
+  - '[WEB]82-VM'
+  - '[WEB]83-VM'
+  - '[WEB]86-VM'
+  - '[WEB]87-VM'
+  - '[WEB]88-VM'
+  - '[WEB]89-VM'
+  - '[WEB]90-VM'
+  - '[WEB]91-VM'
+  - '[WEB]92-VM'
+  - '[WEB]93-VM'
+  - '[WEB]37-VM'
+  - '[WEB]75-VM'
+  - '[WEB]103-VM'
+  - '[WEB]104-VM'
+  - '[WEB]105-VM'
+  - '[WEB]109-VM'
+  - '[WEB]110-VM'
+  - '[WEB]111-VM'
+  - '[WEB]112-VM'
+  - '[WEB]113-VM'
+  - '[WEB]115-VM'
+  - '[WEB]116-VM'
+  - '[WEB]117-VM'
+  - '[WEB]122-VM'
+  - '[WEB]123-VM'
+  - '[WEB]127-VM'
+  - '[WEB]128-VM'
+  - '[WEB]129-VM'
+  - '[WEB]130-VM'
   type: select
 rules:
 - DOMAIN-SUFFIX,cn,DIRECT
